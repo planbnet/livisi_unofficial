@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Enter the IP address and the (local) password of the SHC.",
+        "data": {
+          "host": "[%key:common::config_flow::data::ip%]",
+          "password": "[%key:common::config_flow::data::password%]"
+        }
+      }
+    },
+    "error": {
+      "wrong_password": "The password is incorrect.",
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "wrong_ip_address": "The IP address is incorrect or the SHC cannot be reached locally."
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "button_long_press": "\"{subtype}\" long press",
+      "button_press": "\"{subtype}\" press",
+      "motion_detected": "Motion detected"
+    },
+    "trigger_subtype": {
+      "button_0": "Button 1",
+      "button_1": "Button 2",
+      "button_2": "Button 3",
+      "button_3": "Button 4",
+      "button_4": "Button 5",
+      "button_5": "Button 6",
+      "button_6": "Button 7",
+      "button_7": "Button 8"
+    }
+  }
+}
