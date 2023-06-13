@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Final
 
 from aiohttp import ClientConnectorError
-from .aiolivisi.aiolivisi import AioLivisi
 
 from homeassistant import core
 from homeassistant.config_entries import ConfigEntry
@@ -13,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, device_registry as dr
 
+from .aiolivisi.aiolivisi import AioLivisi
 from .const import DOMAIN
 from .coordinator import LivisiDataUpdateCoordinator
 
