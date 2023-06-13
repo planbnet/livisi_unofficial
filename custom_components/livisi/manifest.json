@@ -6,12 +6,12 @@
   ],
   "config_flow": true,
   "documentation": "https://github.com/planbnet/livisi_unofficial",
-  "issue_tracker": "https://github.com/planbnet/livisi_unofficial/issues",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/planbnet/livisi_unofficial/issues",
   "requirements": [
-    "websockets",
     "aiohttp",
-    "pydantic"
+    "pydantic",
+    "websockets"
   ],
   "version": "0.0.1"
 }
