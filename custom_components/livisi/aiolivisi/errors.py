@@ -1,5 +1,6 @@
 """Errors for the Livisi Smart Home component."""
 
+
 class LivisiException(Exception):
     """Base class for Livisi exceptions."""
 
@@ -24,5 +25,6 @@ class ErrorCodeException(LivisiException):
     """The request sent an errorcode (other than token expired) as response."""
 
     def __init__(self, error_code: int, *args: object) -> None:
+        """Generate error with code."""
         self.error_code = error_code
         super().__init__(*args)

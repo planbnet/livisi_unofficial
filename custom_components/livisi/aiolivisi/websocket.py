@@ -1,5 +1,5 @@
 """Code for communication with the Livisi application websocket."""
-from typing import Callable
+from collections.abc import Callable
 import urllib.parse
 
 import websockets
@@ -62,7 +62,7 @@ class Websocket:
         await self._websocket.close(code=1000, reason="Handle disconnect request")
 
     async def consumer_handler(self, websocket, on_data: Callable):
-        """Used when data is transmited using the websocket."""
+        """Parse data transmitted via the websocket."""
         async for message in websocket:
             try:
                 event_data = LivisiEvent.parse_raw(message)
@@ -75,32 +75,32 @@ class Websocket:
                 continue
 
             if event_data.type == EVENT_STATE_CHANGED:
-                if ON_STATE in event_data.properties.keys():
+                if ON_STATE in event_data.properties:
                     event_data.onState = event_data.properties.get(ON_STATE)
-                elif VALUE in event_data.properties.keys() and isinstance(
+                elif VALUE in event_data.properties and isinstance(
                     event_data.properties.get(VALUE), bool
                 ):
                     event_data.onState = event_data.properties.get(VALUE)
-                if SET_POINT_TEMPERATURE in event_data.properties.keys():
+                if SET_POINT_TEMPERATURE in event_data.properties:
                     event_data.vrccData = event_data.properties.get(
                         SET_POINT_TEMPERATURE
                     )
-                elif POINT_TEMPERATURE in event_data.properties.keys():
+                elif POINT_TEMPERATURE in event_data.properties:
                     event_data.vrccData = event_data.properties.get(POINT_TEMPERATURE)
-                elif TEMPERATURE in event_data.properties.keys():
+                elif TEMPERATURE in event_data.properties:
                     event_data.vrccData = event_data.properties.get(TEMPERATURE)
-                elif HUMIDITY in event_data.properties.keys():
+                elif HUMIDITY in event_data.properties:
                     event_data.vrccData = event_data.properties.get(HUMIDITY)
-                if LUMINANCE in event_data.properties.keys():
+                if LUMINANCE in event_data.properties:
                     event_data.luminance = event_data.properties.get(LUMINANCE)
-                if IS_REACHABLE in event_data.properties.keys():
+                if IS_REACHABLE in event_data.properties:
                     event_data.isReachable = event_data.properties.get(IS_REACHABLE)
-                if IS_OPEN in event_data.properties.keys():
+                if IS_OPEN in event_data.properties:
                     event_data.isOpen = event_data.properties.get(IS_OPEN)
             elif event_data.type == EVENT_BUTTON_PRESSED:
-                if KEY_INDEX in event_data.properties.keys():
+                if KEY_INDEX in event_data.properties:
                     event_data.keyIndex = event_data.properties.get(KEY_INDEX)
                     event_data.isLongKeyPress = (
-                        KEY_PRESS_LONG == event_data.properties.get(KEY_PRESS_TYPE)
+                        event_data.properties.get(KEY_PRESS_TYPE) == KEY_PRESS_LONG
                     )
             on_data(event_data)

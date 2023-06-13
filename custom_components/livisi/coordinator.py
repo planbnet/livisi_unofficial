@@ -35,6 +35,7 @@ from .const import (
     LOGGER,
 )
 
+
 class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
     """Class to manage fetching LIVISI data API."""
 
@@ -125,7 +126,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             self.rooms[available_room["id"]] = available_room_config["name"]
 
     def get_room_name(self, device: dict[str, Any]) -> str | None:
-        """Gets the room name from a device."""
+        """Get the room name from a device."""
         room_id: str | None = device.get("location")
         room_name: str | None = None
         if room_id is not None:

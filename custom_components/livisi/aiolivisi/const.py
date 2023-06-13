@@ -1,3 +1,5 @@
+"""Constants for aiolivisi communication."""
+
 from typing import Final
 
 CLASSIC_PORT: Final = 8080

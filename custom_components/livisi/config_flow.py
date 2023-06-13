@@ -4,8 +4,9 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import Any
 
-from aiohttp import ClientConnectorSSLError
 import voluptuous as vol
+
+from aiohttp import ClientConnectorError
 
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult

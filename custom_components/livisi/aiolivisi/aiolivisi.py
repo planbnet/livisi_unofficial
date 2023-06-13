@@ -37,6 +37,7 @@ class AioLivisi:
     def __init__(
         self, web_session: ClientSession = None, auth_headers: dict[str, Any] = None
     ) -> None:
+        """Initialize aiolivisi lib."""
         self._web_session: ClientSession = web_session
         self._auth_headers: dict[str, Any] = auth_headers
         self._token: str = ""
