@@ -1,9 +1,17 @@
 {
   "domain": "livisi",
-  "name": "LIVISI Smart Home",
-  "codeowners": ["@StefanIacobLivisi", "@planbnet"],
+  "name": "Livisi Unofficial",
+  "version": "0.0.1",
+  "codeowners": [
+    "@planbnet"
+  ],
   "config_flow": true,
-  "documentation": "https://www.home-assistant.io/integrations/livisi",
+  "documentation": "https://github.com/planbnet/livisi_unofficial",
+  "issue_tracker": "https://github.com/planbnet/livisi_unofficial/issues",
   "iot_class": "local_polling",
-  "requirements": ["aiolivisi==0.0.19"]
+  "requirements": [
+    "websockets",
+    "aiohttp",
+    "pydantic"
+  ]
 }

@@ -1,6 +1,5 @@
 """Errors for the Livisi Smart Home component."""
 
-
 class LivisiException(Exception):
     """Base class for Livisi exceptions."""
 

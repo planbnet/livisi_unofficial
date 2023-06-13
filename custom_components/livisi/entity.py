@@ -4,13 +4,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from aiolivisi.const import CAPABILITY_MAP
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .aiolivisi.const import CAPABILITY_MAP
 
 from .const import DOMAIN, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiDataUpdateCoordinator

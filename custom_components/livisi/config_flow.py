@@ -4,13 +4,15 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import Any
 
-from aiohttp import ClientConnectorError
-from aiolivisi import AioLivisi, errors as livisi_errors
+from aiohttp import ClientConnectorSSLError
 import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import aiohttp_client
+
+from .aiolivisi.aiolivisi import AioLivisi
+from .aiolivisi import errors as livisi_errors
 
 from .const import CONF_HOST, CONF_PASSWORD, DOMAIN, LOGGER
 

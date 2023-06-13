@@ -1,6 +1,5 @@
 from typing import Final
 
-
 CLASSIC_PORT: Final = 8080
 AVATAR_PORT: Final = 9090
 USERNAME: Final = "admin"

@@ -5,9 +5,9 @@ import urllib.parse
 import websockets
 from pydantic import ValidationError
 
-from aiolivisi.livisi_event import LivisiEvent
-
 from .aiolivisi import AioLivisi
+from .livisi_event import LivisiEvent
+
 from .const import (
     AVATAR_PORT,
     IS_REACHABLE,

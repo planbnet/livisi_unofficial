@@ -9,7 +9,6 @@ from .errors import (
     IncorrectIpAddressException,
     ShcUnreachableException,
     WrongCredentialException,
-    TokenExpiredException,
     ErrorCodeException,
 )
 

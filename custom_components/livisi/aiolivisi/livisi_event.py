@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from pydantic import BaseModel
 from typing import Optional
 
-
 @dataclass(init=False)
 class LivisiEvent(BaseModel):
     namespace: str
