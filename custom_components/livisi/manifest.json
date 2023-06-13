@@ -1,7 +1,6 @@
 {
   "domain": "livisi",
   "name": "Livisi Unofficial",
-  "version": "0.0.1",
   "codeowners": [
     "@planbnet"
   ],
@@ -13,5 +12,6 @@
     "websockets",
     "aiohttp",
     "pydantic"
-  ]
+  ],
+  "version": "0.0.1"
 }
