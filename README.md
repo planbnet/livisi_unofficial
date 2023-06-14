@@ -1,5 +1,13 @@
 # Livisi Unofficial Fork
 
+This project is in "works for me" state and I do not advise anyone to use it nor can or will I provide support on how to install it. It can be added as a custom repo to HACS and then installed as an integration. This will override the existing livisi integration and add the following features:
+
+* Support VariableActuators (Boolean vars in livisi)
+* Support motion detector brightness sensor
+* Events are sent for button presses and motion detection (basically, device triggers based on these events are also implemented but untested)
+* Battery level indicators (experimental und untested, I have to wait until a battery runs out in my installation to see if it works)
+
+
 ## Installation
 
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
