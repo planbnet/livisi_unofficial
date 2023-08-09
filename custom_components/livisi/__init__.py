@@ -93,7 +93,6 @@ async def async_migrate_entry(hass, config_entry):
         "SwitchActuator",
         "BooleanStateActuator",
         "WindowDoorSensor",
-        "SmokeDetectorSensor",
         "LuminanceSensor",
         "AlarmActuator",
     ]
@@ -106,7 +105,7 @@ async def async_migrate_entry(hass, config_entry):
         caps = device[CAPABILITY_MAP]
         for cap_name in migrate_capabilities:
             if cap_name in caps:
-                update_ids[deviceid] = caps[cap_name].replace("/capability/", "")
+                update_ids[deviceid] = caps[cap_name]
                 break
 
     if config_entry.version == 1:
@@ -122,7 +121,7 @@ async def async_migrate_entry(hass, config_entry):
                 LOGGER.info("Updating id %s to %s", oldid, newid)
                 return {"new_unique_id": newid}
             else:
-                return {}
+                return None
 
         await async_migrate_entries(hass, config_entry.entry_id, update_unique_id)
         config_entry.version = 2
