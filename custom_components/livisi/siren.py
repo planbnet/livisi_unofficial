@@ -23,6 +23,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up a smoke detecor device."""
     coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    known_devices = set()
 
     @callback
     def handle_coordinator_update() -> None:
@@ -31,14 +32,15 @@ async def async_setup_entry(
         entities: list[SirenEntity] = []
         for device in shc_devices:
             if (
-                device["type"] in SIREN_DEVICE_TYPES
-                and device["id"] not in coordinator.devices
+                device["id"] not in known_devices
+                and device["type"] in SIREN_DEVICE_TYPES
             ):
                 livisi_siren: SirenEntity = LivisiSiren(
                     config_entry, coordinator, device
                 )
                 LOGGER.debug("Include device type: %s", device["type"])
                 coordinator.devices.add(device["id"])
+                known_devices.add(device["id"])
                 entities.append(livisi_siren)
         async_add_entities(entities)
 
