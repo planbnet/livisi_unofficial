@@ -26,6 +26,7 @@ All configuration in done in the UI
 ## TODO
 
 * Remove device triggers and replace them by event entities (for motion and button presses, maybe also smoke alert if that's possible)
-* Check how to handle luminance, which is provided in percent by Livis. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']`
+* Remove LivisiEvent and handle Websocket updates directly in the coordinator - this is useless complexity
+* Check how to handle luminance, which is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']`
 
 
