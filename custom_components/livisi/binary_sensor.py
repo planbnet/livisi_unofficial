@@ -19,6 +19,7 @@ from .const import (
     LIVISI_STATE_CHANGE,
     LOGGER,
     WDS_DEVICE_TYPE,
+    SMOKE_DETECTOR_DEVICE_TYPES,
 )
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
@@ -45,9 +46,20 @@ async def async_setup_entry(
                     livisi_binary: BinarySensorEntity = LivisiWindowDoorSensor(
                         config_entry, coordinator, device
                     )
-                    LOGGER.debug("Include device type: %s", device["type"])
+                    LOGGER.debug(
+                        "Include device type: %s as contact sensor", device["type"]
+                    )
                     coordinator.devices.add(device["id"])
                     entities.append(livisi_binary)
+                if device["type"] in SMOKE_DETECTOR_DEVICE_TYPES:
+                    livisi_smoke: BinarySensorEntity = LivisiSmokeSensor(
+                        config_entry, coordinator, device
+                    )
+                    LOGGER.debug(
+                        "Include device type: %s as smoke detector", device["type"]
+                    )
+                    coordinator.devices.add(device["id"])
+                    entities.append(livisi_smoke)
                 if device["type"] in BATTERY_POWERED_DEVICES:
                     livisi_binary: BinarySensorEntity = LivisiBatteryLowSensor(
                         config_entry, coordinator, device
@@ -169,6 +181,6 @@ class LivisiSmokeSensor(LivisiBinarySensor):
     ) -> None:
         """Initialize the Livisi window/door sensor."""
         super().__init__(
-            config_entry, coordinator, device, "SmokeDetectorSensor", "isSmokeDetected"
+            config_entry, coordinator, device, "SmokeDetectorSensor", "isSmokeAlarm"
         )
         self._attr_device_class = BinarySensorDeviceClass.SMOKE
