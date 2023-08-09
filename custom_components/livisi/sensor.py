@@ -74,8 +74,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         capability_name: str,
     ) -> None:
         """Initialize the Livisi sensor."""
-        super().__init__(config_entry, coordinator, device)
-        self._capability_id = self.capabilities[capability_name]
+        super().__init__(config_entry, coordinator, device, capability_name)
         self.entity_description = entity_desc
         _attr_state_class = SensorStateClass.MEASUREMENT
 
@@ -86,13 +85,13 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
                 self.update_states,
             )
         )
 
         response = await self.coordinator.async_get_device_state(
-            self._capability_id, "luminance"
+            self.capability_id, "luminance"
         )
         if response is None:
             self._attr_available = False

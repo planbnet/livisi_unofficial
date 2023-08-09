@@ -28,6 +28,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up switch device."""
     coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    known_devices = set()
 
     @callback
     def handle_coordinator_update() -> None:
@@ -35,7 +36,7 @@ async def async_setup_entry(
         shc_devices: list[dict[str, Any]] = coordinator.data
         entities: list[SwitchEntity] = []
         for device in shc_devices:
-            if device["id"] not in coordinator.devices:
+            if device["id"] not in known_devices:
                 switch = None
                 if device["type"] in SWITCH_DEVICE_TYPES:
                     switch = LivisiSwitch(config_entry, coordinator, device)
@@ -45,6 +46,7 @@ async def async_setup_entry(
                 if switch is not None:
                     LOGGER.debug("Include device type: %s", device["type"])
                     coordinator.devices.add(device["id"])
+                    known_devices.add(device["id"])
                     entities.append(switch)
 
         async_add_entities(entities)
@@ -64,14 +66,12 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         device: dict[str, Any],
     ) -> None:
         """Initialize the Livisi switch."""
-        super().__init__(config_entry, coordinator, device)
-        self._attr_name = None
-        self._capability_id = self.capabilities["SwitchActuator"]
+        super().__init__(config_entry, coordinator, device, "SwitchActuator")
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         response = await self.aio_livisi.async_pss_set_state(
-            self._capability_id, is_on=True
+            self.capability_id, is_on=True
         )
         if response is None:
             self._attr_available = False
@@ -80,7 +80,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         response = await self.aio_livisi.async_pss_set_state(
-            self._capability_id, is_on=False
+            self.capability_id, is_on=False
         )
         if response is None:
             self._attr_available = False
@@ -91,7 +91,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.async_get_device_state(
-            self._capability_id, "onState"
+            self.capability_id, "onState"
         )
         if response is None:
             self._attr_is_on = False
@@ -101,7 +101,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
                 self.update_states,
             )
         )
@@ -123,14 +123,12 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
         device: dict[str, Any],
     ) -> None:
         """Initialize the Livisi switch."""
-        super().__init__(config_entry, coordinator, device)
-        self._attr_name = None
-        self._capability_id = self.capabilities["BooleanStateActuator"]
+        super().__init__(config_entry, coordinator, device, "BooleanStateActuator")
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         response = await self.aio_livisi.async_variable_set_value(
-            self._capability_id, value=True
+            self.capability_id, value=True
         )
         if response is None:
             self._attr_available = False
@@ -139,7 +137,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         response = await self.aio_livisi.async_variable_set_value(
-            self._capability_id, value=False
+            self.capability_id, value=False
         )
         if response is None:
             self._attr_available = False
@@ -150,7 +148,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.async_get_device_state(
-            self._capability_id, "value"
+            self.capability_id, "value"
         )
         if response is None:
             self._attr_available = False
@@ -159,7 +157,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
                 self.update_states,
             )
         )

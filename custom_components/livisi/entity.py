@@ -26,6 +26,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: dict[str, Any],
+        capability_name: str = None,
         *,
         battery: bool = False,
         use_room_as_device_name: bool = False,
@@ -33,15 +34,23 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         """Initialize the common properties of a Livisi device."""
         self.aio_livisi = coordinator.aiolivisi
         self.capabilities: Mapping[str, Any] = device[CAPABILITY_MAP]
+        self.capability_id = None
+        self._attr_name = None
 
         device_name = device["config"]["name"]
         device_id = device["id"]
+
+        if capability_name is not None:
+            self.capability_id = self.capabilities[capability_name]
 
         if battery:
             self._attr_name = "Battery Low"
             unique_id = device_id + "_battery"
         else:
-            unique_id = device_id
+            if self.capability_id is not None:
+                unique_id = self.capability_id
+            else:
+                unique_id = device_id
 
         self._attr_available = False
         self._attr_unique_id = unique_id

@@ -61,14 +61,12 @@ class LivisiSiren(LivisiEntity, SirenEntity):
         device: dict[str, Any],
     ) -> None:
         """Initialize the Livisi siren."""
-        super().__init__(config_entry, coordinator, device)
-        self._capability_id = self.capabilities["AlarmActuator"]
-        self._attr_name = None
+        super().__init__(config_entry, coordinator, device, "AlarmActuator")
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         response = await self.aio_livisi.async_pss_set_state(
-            self._capability_id, is_on=True
+            self.capability_id, is_on=True
         )
         if response is None:
             self._attr_available = False
@@ -77,7 +75,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         response = await self.aio_livisi.async_pss_set_state(
-            self._capability_id, is_on=False
+            self.capability_id, is_on=False
         )
         if response is None:
             self._attr_available = False
@@ -88,7 +86,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.async_get_device_state(
-            self._capability_id, "onState"
+            self.capability_id, "onState"
         )
         if response is None:
             self._attr_available = False
@@ -97,7 +95,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
                 self.update_states,
             )
         )

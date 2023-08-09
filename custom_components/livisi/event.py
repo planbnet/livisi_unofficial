@@ -5,14 +5,22 @@ from typing import Any
 from homeassistant.components.event import (
     EventEntity,
     EventEntityDescription,
-    EventDeviceClass
+    EventDeviceClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LOGGER, MOTION_DEVICE_TYPES, LIVISI_EVENT, EVENT_MOTION_DETECTED
+from .const import (
+    DOMAIN,
+    LOGGER,
+    BUTTON_DEVICE_TYPES,
+    MOTION_DEVICE_TYPES,
+    LIVISI_EVENT,
+    EVENT_MOTION_DETECTED,
+    EVENT_BUTTON_PRESSED,
+)
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
@@ -32,25 +40,43 @@ async def async_setup_entry(
         shc_devices: list[dict[str, Any]] = coordinator.data
         entities: list[EventEntity] = []
         for device in shc_devices:
-            if (
-                device["id"] not in known_devices
-                and device["type"] in MOTION_DEVICE_TYPES
-            ):
-                event: EventEntity = LivisiEvent(
-                    config_entry,
-                    coordinator,
-                    device,
-                    EventEntityDescription(
-                    key="motion",
-                    device_class=EventDeviceClass.MOTION,
-                    event_types=[EVENT_MOTION_DETECTED]
-                    ),
-                    "MotionDetectionSensor",
-                )
-                LOGGER.debug("Include motion sensor device type: %s", device["type"])
-                coordinator.devices.add(device["id"])
-                known_devices.add(device["id"])
-                entities.append(event)
+            if device["id"] not in known_devices:
+                if device["type"] in MOTION_DEVICE_TYPES:
+                    event: EventEntity = LivisiEvent(
+                        config_entry,
+                        coordinator,
+                        device,
+                        EventEntityDescription(
+                            key="motion",
+                            device_class=EventDeviceClass.MOTION,
+                            event_types=[EVENT_MOTION_DETECTED],
+                        ),
+                        "MotionDetectionSensor",
+                    )
+                    LOGGER.debug(
+                        "Include motion sensor device type: %s", device["type"]
+                    )
+                    coordinator.devices.add(device["id"])
+                    known_devices.add(device["id"])
+                    entities.append(event)
+                if device["type"] in BUTTON_DEVICE_TYPES:
+                    event: EventEntity = LivisiEvent(
+                        config_entry,
+                        coordinator,
+                        device,
+                        EventEntityDescription(
+                            key="button",
+                            device_class=EventDeviceClass.BUTTON,
+                            event_types=[EVENT_BUTTON_PRESSED],
+                        ),
+                        "PushButtonSensor",
+                    )
+                    LOGGER.debug(
+                        "Include button sensor device type: %s", device["type"]
+                    )
+                    coordinator.devices.add(device["id"])
+                    known_devices.add(device["id"])
+                    entities.append(event)
         async_add_entities(entities)
 
     config_entry.async_on_unload(
@@ -70,8 +96,7 @@ class LivisiEvent(LivisiEntity, EventEntity):
         capability_name: str,
     ) -> None:
         """Initialize the Livisi event."""
-        super().__init__(config_entry, coordinator, device)
-        self._capability_id = self.capabilities[capability_name]
+        super().__init__(config_entry, coordinator, device, capability_name)
         self.entity_description = entity_desc
 
     async def async_added_to_hass(self) -> None:
@@ -81,11 +106,10 @@ class LivisiEvent(LivisiEntity, EventEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_EVENT}_{self._capability_id}",
+                f"{LIVISI_EVENT}_{self.capability_id}",
                 self.trigger_event,
             )
         )
-
 
     @callback
     def trigger_event(self, event_data: Any) -> None:

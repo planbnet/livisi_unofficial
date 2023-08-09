@@ -87,8 +87,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         property_name: str,
     ) -> None:
         """Initialize the Livisi sensor."""
-        super().__init__(config_entry, coordinator, device)
-        self._capability_id = self.capabilities[capability_name]
+        super().__init__(config_entry, coordinator, device, capability_name)
         self._property_name = property_name
 
     async def async_added_to_hass(self) -> None:
@@ -98,13 +97,13 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
                 self.update_states,
             )
         )
 
         response = await self.coordinator.async_get_device_state(
-            self._capability_id, self._property_name
+            self.capability_id, self._property_name
         )
         if response is None:
             self._attr_available = False
