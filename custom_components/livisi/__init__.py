@@ -72,7 +72,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_migrate_entry(hass, config_entry):
     """Migrate old entry."""
-    LOGGER.debug("Migrating from version %s", config_entry.version)
+    LOGGER.info("Migrating Livisi data from version %s", config_entry.version)
 
     # Load devices with a temporary coordinator
     web_session = aiohttp_client.async_get_clientsession(hass)
@@ -119,6 +119,7 @@ async def async_migrate_entry(hass, config_entry):
             oldid = entity_entry.unique_id
             newid = update_ids.get(oldid)
             if newid is not None:
+                LOGGER.info("Updating id %s to %s", oldid, newid)
                 return {"new_unique_id": newid}
             else:
                 return {}
