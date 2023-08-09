@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from .aiolivisi.const import CAPABILITY_CONFIG
-
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -26,8 +24,11 @@ from .const import (
     MIN_TEMPERATURE,
     VRCC_DEVICE_TYPE,
 )
+
+from .aiolivisi.const import CAPABILITY_CONFIG
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
+
 
 
 async def async_setup_entry(
