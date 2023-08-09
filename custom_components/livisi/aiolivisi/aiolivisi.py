@@ -184,7 +184,7 @@ class AioLivisi:
             if LOCATION in device and device.get(LOCATION) is not None:
                 device[LOCATION] = device[LOCATION].removeprefix("/location/")
 
-        LOGGER.debug("Loaded " + len(devices) + " devices")
+        LOGGER.debug("Loaded %d devices", len(devices))
 
         return devices
 
