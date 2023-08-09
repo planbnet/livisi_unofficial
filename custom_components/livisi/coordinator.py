@@ -32,6 +32,7 @@ from .const import (
     EVENT_MOTION_DETECTED,
     LIVISI_REACHABILITY_CHANGE,
     LIVISI_STATE_CHANGE,
+    LIVISI_EVENT,
     LOGGER,
 )
 
@@ -144,7 +145,10 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                     "button_index": event_data.properties.get("index", 0),
                     "press_type": event_data.properties.get("type", "ShortPress"),
                 }
-                self.hass.bus.async_fire("livisi_event", livisi_event_data)
+                self.hass.bus.async_fire(LIVISI_EVENT, livisi_event_data)
+                self._async_dispatcher_send(
+                    LIVISI_EVENT, device_id, livisi_event_data
+                )
         elif event_data.type == LIVISI_EVENT_MOTION_DETECTED:
             device_id = self.capability_to_device.get(event_data.source)
             if device_id is not None:
@@ -152,11 +156,11 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                     "device_id": device_id,
                     "type": EVENT_MOTION_DETECTED,
                 }
-                self.hass.bus.async_fire("livisi_event", livisi_event_data)
+                self.hass.bus.async_fire(LIVISI_EVENT, livisi_event_data)
+                self._async_dispatcher_send(
+                    LIVISI_EVENT, device_id,  livisi_event_data
+                )
         elif event_data.type == LIVISI_EVENT_STATE_CHANGED:
-            self._async_dispatcher_send(
-                LIVISI_STATE_CHANGE, event_data.source, event_data.onState
-            )
             self._async_dispatcher_send(
                 LIVISI_STATE_CHANGE, event_data.source, event_data.vrccData
             )
