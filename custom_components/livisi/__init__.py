@@ -1,7 +1,7 @@
 """The Livisi Smart Home integration."""
 from __future__ import annotations
 
-from typing import Final, Any
+from typing import Final
 
 from aiohttp import ClientConnectorError
 
