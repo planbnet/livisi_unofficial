@@ -65,6 +65,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
     ) -> None:
         """Initialize the Livisi switch."""
         super().__init__(config_entry, coordinator, device)
+        self._attr_name = None
         self._capability_id = self.capabilities["SwitchActuator"]
 
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -123,6 +124,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
     ) -> None:
         """Initialize the Livisi switch."""
         super().__init__(config_entry, coordinator, device)
+        self._attr_name = None
         self._capability_id = self.capabilities["BooleanStateActuator"]
 
     async def async_turn_on(self, **kwargs: Any) -> None:
