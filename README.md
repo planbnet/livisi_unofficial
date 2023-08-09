@@ -1,6 +1,7 @@
 # Livisi Unofficial Fork
 
-This project is in "works for me" state and I do not advise anyone to use it nor can or will I provide support on how to install it. It can be added as a custom repo to HACS and then installed as an integration. This will override the existing livisi integration and add the following features:
+This project is in "works for me" state and I do not advise anyone to use it nor can or will I provide support on how to install it.
+It can be added as a custom repo to HACS and then installed as an integration. This will override the existing livisi integration and add the following features:
 
 * Support VariableActuators (Boolean vars in livisi)
 * Support motion detector brightness sensor
@@ -18,4 +19,13 @@ This project is in "works for me" state and I do not advise anyone to use it nor
 1. Restart Home Assistant
 1. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Integration blueprint"
 
-## Configuration is done in the UI
+## Configuration
+
+All configuration in done in the UI
+
+## TODO
+
+* Remove device triggers and replace them by event entities (for motion and button presses, maybe also smoke alert if that's possible)
+* Check how to handle luminance, which is provided in percent by Livis. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']`
+
+
