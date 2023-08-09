@@ -26,6 +26,8 @@ from .const import (
     USERNAME,
 )
 
+from .const import LOGGER
+
 ERRORS = {1: Exception}
 
 
@@ -181,6 +183,8 @@ class AioLivisi:
                 device[BATTERY_LOW] = True
             if LOCATION in device and device.get(LOCATION) is not None:
                 device[LOCATION] = device[LOCATION].removeprefix("/location/")
+
+        #LOGGER.debug(devices)
 
         return devices
 

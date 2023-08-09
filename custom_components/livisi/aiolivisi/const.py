@@ -1,6 +1,8 @@
 """Constants for aiolivisi communication."""
-
+import logging
 from typing import Final
+
+LOGGER = logging.getLogger(__package__)
 
 CLASSIC_PORT: Final = 8080
 AVATAR_PORT: Final = 9090
