@@ -76,6 +76,9 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         if response is None:
             self._attr_available = False
             raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
+        if response["resultCode"] == "Success":
+            self._attr_is_on = True
+            self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
@@ -85,6 +88,9 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         if response is None:
             self._attr_available = False
             raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
+        if response["resultCode"] == "Success":
+            self._attr_is_on = False
+            self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
