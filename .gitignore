@@ -12,6 +12,8 @@ __pycache__
 coverage.xml
 .ruff_cache
 
+# example file of my local config that should not be public
+devices.json
 
 # Home Assistant configuration
 config/*
