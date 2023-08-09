@@ -24,21 +24,23 @@ from homeassistant.helpers import (
 from homeassistant.helpers.trigger import TriggerActionType, TriggerInfo
 from homeassistant.helpers.typing import ConfigType
 
-from .const import BUTTON_COUNT, CONF_SUBTYPE
-
-from . import DOMAIN
-
 from .const import (
-    EVENT_BUTTON_PRESSED,
+    BUTTON_COUNT,
+    CONF_SUBTYPE,
     EVENT_MOTION_DETECTED,
+    EVENT_BUTTON_PRESSED,
+    EVENT_BUTTON_LONG_PRESSED,
     MOTION_DEVICE_TYPES,
     LIVISI_EVENT,
 )
 
-BUTTON_TRIGGER_TYPES = {"button_press", "button_long_press"}
+from . import DOMAIN
+
+
+BUTTON_TRIGGER_TYPES = {EVENT_BUTTON_PRESSED, EVENT_BUTTON_LONG_PRESSED}
 
 MOTION_TRIGGER_TYPES = {
-    "motion_detected",
+    EVENT_MOTION_DETECTED,
 }
 
 BUTTON_TRIGGER_SUBTYPES = {

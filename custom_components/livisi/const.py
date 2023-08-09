@@ -41,6 +41,7 @@ BATTERY_POWERED_DEVICES = [
 ]
 
 EVENT_BUTTON_PRESSED = "button_pressed"
+EVENT_BUTTON_LONG_PRESSED = "button_long_pressed"
 EVENT_MOTION_DETECTED = "motion_detected"
 
 BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2}

@@ -1,0 +1,35 @@
+{
+    "config": {
+        "error": {
+            "cannot_connect": "Verbindungsfehler",
+            "wrong_ip_address": "Die IP Adresse ist falsch oder kann nicht erreicht werden.",
+            "wrong_password": "Das Passwort ist falsch."
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "host": "IP Adresse",
+                    "password": "Passwort"
+                },
+                "description": "Bitte IP Adresse und Passwort zur lokalen Verbindung zum SHC eingeben."
+            }
+        }
+    },
+    "device_automation": {
+        "trigger_type": {
+            "button_long_pressed": "\"{subtype}\" lang gedrückt",
+            "button_pressed": "\"{subtype}\" gedrückt",
+            "motion_detected": "Bewegung erkannt"
+        },
+        "trigger_subtype": {
+            "button_0": "Button 1",
+            "button_1": "Button 2",
+            "button_2": "Button 3",
+            "button_3": "Button 4",
+            "button_4": "Button 5",
+            "button_5": "Button 6",
+            "button_6": "Button 7",
+            "button_7": "Button 8"
+        }
+    }
+}
