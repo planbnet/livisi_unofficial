@@ -4,10 +4,17 @@ This project is in "works for me" state and I do not advise anyone to use it nor
 It can be added as a custom repo to HACS and then installed as an integration. This will override the existing livisi integration and add the following features:
 
 * Support VariableActuators (Boolean vars in livisi)
-* Support motion detector brightness sensor
-* Events are sent for button presses and motion detection (basically, device triggers based on these events are also implemented but untested)
+* Support motion detectors (brightness sensor and events)
+* Devices with buttons are supported as basic event entities and device triggers
+* Support Smoke Detectors
 * Battery level indicators (experimental und untested, I have to wait until a battery runs out in my installation to see if it works)
 
+
+_Note: As I don't have any shutter contol devices (nor do I have window shutters at all), I cannot add them to this lib. If you are willing to add support from them (in the same style as the other devices are implemented), feel free to submit a PR_
+
+## Caution
+
+This is not a drop-in replacement anymore. As entities in the original iomplementation were uniquely identified by the device id, only one entity per device was supported. This does not scale, so this integration migrates the old entities and changes the unique id to the capability id (which should be unique for every functionality of a device in the livisi controller). So once you install this integration via HACS, you cannot go back to the official implementation without recreating you Livisi devices.
 
 ## Installation
 
@@ -25,8 +32,7 @@ All configuration in done in the UI
 
 ## TODO
 
-* Remove device triggers and replace them by event entities (for motion and button presses, maybe also smoke alert if that's possible)
-* Remove LivisiEvent and handle Websocket updates directly in the coordinator - this is useless complexity
+* Remove LivisiEvent and handle Websocket updates directly in the coordinator - this is useless complexity that was only introducted because HASS insisted on putting the control code in a separate library, which now has been abandoned by livis as it seems.
 * Check how to handle luminance, which is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']`
 
 
