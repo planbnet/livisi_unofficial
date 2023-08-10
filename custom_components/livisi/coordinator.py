@@ -147,7 +147,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                 }
                 self.hass.bus.async_fire(LIVISI_EVENT, livisi_event_data)
                 self._async_dispatcher_send(
-                    LIVISI_EVENT, device_id, livisi_event_data
+                    LIVISI_EVENT, event_data.source, livisi_event_data
                 )
         elif event_data.type == LIVISI_EVENT_MOTION_DETECTED:
             device_id = self.capability_to_device.get(event_data.source)
@@ -158,7 +158,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                 }
                 self.hass.bus.async_fire(LIVISI_EVENT, livisi_event_data)
                 self._async_dispatcher_send(
-                    LIVISI_EVENT, device_id,  livisi_event_data
+                    LIVISI_EVENT, event_data.source, livisi_event_data
                 )
         elif event_data.type == LIVISI_EVENT_STATE_CHANGED:
             self._async_dispatcher_send(
