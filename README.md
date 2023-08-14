@@ -14,7 +14,7 @@ _Note: As I don't have any shutter contol devices (nor do I have window shutters
 
 ## Caution
 
-This is not a drop-in replacement anymore. As entities in the original iomplementation were uniquely identified by the device id, only one entity per device was supported. This does not scale, so this integration migrates the old entities and changes the unique id to the capability id (which should be unique for every functionality of a device in the livisi controller). So once you install this integration via HACS, you cannot go back to the official implementation without recreating you Livisi devices.
+This is not a drop-in replacement anymore. As entities in the original implementation were uniquely identified by the device id, only one entity per device was supported. This does not scale, so this integration migrates the old entities and changes the unique id to the capability id (which should be unique for every functionality of a device in the livisi controller). So once you install this integration via HACS, you cannot go back to the official implementation without recreating you Livisi devices.
 
 ## Installation
 
