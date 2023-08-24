@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 import uuid
 
-from aiohttp.client import ClientSession
+from aiohttp.client import ClientSession, ClientError
 
 from .errors import (
     IncorrectIpAddressException,
@@ -60,13 +60,14 @@ class AioLivisi:
                 "Content-type": "application/json",
                 "Accept": "*/*",
             }
-        except Exception as error:
+        except TimeoutError as error:
+            raise ShcUnreachableException from error
+        except ClientError as error:
             if len(access_data) == 0:
                 raise IncorrectIpAddressException from error
-            elif access_data["errorcode"] == 2009:
+            if access_data["errorcode"] == 2009:
                 raise WrongCredentialException from error
-            else:
-                raise ShcUnreachableException from error
+            raise ShcUnreachableException from error
 
     async def async_send_authorized_request(
         self,
