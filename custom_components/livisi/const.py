@@ -20,7 +20,7 @@ LIVISI_STATE_CHANGE: Final = "livisi_state_change"
 LIVISI_REACHABILITY_CHANGE: Final = "livisi_reachability_change"
 
 SWITCH_DEVICE_TYPES: Final = ["ISS2", "PSS", "PSSO"]
-SIREN_DEVICE_TYPES: Final = ["WSD", "WSD2"]
+SIREN_DEVICE_TYPES: Final = ["WSD", "WSD2", "SIR"]
 SMOKE_DETECTOR_DEVICE_TYPES: Final = ["WSD", "WSD2"]
 VARIABLE_DEVICE_TYPE: Final = "VariableActuator"
 BUTTON_DEVICE_TYPES: Final = ["ISS2", "WSC2", "ISC2", "BRC8"]
