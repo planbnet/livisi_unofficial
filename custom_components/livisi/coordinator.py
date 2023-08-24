@@ -23,8 +23,6 @@ from .const import (
     CONF_PASSWORD,
     EVENT_BUTTON_PRESSED,
     EVENT_MOTION_DETECTED,
-    HUMIDITY,
-    IS_OPEN,
     IS_REACHABLE,
     LIVISI_EVENT,
     LIVISI_EVENT_BUTTON_PRESSED,
@@ -34,12 +32,7 @@ from .const import (
     LIVISI_STATE_CHANGE,
     LOGGER,
     DEVICE_POLLING_DELAY,
-    LUMINANCE,
-    ON_STATE,
-    POINT_TEMPERATURE,
-    SET_POINT_TEMPERATURE,
-    TEMPERATURE,
-    VALUE,
+    STATE_PROPERTIES,
 )
 
 
@@ -183,14 +176,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                     event_data.source,
                     event_data.properties.get(IS_REACHABLE),
                 )
-            self.publish_state(event_data, ON_STATE)
-            self.publish_state(event_data, VALUE)
-            self.publish_state(event_data, SET_POINT_TEMPERATURE)
-            self.publish_state(event_data, POINT_TEMPERATURE)
-            self.publish_state(event_data, TEMPERATURE)
-            self.publish_state(event_data, HUMIDITY)
-            self.publish_state(event_data, LUMINANCE)
-            self.publish_state(event_data, IS_OPEN)
+            for prop in STATE_PROPERTIES:
+                self.publish_state(event_data, prop)
 
     async def on_close(self) -> None:
         """Define a handler to fire when the websocket is closed."""

@@ -6,6 +6,7 @@ from typing import Any
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
+    BinarySensorEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
@@ -16,6 +17,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     BATTERY_POWERED_DEVICES,
     DOMAIN,
+    IS_OPEN,
+    IS_SMOKE_ALARM,
     LIVISI_STATE_CHANGE,
     LOGGER,
     WDS_DEVICE_TYPE,
@@ -43,17 +46,35 @@ async def async_setup_entry(
             if device["id"] not in known_devices:
                 known_devices.add(device["id"])
                 if device["type"] == WDS_DEVICE_TYPE:
-                    livisi_binary: BinarySensorEntity = LivisiWindowDoorSensor(
-                        config_entry, coordinator, device
+                    device_class = (
+                        BinarySensorDeviceClass.DOOR
+                        if (device.get("tags", {}).get("typeCategory") == "TCDoorId")
+                        else BinarySensorDeviceClass.WINDOW
+                    )
+                    livisi_contact: BinarySensorEntity = LivisiBinarySensor(
+                        config_entry,
+                        coordinator,
+                        device,
+                        BinarySensorEntityDescription(
+                            key=IS_OPEN, device_class=device_class
+                        ),
+                        capability_name="WindowDoorSensor",
                     )
                     LOGGER.debug(
                         "Include device type: %s as contact sensor", device["type"]
                     )
                     coordinator.devices.add(device["id"])
-                    entities.append(livisi_binary)
+                    entities.append(livisi_contact)
                 if device["type"] in SMOKE_DETECTOR_DEVICE_TYPES:
-                    livisi_smoke: BinarySensorEntity = LivisiSmokeSensor(
-                        config_entry, coordinator, device
+                    livisi_smoke: BinarySensorEntity = LivisiBinarySensor(
+                        config_entry,
+                        coordinator,
+                        device,
+                        BinarySensorEntityDescription(
+                            key=IS_SMOKE_ALARM,
+                            device_class=BinarySensorDeviceClass.SMOKE,
+                        ),
+                        capability_name="SmokeDetectorSensor",
                     )
                     LOGGER.debug(
                         "Include device type: %s as smoke detector", device["type"]
@@ -83,12 +104,12 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: dict[str, Any],
+        entity_desc: BinarySensorEntityDescription,
         capability_name: str,
-        property_name: str,
     ) -> None:
         """Initialize the Livisi sensor."""
         super().__init__(config_entry, coordinator, device, capability_name)
-        self._property_name = property_name
+        self.entity_description = entity_desc
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
@@ -103,7 +124,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         )
 
         response = await self.coordinator.async_get_device_state(
-            self.capability_id, self._property_name
+            self.capability_id, self.entity_description.key
         )
         if response is None:
             self._attr_available = False
@@ -113,6 +134,8 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
     @callback
     def update_states(self, state: bool) -> None:
         """Update the state of the device."""
+        if not isinstance(state, bool):
+            return
         self._attr_is_on = state
         self.async_write_ha_state()
 
@@ -146,40 +169,3 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
 
         if device is not None:
             self._attr_is_on = device.get("batteryLow", False)
-
-
-class LivisiWindowDoorSensor(LivisiBinarySensor):
-    """Represents a Livisi Window/Door Sensor as a Binary Sensor Entity."""
-
-    def __init__(
-        self,
-        config_entry: ConfigEntry,
-        coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
-    ) -> None:
-        """Initialize the Livisi window/door sensor."""
-        super().__init__(
-            config_entry, coordinator, device, "WindowDoorSensor", "isOpen"
-        )
-
-        self._attr_device_class = (
-            BinarySensorDeviceClass.DOOR
-            if (device.get("tags", {}).get("typeCategory") == "TCDoorId")
-            else BinarySensorDeviceClass.WINDOW
-        )
-
-
-class LivisiSmokeSensor(LivisiBinarySensor):
-    """Represents a Livisi Window/Door Sensor as a Binary Sensor Entity."""
-
-    def __init__(
-        self,
-        config_entry: ConfigEntry,
-        coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
-    ) -> None:
-        """Initialize the Livisi window/door sensor."""
-        super().__init__(
-            config_entry, coordinator, device, "SmokeDetectorSensor", "isSmokeAlarm"
-        )
-        self._attr_device_class = BinarySensorDeviceClass.SMOKE

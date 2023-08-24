@@ -72,8 +72,22 @@ SET_POINT_TEMPERATURE: Final = "setpointTemperature"
 TEMPERATURE: Final = "temperature"
 HUMIDITY: Final = "humidity"
 LUMINANCE: Final = "luminance"
-IS_REACHABLE: Final = "isReachable"
 IS_OPEN: Final = "isOpen"
+IS_SMOKE_ALARM: Final = "isSmokeAlarm"
+
+STATE_PROPERTIES = [
+    ON_STATE,
+    VALUE,
+    POINT_TEMPERATURE,
+    SET_POINT_TEMPERATURE,
+    TEMPERATURE,
+    HUMIDITY,
+    LUMINANCE,
+    IS_OPEN,
+    IS_SMOKE_ALARM,
+]
+
+IS_REACHABLE: Final = "isReachable"
 LOCATION: Final = "location"
 
 EVENT_BUTTON_PRESSED = "button_pressed"

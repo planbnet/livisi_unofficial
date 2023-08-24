@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, MOTION_DEVICE_TYPES
+from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, LUMINANCE, MOTION_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
@@ -35,26 +35,25 @@ async def async_setup_entry(
         shc_devices: list[dict[str, Any]] = coordinator.data
         entities: list[SensorEntity] = []
         for device in shc_devices:
-            if (
-                device["id"] not in known_devices
-                and device["type"] in MOTION_DEVICE_TYPES
-            ):
-                sensor: SensorEntity = LivisiSensor(
-                    config_entry,
-                    coordinator,
-                    device,
-                    SensorEntityDescription(
-                        key="luminance",
-                        device_class=SensorDeviceClass.ILLUMINANCE,
-                        native_unit_of_measurement=PERCENTAGE,
-                        name="Luminance",
-                    ),
-                    "LuminanceSensor",
-                )
-                LOGGER.debug("Include device type: %s", device["type"])
-                coordinator.devices.add(device["id"])
+            if device["id"] not in known_devices:
                 known_devices.add(device["id"])
-                entities.append(sensor)
+                if device["type"] in MOTION_DEVICE_TYPES:
+                    # The motion devices all have a luminance sensor
+                    luminance_sensor: SensorEntity = LivisiSensor(
+                        config_entry,
+                        coordinator,
+                        device,
+                        SensorEntityDescription(
+                            key=LUMINANCE,
+                            device_class=SensorDeviceClass.ILLUMINANCE,
+                            state_class=SensorStateClass.MEASUREMENT,
+                            native_unit_of_measurement=PERCENTAGE,
+                        ),
+                        capability_name="LuminanceSensor",
+                    )
+                    LOGGER.debug("Include device type: %s", device["type"])
+                    coordinator.devices.add(device["id"])
+                    entities.append(luminance_sensor)
         async_add_entities(entities)
 
     config_entry.async_on_unload(
@@ -76,7 +75,6 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         """Initialize the Livisi sensor."""
         super().__init__(config_entry, coordinator, device, capability_name)
         self.entity_description = entity_desc
-        _attr_state_class = SensorStateClass.MEASUREMENT
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
@@ -91,7 +89,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         )
 
         response = await self.coordinator.async_get_device_state(
-            self.capability_id, "luminance"
+            self.capability_id, self.entity_description.key
         )
         if response is None:
             self._attr_available = False
