@@ -25,10 +25,9 @@ from .const import (
     VRCC_DEVICE_TYPE,
 )
 
-from .aiolivisi.const import CAPABILITY_CONFIG
+from .const import CAPABILITY_CONFIG
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
-
 
 
 async def async_setup_entry(

@@ -5,7 +5,7 @@ import uuid
 
 from aiohttp.client import ClientSession, ClientError
 
-from .errors import (
+from .livisi_errors import (
     IncorrectIpAddressException,
     ShcUnreachableException,
     WrongCredentialException,

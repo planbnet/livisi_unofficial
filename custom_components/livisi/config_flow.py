@@ -12,8 +12,12 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import aiohttp_client
 
-from .aiolivisi.aiolivisi import AioLivisi
-from .aiolivisi import errors as livisi_errors
+from .aiolivisi import AioLivisi
+from .livisi_errors import (
+    WrongCredentialException,
+    IncorrectIpAddressException,
+    ShcUnreachableException,
+)
 
 from .const import CONF_HOST, CONF_PASSWORD, DOMAIN, LOGGER
 
@@ -43,11 +47,11 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         try:
             await self._login(user_input)
-        except livisi_errors.WrongCredentialException:
+        except WrongCredentialException:
             errors["base"] = "wrong_password"
-        except livisi_errors.ShcUnreachableException:
+        except ShcUnreachableException:
             errors["base"] = "cannot_connect"
-        except livisi_errors.IncorrectIpAddressException:
+        except IncorrectIpAddressException:
             errors["base"] = "wrong_ip_address"
         else:
             controller_info: dict[str, Any] = {}

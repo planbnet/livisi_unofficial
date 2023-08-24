@@ -14,9 +14,8 @@ from homeassistant.helpers import aiohttp_client, device_registry as dr
 
 from homeassistant.helpers.entity_registry import async_migrate_entries
 
-from .aiolivisi.aiolivisi import AioLivisi
-from .aiolivisi.const import CAPABILITY_MAP
-from .const import DOMAIN, LOGGER
+from .aiolivisi import AioLivisi
+from .const import DOMAIN, LOGGER, CAPABILITY_MAP
 from .coordinator import LivisiDataUpdateCoordinator
 
 

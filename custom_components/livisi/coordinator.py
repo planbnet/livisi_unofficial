@@ -11,15 +11,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .aiolivisi.aiolivisi import AioLivisi
-from .aiolivisi.livisi_event import LivisiEvent
-from .aiolivisi.websocket import Websocket
-from .aiolivisi.const import (
-    EVENT_BUTTON_PRESSED as LIVISI_EVENT_BUTTON_PRESSED,
-    EVENT_MOTION_DETECTED as LIVISI_EVENT_MOTION_DETECTED,
-    EVENT_STATE_CHANGED as LIVISI_EVENT_STATE_CHANGED,
-)
-from .aiolivisi.errors import TokenExpiredException
+from .aiolivisi import AioLivisi
+from .websocket import Websocket, LivisiWebsocketEvent
+from .livisi_errors import TokenExpiredException
 
 from .const import (
     AVATAR,
@@ -27,13 +21,25 @@ from .const import (
     CLASSIC_PORT,
     CONF_HOST,
     CONF_PASSWORD,
-    DEVICE_POLLING_DELAY,
     EVENT_BUTTON_PRESSED,
     EVENT_MOTION_DETECTED,
+    HUMIDITY,
+    IS_OPEN,
+    IS_REACHABLE,
+    LIVISI_EVENT,
+    LIVISI_EVENT_BUTTON_PRESSED,
+    LIVISI_EVENT_MOTION_DETECTED,
+    LIVISI_EVENT_STATE_CHANGED,
     LIVISI_REACHABILITY_CHANGE,
     LIVISI_STATE_CHANGE,
-    LIVISI_EVENT,
     LOGGER,
+    DEVICE_POLLING_DELAY,
+    LUMINANCE,
+    ON_STATE,
+    POINT_TEMPERATURE,
+    SET_POINT_TEMPERATURE,
+    TEMPERATURE,
+    VALUE,
 )
 
 
@@ -77,6 +83,16 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
     def _async_dispatcher_send(self, event: str, source: str, data: Any) -> None:
         if data is not None:
             async_dispatcher_send(self.hass, f"{event}_{source}", data)
+
+    def publish_state(
+        self, event_data: LivisiWebsocketEvent, property_name: str
+    ) -> bool:
+        """Publish a state from the given websocket event property."""
+        data = event_data.properties.get(property_name, None)
+        if data is None:
+            return False
+        self._async_dispatcher_send(LIVISI_STATE_CHANGE, event_data.source, data)
+        return True
 
     async def async_setup(self) -> None:
         """Set up the Livisi Smart Home Controller."""
@@ -134,7 +150,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             room_name = self.rooms.get(room_id)
         return room_name
 
-    def on_data(self, event_data: LivisiEvent) -> None:
+    def on_data(self, event_data: LivisiWebsocketEvent) -> None:
         """Define a handler to fire when the data is received."""
         if event_data.type == LIVISI_EVENT_BUTTON_PRESSED:
             device_id = self.capability_to_device.get(event_data.source)
@@ -161,21 +177,20 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                     LIVISI_EVENT, event_data.source, livisi_event_data
                 )
         elif event_data.type == LIVISI_EVENT_STATE_CHANGED:
-            self._async_dispatcher_send(
-                LIVISI_STATE_CHANGE, event_data.source, event_data.vrccData
-            )
-            self._async_dispatcher_send(
-                LIVISI_STATE_CHANGE, event_data.source, event_data.onState
-            )
-            self._async_dispatcher_send(
-                LIVISI_STATE_CHANGE, event_data.source, event_data.isOpen
-            )
-            self._async_dispatcher_send(
-                LIVISI_STATE_CHANGE, event_data.source, event_data.luminance
-            )
-            self._async_dispatcher_send(
-                LIVISI_REACHABILITY_CHANGE, event_data.source, event_data.isReachable
-            )
+            if IS_REACHABLE in event_data.properties:
+                self._async_dispatcher_send(
+                    LIVISI_REACHABILITY_CHANGE,
+                    event_data.source,
+                    event_data.properties.get(IS_REACHABLE),
+                )
+            self.publish_state(event_data, ON_STATE)
+            self.publish_state(event_data, VALUE)
+            self.publish_state(event_data, SET_POINT_TEMPERATURE)
+            self.publish_state(event_data, POINT_TEMPERATURE)
+            self.publish_state(event_data, TEMPERATURE)
+            self.publish_state(event_data, HUMIDITY)
+            self.publish_state(event_data, LUMINANCE)
+            self.publish_state(event_data, IS_OPEN)
 
     async def on_close(self) -> None:
         """Define a handler to fire when the websocket is closed."""

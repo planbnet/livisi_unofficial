@@ -10,9 +10,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .aiolivisi.const import CAPABILITY_MAP
-
-from .const import DOMAIN, LIVISI_REACHABILITY_CHANGE
+from .const import CAPABILITY_MAP, DOMAIN, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiDataUpdateCoordinator
 
 

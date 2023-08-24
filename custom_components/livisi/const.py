@@ -40,11 +40,42 @@ BATTERY_POWERED_DEVICES = [
     "WSD2",
 ]
 
-EVENT_BUTTON_PRESSED = "button_pressed"
-EVENT_BUTTON_LONG_PRESSED = "button_long_pressed"
-EVENT_MOTION_DETECTED = "motion_detected"
-
 BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2}
 
 MAX_TEMPERATURE: Final = 30.0
 MIN_TEMPERATURE: Final = 6.0
+
+USERNAME: Final = "admin"
+AUTH_USERNAME: Final = "username"
+AUTH_PASSWORD: Final = "password"
+AUTH_GRANT_TYPE: Final = "grant_type"
+REQUEST_TIMEOUT: Final = 2000
+
+CAPABILITY_MAP: Final = "capabilityMap"
+CAPABILITY_CONFIG: Final = "capabilityConfig"
+BATTERY_LOW: Final = "batteryLow"
+
+AUTHENTICATION_HEADERS: Final = {
+    "Authorization": "Basic Y2xpZW50SWQ6Y2xpZW50UGFzcw==",
+    "Content-type": "application/json",
+    "Accept": "application/json",
+}
+
+LIVISI_EVENT_STATE_CHANGED = "StateChanged"
+LIVISI_EVENT_BUTTON_PRESSED = "ButtonPressed"
+LIVISI_EVENT_MOTION_DETECTED = "MotionDetected"
+
+ON_STATE: Final = "onState"
+VALUE: Final = "value"
+POINT_TEMPERATURE: Final = "pointTemperature"
+SET_POINT_TEMPERATURE: Final = "setpointTemperature"
+TEMPERATURE: Final = "temperature"
+HUMIDITY: Final = "humidity"
+LUMINANCE: Final = "luminance"
+IS_REACHABLE: Final = "isReachable"
+IS_OPEN: Final = "isOpen"
+LOCATION: Final = "location"
+
+EVENT_BUTTON_PRESSED = "button_pressed"
+EVENT_BUTTON_LONG_PRESSED = "button_long_pressed"
+EVENT_MOTION_DETECTED = "motion_detected"

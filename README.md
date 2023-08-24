@@ -32,7 +32,6 @@ All configuration in done in the UI
 
 ## TODO
 
-* Remove LivisiEvent and handle Websocket updates directly in the coordinator - this is useless complexity that was only introducted because HASS insisted on putting the control code in a separate library, which now has been abandoned by livis as it seems.
-* Check how to handle luminance, which is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']`
+* Check how to handle luminance, which is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']` but as percent is the correct unit here, I don't think we should change it (at least until it causes problems in HA)
 
 
