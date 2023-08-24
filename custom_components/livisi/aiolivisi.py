@@ -20,13 +20,12 @@ from .const import (
     BATTERY_LOW,
     CLASSIC_PORT,
     LOCATION,
+    LOGGER,
     CAPABILITY_MAP,
     CAPABILITY_CONFIG,
     REQUEST_TIMEOUT,
     USERNAME,
 )
-
-from .const import LOGGER
 
 ERRORS = {1: Exception}
 
@@ -172,6 +171,8 @@ class AioLivisi:
 
         low_battery_devices = set()
         for message in messages:
+            LOGGER.debug("Found a message")
+            LOGGER.debug(message)
             if message.get("type") == "DeviceLowBattery":
                 for device_id in message.get("devices", {}):
                     low_battery_devices.add(device_id)
