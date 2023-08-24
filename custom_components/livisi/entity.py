@@ -35,8 +35,8 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self.capability_id = None
         self._attr_name = None
 
-        device_name = device["config"]["name"]
         device_id = device["id"]
+        device_name = device.get("config", {}).get("name", "unknown")
 
         if capability_name is not None:
             self.capability_id = self.capabilities[capability_name]
