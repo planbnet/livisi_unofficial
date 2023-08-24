@@ -10,12 +10,20 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.components.sensor.const import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE
+from homeassistant.const import PERCENTAGE, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, LUMINANCE, MOTION_DEVICE_TYPES
+from .const import (
+    DOMAIN,
+    LIVISI_STATE_CHANGE,
+    LOGGER,
+    LUMINANCE,
+    MOTION_DEVICE_TYPES,
+    TEMPERATURE,
+    TEMPERATURE_DEVICE_TYPES,
+)
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
@@ -37,6 +45,7 @@ async def async_setup_entry(
         for device in shc_devices:
             if device["id"] not in known_devices:
                 known_devices.add(device["id"])
+                device_name = device.get("config", {}).get("name", None)
                 if device["type"] in MOTION_DEVICE_TYPES:
                     # The motion devices all have a luminance sensor
                     luminance_sensor: SensorEntity = LivisiSensor(
@@ -51,9 +60,31 @@ async def async_setup_entry(
                         ),
                         capability_name="LuminanceSensor",
                     )
-                    LOGGER.debug("Include device type: %s", device["type"])
+                    LOGGER.debug(
+                        "Include device type: %s as luminance sensor", device["type"]
+                    )
                     coordinator.devices.add(device["id"])
                     entities.append(luminance_sensor)
+                if device["type"] in TEMPERATURE_DEVICE_TYPES:
+                    temp_sensor: SensorEntity = LivisiSensor(
+                        config_entry,
+                        coordinator,
+                        device,
+                        SensorEntityDescription(
+                            key=TEMPERATURE,
+                            device_class=SensorDeviceClass.TEMPERATURE,
+                            state_class=SensorStateClass.MEASUREMENT,
+                            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+                            name=device_name,
+                            has_entity_name=(device_name is not None),
+                        ),
+                        capability_name="TemperatureSensor",
+                    )
+                    LOGGER.debug(
+                        "Include device type: %s as temperature sensor", device["type"]
+                    )
+                    coordinator.devices.add(device["id"])
+                    entities.append(temp_sensor)
         async_add_entities(entities)
 
     config_entry.async_on_unload(
