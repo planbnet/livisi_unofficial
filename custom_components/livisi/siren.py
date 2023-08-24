@@ -38,7 +38,7 @@ async def async_setup_entry(
                 livisi_siren: SirenEntity = LivisiSiren(
                     config_entry, coordinator, device
                 )
-                LOGGER.debug("Include device type: %s", device["type"])
+                LOGGER.debug("Include siren for device type: %s", device["type"])
                 coordinator.devices.add(device["id"])
                 known_devices.add(device["id"])
                 entities.append(livisi_siren)
