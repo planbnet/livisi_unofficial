@@ -33,6 +33,8 @@ All configuration in done in the UI
 
 ## TODO
 
+* Get localization to work - sensor entities should localize terms like "temperature", "humdity", and "luminance"
+
 * Check how to handle luminance, which is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']` but as percent is the correct unit here, I don't think we should change it (at least until it causes problems in HA)
 
 
