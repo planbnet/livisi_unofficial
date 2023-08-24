@@ -31,5 +31,18 @@
             "button_6": "Button 7",
             "button_7": "Button 8"
         }
+    },
+    "entity": {
+        "sensor": {
+            "temperature": {
+                "name": "Temperatur"
+            },
+            "humidity": {
+                "name": "Feuchtigkeit"
+            },
+            "luminance": {
+                "name": "Helligkeit"
+            }
+        }
     }
 }

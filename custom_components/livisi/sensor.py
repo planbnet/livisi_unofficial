@@ -48,7 +48,6 @@ async def async_setup_entry(
         for device in shc_devices:
             if device["id"] not in known_devices:
                 known_devices.add(device["id"])
-                device_name = device.get("config", {}).get("name", None)
                 if device["type"] in MOTION_DEVICE_TYPES:
                     # The motion devices all have a luminance sensor
                     luminance_sensor: SensorEntity = LivisiSensor(
@@ -60,6 +59,9 @@ async def async_setup_entry(
                             device_class=SensorDeviceClass.ILLUMINANCE,
                             state_class=SensorStateClass.MEASUREMENT,
                             native_unit_of_measurement=PERCENTAGE,
+                            has_entity_name=True,
+                            name="Luminance",
+                            translation_key="luminance",
                         ),
                         capability_name="LuminanceSensor",
                     )
@@ -83,8 +85,9 @@ async def async_setup_entry(
                             device_class=SensorDeviceClass.TEMPERATURE,
                             state_class=SensorStateClass.MEASUREMENT,
                             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                            name=device_name,
-                            has_entity_name=(device_name is not None),
+                            has_entity_name=True,
+                            name="Temperature",
+                            translation_key="temperature",
                         ),
                         capability_name=capability_name,
                     )
@@ -108,8 +111,9 @@ async def async_setup_entry(
                             device_class=SensorDeviceClass.HUMIDITY,
                             state_class=SensorStateClass.MEASUREMENT,
                             native_unit_of_measurement=PERCENTAGE,
-                            name=device_name,
-                            has_entity_name=(device_name is not None),
+                            has_entity_name=True,
+                            name="Humidity",
+                            translation_key="humidity",
                         ),
                         capability_name=capability_name,
                     )
@@ -137,8 +141,18 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         capability_name: str,
     ) -> None:
         """Initialize the Livisi sensor."""
-        super().__init__(config_entry, coordinator, device, capability_name)
+        super().__init__(
+            config_entry,
+            coordinator,
+            device,
+            capability_name,
+            use_room_as_device_name=(device["type"] == VRCC_DEVICE_TYPE),
+        )
         self.entity_description = entity_desc
+        # FIXME: Why do I have to set them here?
+        # seems like setting name to None in the base class breaks entity_description
+        self._attr_name = entity_desc.name
+        self._attr_translation_key = entity_desc.translation_key
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""

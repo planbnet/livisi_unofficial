@@ -37,6 +37,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up climate device."""
     coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    known_devices = set()
 
     @callback
     def handle_coordinator_update() -> None:
@@ -44,10 +45,8 @@ async def async_setup_entry(
         shc_devices: list[dict[str, Any]] = coordinator.data
         entities: list[ClimateEntity] = []
         for device in shc_devices:
-            if (
-                device["type"] == VRCC_DEVICE_TYPE
-                and device["id"] not in coordinator.devices
-            ):
+            if device["type"] == VRCC_DEVICE_TYPE and device["id"] not in known_devices:
+                known_devices.add(device["id"])
                 livisi_climate: ClimateEntity = LivisiClimate(
                     config_entry, coordinator, device
                 )

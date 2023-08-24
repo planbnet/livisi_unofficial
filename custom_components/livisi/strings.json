@@ -31,5 +31,18 @@
       "button_6": "Button 7",
       "button_7": "Button 8"
     }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "[%key:component::sensor::entity_component::temperature::name%]"
+      },
+      "humidity": {
+        "name": "[%key:component::sensor::entity_component::humidity::name%]"
+      },
+      "luminance": {
+        "name": "[%key:component::sensor::entity_component::luminance::name%]"
+      }
+    }
   }
 }
