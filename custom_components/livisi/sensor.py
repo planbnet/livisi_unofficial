@@ -17,12 +17,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     DOMAIN,
+    HUMIDITY,
+    HUMIDITY_DEVICE_TYPES,
     LIVISI_STATE_CHANGE,
     LOGGER,
     LUMINANCE,
     MOTION_DEVICE_TYPES,
     TEMPERATURE,
     TEMPERATURE_DEVICE_TYPES,
+    VRCC_DEVICE_TYPE,
 )
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
@@ -66,6 +69,11 @@ async def async_setup_entry(
                     coordinator.devices.add(device["id"])
                     entities.append(luminance_sensor)
                 if device["type"] in TEMPERATURE_DEVICE_TYPES:
+                    capability_name = (
+                        "RoomTemperature"
+                        if device["type"] == VRCC_DEVICE_TYPE
+                        else "TemperatureSensor"
+                    )
                     temp_sensor: SensorEntity = LivisiSensor(
                         config_entry,
                         coordinator,
@@ -78,7 +86,32 @@ async def async_setup_entry(
                             name=device_name,
                             has_entity_name=(device_name is not None),
                         ),
-                        capability_name="TemperatureSensor",
+                        capability_name=capability_name,
+                    )
+                    LOGGER.debug(
+                        "Include device type: %s as temperature sensor", device["type"]
+                    )
+                    coordinator.devices.add(device["id"])
+                    entities.append(temp_sensor)
+                if device["type"] in HUMIDITY_DEVICE_TYPES:
+                    capability_name = (
+                        "RoomHumidity"
+                        if device["type"] == VRCC_DEVICE_TYPE
+                        else "HumiditySensor"
+                    )
+                    temp_sensor: SensorEntity = LivisiSensor(
+                        config_entry,
+                        coordinator,
+                        device,
+                        SensorEntityDescription(
+                            key=HUMIDITY,
+                            device_class=SensorDeviceClass.HUMIDITY,
+                            state_class=SensorStateClass.MEASUREMENT,
+                            native_unit_of_measurement=PERCENTAGE,
+                            name=device_name,
+                            has_entity_name=(device_name is not None),
+                        ),
+                        capability_name=capability_name,
                     )
                     LOGGER.debug(
                         "Include device type: %s as temperature sensor", device["type"]
