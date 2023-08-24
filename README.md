@@ -6,7 +6,8 @@ It can be added as a custom repo to HACS and then installed as an integration. T
 * Support VariableActuators (Boolean vars in livisi)
 * Support motion detectors (brightness sensor and events)
 * Devices with buttons are supported as basic event entities and device triggers
-* Support Smoke Detectors
+* Support Smoke Detectors and Sirens
+* Support temperature sensors for both the room climate devices and the individual thermostats
 * Battery level indicators (experimental und untested, I have to wait until a battery runs out in my installation to see if it works)
 
 
