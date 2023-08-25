@@ -59,9 +59,6 @@ async def async_setup_entry(
                             device_class=SensorDeviceClass.ILLUMINANCE,
                             state_class=SensorStateClass.MEASUREMENT,
                             native_unit_of_measurement=PERCENTAGE,
-                            has_entity_name=True,
-                            name="Luminance",
-                            translation_key="luminance",
                         ),
                         capability_name="LuminanceSensor",
                     )
@@ -85,9 +82,6 @@ async def async_setup_entry(
                             device_class=SensorDeviceClass.TEMPERATURE,
                             state_class=SensorStateClass.MEASUREMENT,
                             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                            has_entity_name=True,
-                            name="Temperature",
-                            translation_key="temperature",
                         ),
                         capability_name=capability_name,
                     )
@@ -111,9 +105,6 @@ async def async_setup_entry(
                             device_class=SensorDeviceClass.HUMIDITY,
                             state_class=SensorStateClass.MEASUREMENT,
                             native_unit_of_measurement=PERCENTAGE,
-                            has_entity_name=True,
-                            name="Humidity",
-                            translation_key="humidity",
                         ),
                         capability_name=capability_name,
                     )
@@ -149,10 +140,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             use_room_as_device_name=(device["type"] == VRCC_DEVICE_TYPE),
         )
         self.entity_description = entity_desc
-        # FIXME: Why do I have to set them here?
-        # seems like setting name to None in the base class breaks entity_description
-        self._attr_name = entity_desc.name
-        self._attr_translation_key = entity_desc.translation_key
+        self._attr_translation_key = entity_desc.key
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""

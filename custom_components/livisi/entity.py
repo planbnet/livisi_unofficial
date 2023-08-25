@@ -9,6 +9,8 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.binary_sensor import BinarySensorEntity
 
 from .const import CAPABILITY_MAP, DOMAIN, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiDataUpdateCoordinator
@@ -33,7 +35,6 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self.aio_livisi = coordinator.aiolivisi
         self.capabilities: Mapping[str, Any] = device[CAPABILITY_MAP]
         self.capability_id = None
-        self._attr_name = None
 
         device_id = device["id"]
         device_name = device.get("config", {}).get("name", "unknown")
@@ -58,11 +59,15 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         if room_id is not None:
             room_name = coordinator.rooms.get(room_id)
         # For livisi climate entities, the device should have the room name from
-        # the livisi setup, as each livisi room gets exactly one VRCC device. The entity
-        # name will always be some localized value of "Climate", so the full element name
-        # in homeassistent will be in the form of "Bedroom Climate"
+        # the livisi setup, as each livisi room gets exactly one VRCC device. The livisi
+        # device name will always be some localized value of "Climate", so the full element
+        # name of climate entities will be in the form of "Bedroom Climate"
+        # for sensors, don't set the name (as they will be named "Temperature" or "Humidity")
         if use_room_as_device_name and room_name is not None:
-            self._attr_name = device_name
+            if not isinstance(self, SensorEntity) and not isinstance(
+                self, BinarySensorEntity
+            ):
+                self._attr_name = device_name
             device_name = room_name
 
         self._attr_device_info = DeviceInfo(

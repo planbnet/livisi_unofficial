@@ -62,6 +62,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
     ) -> None:
         """Initialize the Livisi siren."""
         super().__init__(config_entry, coordinator, device, "AlarmActuator")
+        self._attr_name = None
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""

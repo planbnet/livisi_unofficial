@@ -22,14 +22,14 @@
             "motion_detected": "Bewegung erkannt"
         },
         "trigger_subtype": {
-            "button_0": "Button 1",
-            "button_1": "Button 2",
-            "button_2": "Button 3",
-            "button_3": "Button 4",
-            "button_4": "Button 5",
-            "button_5": "Button 6",
-            "button_6": "Button 7",
-            "button_7": "Button 8"
+            "button_0": "Taste 1",
+            "button_1": "Taste 2",
+            "button_2": "Taste 3",
+            "button_3": "Taste 4",
+            "button_4": "Taste 5",
+            "button_5": "Taste 6",
+            "button_6": "Taste 7",
+            "button_7": "Taste 8"
         }
     },
     "entity": {
