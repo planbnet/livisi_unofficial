@@ -46,7 +46,6 @@ All configuration in done in the UI. See the [official documentation](https://ww
 ## TODO
 
 * Integrate light switches as lights, not as switches
-* Rewrite sensors so that they are derived from just the available capabilities, not the hardcoded device names
 * Find someone to implement the window shutters (as I don't have any)
 * Find someone to implement dimmers (as I don't have any), this should wait until I have implemented the lights entity
 

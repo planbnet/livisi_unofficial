@@ -27,9 +27,6 @@ BUTTON_DEVICE_TYPES: Final = ["ISS2", "WSC2", "ISC2", "BRC8"]
 MOTION_DEVICE_TYPES: Final = ["WMD", "WMDO"]
 VRCC_DEVICE_TYPE: Final = "VRCC"
 WDS_DEVICE_TYPE: Final = "WDS"
-TEMPERATURE_DEVICE_TYPES = ["RST", "RST2", "WRT", VRCC_DEVICE_TYPE]
-HUMIDITY_DEVICE_TYPES = ["RST", "RST2", "WRT", VRCC_DEVICE_TYPE]
-POWER_CONSUMPTION_DEVICES = ["BT-PSS"]
 
 BATTERY_POWERED_DEVICES = [
     "BRC8",
@@ -43,7 +40,29 @@ BATTERY_POWERED_DEVICES = [
     "WSD2",
 ]
 
-BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2}
+CAPABILITY_LUMINANCE_SENSOR: Final = "LuminanceSensor"
+LUMINANCE: Final = "luminance"
+
+CAPABILITY_TEMPERATURE_SENSOR: Final = "TemperatureSensor"
+CAPABILITY_ROOM_TEMPERATURE: Final = "RoomTemperature"
+TEMPERATURE: Final = "temperature"
+
+CAPABILITY_HUMIDITY_SENSOR: Final = "HumiditySensor"
+CAPABILITY_ROOM_HUMIDITY: Final = "RoomHumidity"
+HUMIDITY: Final = "humidity"
+
+CAPABILITY_POWER_SENSOR: Final = "PowerConsumptionSensor"
+POWER_CONSUMPTION: Final = "powerConsumptionWatt"
+
+ON_STATE: Final = "onState"
+VALUE: Final = "value"
+POINT_TEMPERATURE: Final = "pointTemperature"
+SET_POINT_TEMPERATURE: Final = "setpointTemperature"
+
+IS_OPEN: Final = "isOpen"
+IS_SMOKE_ALARM: Final = "isSmokeAlarm"
+
+BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2, "WSC2": 2}
 
 MAX_TEMPERATURE: Final = 30.0
 MIN_TEMPERATURE: Final = 6.0
@@ -68,17 +87,6 @@ AUTHENTICATION_HEADERS: Final = {
 LIVISI_EVENT_STATE_CHANGED = "StateChanged"
 LIVISI_EVENT_BUTTON_PRESSED = "ButtonPressed"
 LIVISI_EVENT_MOTION_DETECTED = "MotionDetected"
-
-ON_STATE: Final = "onState"
-VALUE: Final = "value"
-POINT_TEMPERATURE: Final = "pointTemperature"
-SET_POINT_TEMPERATURE: Final = "setpointTemperature"
-TEMPERATURE: Final = "temperature"
-HUMIDITY: Final = "humidity"
-LUMINANCE: Final = "luminance"
-IS_OPEN: Final = "isOpen"
-IS_SMOKE_ALARM: Final = "isSmokeAlarm"
-POWER_CONSUMPTION: Final = "powerConsumptionWatt"
 
 STATE_PROPERTIES = [
     ON_STATE,

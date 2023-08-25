@@ -16,21 +16,63 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CAPABILITY_HUMIDITY_SENSOR,
+    CAPABILITY_LUMINANCE_SENSOR,
+    CAPABILITY_ROOM_HUMIDITY,
+    CAPABILITY_ROOM_TEMPERATURE,
+    CAPABILITY_TEMPERATURE_SENSOR,
+    CAPABILITY_POWER_SENSOR,
+    CAPABILITY_MAP,
     DOMAIN,
     HUMIDITY,
-    HUMIDITY_DEVICE_TYPES,
     LIVISI_STATE_CHANGE,
     LOGGER,
     LUMINANCE,
-    MOTION_DEVICE_TYPES,
     TEMPERATURE,
-    TEMPERATURE_DEVICE_TYPES,
     VRCC_DEVICE_TYPE,
-    POWER_CONSUMPTION_DEVICES,
     POWER_CONSUMPTION,
 )
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
+
+SENSOR_TYPES = {
+    CAPABILITY_LUMINANCE_SENSOR: SensorEntityDescription(
+        key=LUMINANCE,
+        device_class=SensorDeviceClass.ILLUMINANCE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+    ),
+    CAPABILITY_TEMPERATURE_SENSOR: SensorEntityDescription(
+        key=TEMPERATURE,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    ),
+    CAPABILITY_ROOM_TEMPERATURE: SensorEntityDescription(
+        key=TEMPERATURE,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    ),
+    CAPABILITY_HUMIDITY_SENSOR: SensorEntityDescription(
+        key=HUMIDITY,
+        device_class=SensorDeviceClass.HUMIDITY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+    ),
+    CAPABILITY_ROOM_HUMIDITY: SensorEntityDescription(
+        key=HUMIDITY,
+        device_class=SensorDeviceClass.HUMIDITY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+    ),
+    CAPABILITY_POWER_SENSOR: SensorEntityDescription(
+        key=POWER_CONSUMPTION,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+    ),
+}
 
 
 async def async_setup_entry(
@@ -50,89 +92,22 @@ async def async_setup_entry(
         for device in shc_devices:
             if device["id"] not in known_devices:
                 known_devices.add(device["id"])
-                if device["type"] in MOTION_DEVICE_TYPES:
-                    # The motion devices all have a luminance sensor
-                    luminance_sensor: SensorEntity = LivisiSensor(
-                        config_entry,
-                        coordinator,
-                        device,
-                        SensorEntityDescription(
-                            key=LUMINANCE,
-                            device_class=SensorDeviceClass.ILLUMINANCE,
-                            state_class=SensorStateClass.MEASUREMENT,
-                            native_unit_of_measurement=PERCENTAGE,
-                        ),
-                        capability_name="LuminanceSensor",
-                    )
-                    LOGGER.debug(
-                        "Include device type: %s as luminance sensor", device["type"]
-                    )
-                    coordinator.devices.add(device["id"])
-                    entities.append(luminance_sensor)
-                if device["type"] in TEMPERATURE_DEVICE_TYPES:
-                    capability_name = (
-                        "RoomTemperature"
-                        if device["type"] == VRCC_DEVICE_TYPE
-                        else "TemperatureSensor"
-                    )
-                    temp_sensor: SensorEntity = LivisiSensor(
-                        config_entry,
-                        coordinator,
-                        device,
-                        SensorEntityDescription(
-                            key=TEMPERATURE,
-                            device_class=SensorDeviceClass.TEMPERATURE,
-                            state_class=SensorStateClass.MEASUREMENT,
-                            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-                        ),
-                        capability_name=capability_name,
-                    )
-                    LOGGER.debug(
-                        "Include device type: %s as temperature sensor", device["type"]
-                    )
-                    coordinator.devices.add(device["id"])
-                    entities.append(temp_sensor)
-                if device["type"] in HUMIDITY_DEVICE_TYPES:
-                    capability_name = (
-                        "RoomHumidity"
-                        if device["type"] == VRCC_DEVICE_TYPE
-                        else "HumiditySensor"
-                    )
-                    humidity_sensor: SensorEntity = LivisiSensor(
-                        config_entry,
-                        coordinator,
-                        device,
-                        SensorEntityDescription(
-                            key=HUMIDITY,
-                            device_class=SensorDeviceClass.HUMIDITY,
-                            state_class=SensorStateClass.MEASUREMENT,
-                            native_unit_of_measurement=PERCENTAGE,
-                        ),
-                        capability_name=capability_name,
-                    )
-                    LOGGER.debug(
-                        "Include device type: %s as humidity sensor", device["type"]
-                    )
-                    coordinator.devices.add(device["id"])
-                    entities.append(humidity_sensor)
-                if device["type"] in POWER_CONSUMPTION_DEVICES:
-                    power_sensor: SensorEntity = LivisiSensor(
-                        config_entry,
-                        coordinator,
-                        device,
-                        SensorEntityDescription(
-                            key=POWER_CONSUMPTION,
-                            device_class=SensorDeviceClass.POWER,
-                            state_class=SensorStateClass.MEASUREMENT,
-                            native_unit_of_measurement=UnitOfPower.WATT,
-                        ),
-                        capability_name="PowerConsumptionSensor",
-                    )
-                    LOGGER.debug(
-                        "Include device type: %s as power sensor", device["type"]
-                    )
-                    coordinator.devices.add(device["id"])
-                    entities.append(power_sensor)
+                for capability_name in SENSOR_TYPES:
+                    if capability_name in device.get(CAPABILITY_MAP, {}):
+                        sensor: SensorEntity = LivisiSensor(
+                            config_entry,
+                            coordinator,
+                            device,
+                            SENSOR_TYPES.get(capability_name),
+                            capability_name=capability_name,
+                        )
+                        LOGGER.debug(
+                            "Include device type: %s as %s",
+                            device["type"],
+                            capability_name,
+                        )
+                        coordinator.devices.add(device["id"])
+                        entities.append(sensor)
         async_add_entities(entities)
 
     config_entry.async_on_unload(
