@@ -96,7 +96,7 @@ async def async_setup_entry(
                         if device["type"] == VRCC_DEVICE_TYPE
                         else "HumiditySensor"
                     )
-                    temp_sensor: SensorEntity = LivisiSensor(
+                    humidity_sensor: SensorEntity = LivisiSensor(
                         config_entry,
                         coordinator,
                         device,
@@ -109,10 +109,10 @@ async def async_setup_entry(
                         capability_name=capability_name,
                     )
                     LOGGER.debug(
-                        "Include device type: %s as temperature sensor", device["type"]
+                        "Include device type: %s as humidity sensor", device["type"]
                     )
                     coordinator.devices.add(device["id"])
-                    entities.append(temp_sensor)
+                    entities.append(humidity_sensor)
         async_add_entities(entities)
 
     config_entry.async_on_unload(
