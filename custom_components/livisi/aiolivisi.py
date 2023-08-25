@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 import uuid
 
+from dateutil.parser import parse as parseTimestamp
 from aiohttp.client import ClientSession, ClientError
 
 from .livisi_errors import (
@@ -44,6 +45,7 @@ class AioLivisi:
         self._auth_headers: dict[str, Any] = auth_headers
         self._token: str = ""
         self._livisi_connection_data: dict[str, str] = None
+        self._lastest_message = None
 
     async def async_set_token(
         self, livisi_connection_data: dict[str, str] = None
@@ -172,12 +174,17 @@ class AioLivisi:
 
         low_battery_devices = set()
         update_available_devices = set()
-        unreachable_devices = set()
-        updated_devices = set()
         for message in messages:
             LOGGER.debug("Found a message")
             LOGGER.debug(message)
             msgtype = message.get("type", "")
+            msgtimestamp = parseTimestamp(message.get("timestamp", ""))
+            if msgtimestamp is None:
+                continue
+
+            if self._lastest_message is None or msgtimestamp > self._lastest_message:
+                self._lastest_message = msgtimestamp
+
             device_ids = [d.replace("/device/", "") for d in message.get("devices", [])]
             if len(device_id) == 0:
                 source = message.get("source", "00000000000000000000000000000000")
@@ -189,11 +196,9 @@ class AioLivisi:
                 for device_id in device_ids:
                     update_available_devices.add(device_id)
             elif msgtype == "ProductUpdated" or msgtype == "ShcUpdateCompleted":
-                for device_id in device_ids:
-                    updated_devices.add(device_id)
+                pass
             elif msgtype == "DeviceUnreachable":
-                for device_id in device_ids:
-                    unreachable_devices.add(device_id)
+                pass
 
         for device in devices:
             device_id = device["id"]
