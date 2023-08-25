@@ -56,6 +56,7 @@ REQUEST_TIMEOUT: Final = 2000
 CAPABILITY_MAP: Final = "capabilityMap"
 CAPABILITY_CONFIG: Final = "capabilityConfig"
 BATTERY_LOW: Final = "batteryLow"
+UPDATE_AVAILABLE: Final = "DeviceUpdateAvailable"
 
 AUTHENTICATION_HEADERS: Final = {
     "Authorization": "Basic Y2xpZW50SWQ6Y2xpZW50UGFzcw==",

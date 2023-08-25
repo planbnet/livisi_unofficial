@@ -25,6 +25,7 @@ from .const import (
     CAPABILITY_CONFIG,
     REQUEST_TIMEOUT,
     USERNAME,
+    UPDATE_AVAILABLE,
 )
 
 ERRORS = {1: Exception}
@@ -170,12 +171,29 @@ class AioLivisi:
                     ]
 
         low_battery_devices = set()
+        update_available_devices = set()
+        unreachable_devices = set()
+        updated_devices = set()
         for message in messages:
             LOGGER.debug("Found a message")
             LOGGER.debug(message)
-            if message.get("type") == "DeviceLowBattery":
-                for device_id in message.get("devices", {}):
+            msgtype = message.get("type", "")
+            device_ids = [d.replace("/device/", "") for d in message.get("devices", [])]
+            if len(device_id) == 0:
+                source = message.get("source", "00000000000000000000000000000000")
+                device_ids.add(source.replace("/device/", ""))
+            if msgtype == "DeviceLowBattery":
+                for device_id in device_ids:
                     low_battery_devices.add(device_id)
+            elif msgtype == "DeviceUpdateAvailable":
+                for device_id in device_ids:
+                    update_available_devices.add(device_id)
+            elif msgtype == "ProductUpdated" or msgtype == "ShcUpdateCompleted":
+                for device_id in device_ids:
+                    updated_devices.add(device_id)
+            elif msgtype == "DeviceUnreachable":
+                for device_id in device_ids:
+                    unreachable_devices.add(device_id)
 
         for device in devices:
             device_id = device["id"]
@@ -183,6 +201,8 @@ class AioLivisi:
             device[CAPABILITY_CONFIG] = capability_config.get(device_id, {})
             if device_id in low_battery_devices:
                 device[BATTERY_LOW] = True
+            if device_id in update_available_devices:
+                device[UPDATE_AVAILABLE] = True
             if LOCATION in device and device.get(LOCATION) is not None:
                 device[LOCATION] = device[LOCATION].removeprefix("/location/")
 
