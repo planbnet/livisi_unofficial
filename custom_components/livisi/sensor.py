@@ -115,7 +115,7 @@ async def async_setup_entry(
                     )
                     coordinator.devices.add(device["id"])
                     entities.append(humidity_sensor)
-                if device["type"] in POWER_CONSUMPTION_DEVICE:
+                if device["type"] in POWER_CONSUMPTION_DEVICES:
                     power_sensor: SensorEntity = LivisiSensor(
                         config_entry,
                         coordinator,
