@@ -3,7 +3,8 @@
 This project is in "works for me" state and I do not advise anyone to use it nor can or will I provide support on how to install it.
 It can be added as a custom repo to HACS and then installed as an integration. This will override the existing livisi integration and add the following features:
 
-* Support VariableActuators (Boolean vars in livisi)
+* Support VariableActuators (Boolean vars in livisi) as switches
+* Support light switches as lights (be sure to categorize them correctly in the livisi controller)
 * Support motion detectors (brightness sensor and events)
 * Devices with buttons are supported as basic event entities and device triggers
 * Support Smoke Detectors and Sirens
@@ -11,7 +12,7 @@ It can be added as a custom repo to HACS and then installed as an integration. T
 * Battery level indicators
 * Dropped the dependencies on the aiolivisi lib, which seems to be abandoned. The neccessary connection code is simply included in this integration (which was opposed by the home assistant team for the official integration, but is the only logical way forward)
 
-_Note: As I don't have any shutter contol devices (nor do I have window shutters at all), I cannot add them to this lib. If you are willing to add support from them (in the same style as the other devices are implemented), feel free to submit a PR_
+_Note: As I don't have any shutter contol devices (nor do I have window shutters at all) or dimmers, I cannot add these devices to this lib. If you are willing to add support from them (in the same style as the other devices are implemented), feel free to submit a PR_
 
 ## Caution
 
@@ -42,11 +43,5 @@ All configuration in done in the UI. See the [official documentation](https://ww
 ## Notes
 
 * Luminance is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']` but as percent is the correct unit here, I don't think we should change it (at least until it causes problems in HA)
-
-## TODO
-
-* Integrate light switches as lights, not as switches
-* Find someone to implement the window shutters (as I don't have any)
-* Find someone to implement dimmers (as I don't have any), this should wait until I have implemented the lights entity
 
 
