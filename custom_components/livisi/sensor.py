@@ -10,7 +10,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.components.sensor.const import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, UnitOfTemperature, UnitOfPower
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -26,6 +26,8 @@ from .const import (
     TEMPERATURE,
     TEMPERATURE_DEVICE_TYPES,
     VRCC_DEVICE_TYPE,
+    POWER_CONSUMPTION_DEVICE,
+    POWER_CONSUMPTION,
 )
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
@@ -113,6 +115,24 @@ async def async_setup_entry(
                     )
                     coordinator.devices.add(device["id"])
                     entities.append(humidity_sensor)
+                if device["type"] in POWER_CONSUMPTION_DEVICES:
+                    power_sensor: SensorEntity = LivisiSensor(
+                        config_entry,
+                        coordinator,
+                        device,
+                        SensorEntityDescription(
+                            key=POWER_CONSUMPTION,
+                            device_class=SensorDeviceClass.POWER,
+                            state_class=SensorStateClass.MEASUREMENT,
+                            native_unit_of_measurement=UnitOfPower.WATT,
+                        ),
+                        capability_name="PowerConsumptionSensor",
+                    )
+                    LOGGER.debug(
+                        "Include device type: %s as power sensor", device["type"]
+                    )
+                    coordinator.devices.add(device["id"])
+                    entities.append(power_sensor)
         async_add_entities(entities)
 
     config_entry.async_on_unload(

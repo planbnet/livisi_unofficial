@@ -19,7 +19,7 @@ DEVICE_POLLING_DELAY: Final = 60
 LIVISI_STATE_CHANGE: Final = "livisi_state_change"
 LIVISI_REACHABILITY_CHANGE: Final = "livisi_reachability_change"
 
-SWITCH_DEVICE_TYPES: Final = ["ISS2", "PSS", "PSSO"]
+SWITCH_DEVICE_TYPES: Final = ["ISS2", "PSS", "PSSO", "BT-PSS"]
 SIREN_DEVICE_TYPES: Final = ["WSD", "WSD2", "SIR"]
 SMOKE_DETECTOR_DEVICE_TYPES: Final = ["WSD", "WSD2"]
 VARIABLE_DEVICE_TYPE: Final = "VariableActuator"
@@ -29,6 +29,7 @@ VRCC_DEVICE_TYPE: Final = "VRCC"
 WDS_DEVICE_TYPE: Final = "WDS"
 TEMPERATURE_DEVICE_TYPES = ["RST", "RST2", "WRT", VRCC_DEVICE_TYPE]
 HUMIDITY_DEVICE_TYPES = ["RST", "RST2", "WRT", VRCC_DEVICE_TYPE]
+POWER_CONSUMPTION_DEVICE = "BT-PSS"
 
 BATTERY_POWERED_DEVICES = [
     "BRC8",
@@ -40,7 +41,6 @@ BATTERY_POWERED_DEVICES = [
     "WMDO",
     "WSD",
     "WSD2",
-    "WRT",
 ]
 
 BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2}
@@ -78,6 +78,7 @@ HUMIDITY: Final = "humidity"
 LUMINANCE: Final = "luminance"
 IS_OPEN: Final = "isOpen"
 IS_SMOKE_ALARM: Final = "isSmokeAlarm"
+POWER_CONSUMPTION: Final = "powerConsumptionWatt"
 
 STATE_PROPERTIES = [
     ON_STATE,
@@ -89,6 +90,7 @@ STATE_PROPERTIES = [
     LUMINANCE,
     IS_OPEN,
     IS_SMOKE_ALARM,
+    POWER_CONSUMPTION,
 ]
 
 IS_REACHABLE: Final = "isReachable"
