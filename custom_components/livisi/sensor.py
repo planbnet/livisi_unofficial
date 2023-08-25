@@ -26,7 +26,7 @@ from .const import (
     TEMPERATURE,
     TEMPERATURE_DEVICE_TYPES,
     VRCC_DEVICE_TYPE,
-    POWER_CONSUMPTION_DEVICE,
+    POWER_CONSUMPTION_DEVICES,
     POWER_CONSUMPTION,
 )
 from .coordinator import LivisiDataUpdateCoordinator
