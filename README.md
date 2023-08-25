@@ -43,4 +43,11 @@ All configuration in done in the UI. See the [official documentation](https://ww
 
 * Luminance is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']` but as percent is the correct unit here, I don't think we should change it (at least until it causes problems in HA)
 
+## TODO
+
+* Integrate light switches as lights, not as switches
+* Rewrite sensors so that they are derived from just the available capabilities, not the hardcoded device names
+* Find someone to implement the window shutters (as I don't have any)
+* Find someone to implement dimmers (as I don't have any), this should wait until I have implemented the lights entity
+
 
