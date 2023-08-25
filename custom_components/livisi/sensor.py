@@ -26,8 +26,7 @@ from .const import (
     TEMPERATURE,
     TEMPERATURE_DEVICE_TYPES,
     VRCC_DEVICE_TYPE,
-    SWITCH_DEVICE_TYPES,
-    POWER_SENSOR_DEVICE_MANUFACTURER,
+    POWER_CONSUMPTION_DEVICE,
     POWER_CONSUMPTION,
 )
 from .coordinator import LivisiDataUpdateCoordinator
@@ -116,7 +115,7 @@ async def async_setup_entry(
                     )
                     coordinator.devices.add(device["id"])
                     entities.append(humidity_sensor)
-                if device["type"] in SWITCH_DEVICE_TYPES and device["manufacturer"] in POWER_SENSOR_DEVICE_MANUFACTURER:
+                if device["type"] in POWER_CONSUMPTION_DEVICE:
                     power_sensor: SensorEntity = LivisiSensor(
                         config_entry,
                         coordinator,
