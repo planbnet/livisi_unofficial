@@ -84,8 +84,6 @@ async def async_migrate_entry(hass, config_entry):
     except ClientConnectorError as exception:
         LOGGER.error(exception)
         return False
-    finally:
-        await web_session.close()
 
     # list of capabilities where unique id of entities will be changed
     # from device id to capability id
@@ -136,19 +134,14 @@ async def async_migrate_entry(hass, config_entry):
 
     if config_entry.version == 2:
         # delete switches that are lights, because they are now integrated as light devices
-        for deviceid in light_switches:
-            # starting with version 3, light switches are now separate light entities
-            # retrieve all switch entities and remove those which have deviceid as unique id
-            @callback
-            def remove_light_switches(entity_entry):
-                """Remove light switches that are now integrated as light devices."""
-                if entity_entry.unique_id == deviceid:
-                    return entity_entry.entry_id
 
-            await async_migrate_entries(
-                hass, config_entry.entry_id, remove_light_switches
-            )
-            hass.config_entries.async_remove(remove_light_switches)
+        @callback
+        def remove_light_switches(entity_entry):
+            """Remove light switches that are now integrated as light devices."""
+            if entity_entry.unique_id in light_switches:
+                hass.config_entries.async_remove(entity_entry.entry_id)
+
+        await async_migrate_entries(hass, config_entry.entry_id, remove_light_switches)
         config_entry.version = 3
 
     LOGGER.info("Migration to version %s successful", config_entry.version)
