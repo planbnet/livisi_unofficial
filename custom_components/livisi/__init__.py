@@ -11,8 +11,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client, device_registry as dr
-
-from homeassistant.helpers.entity_registry import async_migrate_entries
+from homeassistant.helpers import entity_registry as er
 
 from .aiolivisi import AioLivisi
 from .const import DOMAIN, LOGGER, CAPABILITY_MAP, SWITCH_DEVICE_TYPES
@@ -99,16 +98,17 @@ async def async_migrate_entry(hass, config_entry):
     light_switches: list[str] = []
     for device in devices:
         deviceid = device["id"]
+        if CAPABILITY_MAP not in device:
+            break
+        caps = device[CAPABILITY_MAP]
 
         if (
             device["type"] in SWITCH_DEVICE_TYPES
             and device.get("tags", {}).get("typeCategory") == "TCLightId"
+            and "SwitchActuator" in caps
         ):
-            light_switches.append(deviceid)
+            light_switches.append(caps["SwitchActuator"])
 
-        if CAPABILITY_MAP not in device:
-            break
-        caps = device[CAPABILITY_MAP]
         for cap_name in migrate_capabilities:
             if cap_name in caps:
                 update_ids[deviceid] = caps[cap_name]
@@ -129,19 +129,23 @@ async def async_migrate_entry(hass, config_entry):
             else:
                 return None
 
-        await async_migrate_entries(hass, config_entry.entry_id, update_unique_id)
+        await er.async_migrate_entries(hass, config_entry.entry_id, update_unique_id)
         config_entry.version = 2
 
     if config_entry.version == 2:
         # delete switches that are lights, because they are now integrated as light devices
+        switch_entries = []
+        entity_registry = er.async_get(hass)
 
         @callback
-        def remove_light_switches(entity_entry):
-            """Remove light switches that are now integrated as light devices."""
+        def find_light_switches(entity_entry):
+            """Find light switches that are now integrated as light devices."""
             if entity_entry.unique_id in light_switches:
-                hass.config_entries.async_remove(entity_entry.entry_id)
+                switch_entries.append(entity_entry)
 
-        await async_migrate_entries(hass, config_entry.entry_id, remove_light_switches)
+        await er.async_migrate_entries(hass, config_entry.entry_id, find_light_switches)
+        for switch in switch_entries:
+            entity_registry.async_remove(switch.entity_id)
         config_entry.version = 3
 
     LOGGER.info("Migration to version %s successful", config_entry.version)
