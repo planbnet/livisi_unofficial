@@ -175,8 +175,6 @@ class AioLivisi:
         low_battery_devices = set()
         update_available_devices = set()
         for message in messages:
-            LOGGER.debug("Found a message")
-            LOGGER.debug(message)
             msgtype = message.get("type", "")
             msgtimestamp = parseTimestamp(message.get("timestamp", ""))
             if msgtimestamp is None:
