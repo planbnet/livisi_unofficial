@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, SIREN_DEVICE_TYPES
+from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, SMOKE_DETECTOR_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
@@ -33,7 +33,7 @@ async def async_setup_entry(
         for device in shc_devices:
             if (
                 device["id"] not in known_devices
-                and device["type"] in SIREN_DEVICE_TYPES
+                and device["type"] in SMOKE_DETECTOR_DEVICE_TYPES
             ):
                 livisi_siren: SirenEntity = LivisiSiren(
                     config_entry, coordinator, device
