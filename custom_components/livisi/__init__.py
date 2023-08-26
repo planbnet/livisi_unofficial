@@ -15,7 +15,7 @@ from homeassistant.helpers import aiohttp_client, device_registry as dr
 from homeassistant.helpers.entity_registry import async_migrate_entries
 
 from .aiolivisi import AioLivisi
-from .const import DOMAIN, LOGGER, CAPABILITY_MAP
+from .const import DOMAIN, LOGGER, CAPABILITY_MAP, SWITCH_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 
 
@@ -98,8 +98,16 @@ async def async_migrate_entry(hass, config_entry):
     ]
 
     update_ids: dict[str, str] = {}
+    light_switches: list[str] = []
     for device in devices:
         deviceid = device["id"]
+
+        if (
+            device["type"] in SWITCH_DEVICE_TYPES
+            and device.get("tags", {}).get("typeCategory") == "TCLightId"
+        ):
+            light_switches.append(deviceid)
+
         if CAPABILITY_MAP not in device:
             break
         caps = device[CAPABILITY_MAP]
@@ -125,6 +133,23 @@ async def async_migrate_entry(hass, config_entry):
 
         await async_migrate_entries(hass, config_entry.entry_id, update_unique_id)
         config_entry.version = 2
+
+    if config_entry.version == 2:
+        # delete switches that are lights, because they are now integrated as light devices
+        for deviceid in light_switches:
+            # starting with version 3, light switches are now separate light entities
+            # retrieve all switch entities and remove those which have deviceid as unique id
+            @callback
+            def remove_light_switches(entity_entry):
+                """Remove light switches that are now integrated as light devices."""
+                if entity_entry.unique_id == deviceid:
+                    return entity_entry.entry_id
+
+            await async_migrate_entries(
+                hass, config_entry.entry_id, remove_light_switches
+            )
+            hass.config_entries.async_remove(remove_light_switches)
+        config_entry.version = 3
 
     LOGGER.info("Migration to version %s successful", config_entry.version)
 
