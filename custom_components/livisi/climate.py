@@ -89,10 +89,14 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
-        response = await self.aio_livisi.async_vrcc_set_temperature(
+        response = await self.aio_livisi.async_set_state(
             self._target_temperature_capability,
-            kwargs.get(ATTR_TEMPERATURE),
-            self.coordinator.is_avatar,
+            key=(
+                "setpointTemperature"
+                if self.coordinator.is_avatar
+                else "pointTemperature"
+            ),
+            value=kwargs.get(ATTR_TEMPERATURE),
         )
         if response is None:
             self._attr_available = False

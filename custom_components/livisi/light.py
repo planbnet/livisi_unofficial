@@ -66,8 +66,8 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
-        response = await self.aio_livisi.async_set_onstate(
-            self.capability_id, is_on=True
+        response = await self.aio_livisi.async_set_state(
+            self.capability_id, key="onState", value=True
         )
         if response is None:
             self._attr_available = False
@@ -78,8 +78,8 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
-        response = await self.aio_livisi.async_set_onstate(
-            self.capability_id, is_on=False
+        response = await self.aio_livisi.async_set_state(
+            self.capability_id, key="onState", value=False
         )
         if response is None:
             self._attr_available = False

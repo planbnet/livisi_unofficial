@@ -226,48 +226,16 @@ class AioLivisi:
             LOGGER.warning("Error getting device state", exc_info=True)
             return None
 
-    async def async_set_onstate(self, capability_id, is_on: bool) -> dict[str, Any]:
-        """Set the onState for devices that support it."""
+    async def async_set_state(
+        self, capability_id: str, key: str, value: bool | float
+    ) -> dict[str, Any]:
+        """Sets the state of a capability."""
         set_state_payload: dict[str, Any] = {
             "id": uuid.uuid4().hex,
             "type": "SetState",
             "namespace": "core.RWE",
             "target": f"/capability/{capability_id}",
-            "params": {"onState": {"type": "Constant", "value": is_on}},
-        }
-        return await self.async_send_authorized_request(
-            "post", "action", payload=set_state_payload
-        )
-
-    async def async_variable_set_value(
-        self, capability_id, value: bool
-    ) -> dict[str, Any]:
-        """Set the boolean variable state."""
-        set_value_payload: dict[str, Any] = {
-            "id": uuid.uuid4().hex,
-            "type": "SetState",
-            "namespace": "core.RWE",
-            "target": f"/capability/{capability_id}",
-            "params": {"value": {"type": "Constant", "value": value}},
-        }
-        return await self.async_send_authorized_request(
-            "post", "action", payload=set_value_payload
-        )
-
-    async def async_vrcc_set_temperature(
-        self, capability_id, target_temperature: float, is_avatar: bool
-    ) -> dict[str, Any]:
-        """Set the Virtual Climate Control state."""
-        if is_avatar:
-            params = "setpointTemperature"
-        else:
-            params = "pointTemperature"
-        set_state_payload: dict[str, Any] = {
-            "id": uuid.uuid4().hex,
-            "type": "SetState",
-            "namespace": "core.RWE",
-            "target": f"/capability/{capability_id}",
-            "params": {params: {"type": "Constant", "value": target_temperature}},
+            "params": {key: {"type": "Constant", "value": value}},
         }
         return await self.async_send_authorized_request(
             "post", "action", payload=set_state_payload
