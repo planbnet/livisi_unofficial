@@ -1,17 +1,17 @@
 """Code for communication with the Livisi application websocket."""
 from collections.abc import Callable
 import urllib.parse
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
+import json
 import websockets
-from pydantic import BaseModel, ValidationError
 
 from .aiolivisi import AioLivisi
-from .const import AVATAR_PORT
+from .const import AVATAR_PORT, LOGGER
 
 
-@dataclass(init=False)
-class LivisiWebsocketEvent(BaseModel):
+@dataclass
+class LivisiWebsocketEvent:
     """Encapuses a livisi event sent via the websocket."""
 
     namespace: str
@@ -59,15 +59,22 @@ class Websocket:
         """Parse data transmitted via the websocket."""
         async for message in websocket:
             try:
-                event_data = LivisiWebsocketEvent.parse_raw(message)
-            except ValidationError:
+                parsed_json = json.loads(message)
+                # Only include keys that are fields in the LivisiWebsocketEvent dataclass
+                event_data_dict = {
+                    f.name: parsed_json.get(f.name)
+                    for f in fields(LivisiWebsocketEvent)
+                }
+                event_data = LivisiWebsocketEvent(**event_data_dict)
+            except json.JSONDecodeError:
+                LOGGER.warning("Cannot decode websocket message", exc_info=True)
+                continue
+
+            if event_data.properties is None:
                 continue
 
             # remove the url prefix and use just the id (which is unqiue)
             event_data.source = event_data.source.removeprefix("/device/")
             event_data.source = event_data.source.removeprefix("/capability/")
-
-            if event_data.properties is None:
-                continue
 
             on_data(event_data)

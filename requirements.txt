@@ -4,4 +4,3 @@ pip>=21.0,<23.3
 ruff==0.0.286
 aiohttp
 websockets
-pydantic>=2.0,<3.0
