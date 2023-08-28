@@ -7,10 +7,11 @@ It can be added as a custom repo to HACS and then installed as an integration. T
 * Support light switches as lights (be sure to categorize them correctly in the livisi controller)
 * Support motion detectors (brightness sensor and events)
 * Devices with buttons are supported as basic event entities and device triggers
-* Support Smoke Detectors and Sirens
+* Support Smoke Detectors
 * Support temperature sensors for both the room climate devices and the individual thermostats
 * Battery level indicators
 * Dropped the dependencies on the aiolivisi lib, which seems to be abandoned. The neccessary connection code is simply included in this integration (which was opposed by the home assistant team for the official integration, but is the only logical way forward)
+* Dropped the pydantic dependency
 
 _Note: As I don't have any shutter contol devices (nor do I have window shutters at all) or dimmers, I cannot add these devices to this lib. If you are willing to add support from them (in the same style as the other devices are implemented), feel free to submit a PR_
 
