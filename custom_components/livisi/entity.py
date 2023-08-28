@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.binary_sensor import BinarySensorEntity
 
-from .const import CAPABILITY_MAP, DOMAIN, LIVISI_REACHABILITY_CHANGE
+from .const import CAPABILITY_MAP, CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiDataUpdateCoordinator
 
 
@@ -74,8 +74,10 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
             identifiers={(DOMAIN, device_id)},
             manufacturer=device["manufacturer"],
             model=device["type"],
+            sw_version=device["version"],
             name=device_name,
             suggested_area=room_name,
+            configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device['id']}",
             via_device=(DOMAIN, config_entry.entry_id),
         )
         super().__init__(coordinator)

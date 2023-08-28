@@ -14,7 +14,7 @@ from homeassistant.helpers import aiohttp_client, device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .aiolivisi import AioLivisi
-from .const import DOMAIN, LOGGER, CAPABILITY_MAP, SWITCH_DEVICE_TYPES
+from .const import CONF_HOST, DOMAIN, LOGGER, CAPABILITY_MAP, SWITCH_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 
 
@@ -45,8 +45,11 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     device_registry.async_get_or_create(
         config_entry_id=coordinator.serial_number,
         identifiers={(DOMAIN, entry.entry_id)},
+        model=f"SHC {coordinator.controller_type}",
+        sw_version=coordinator.os_version,
         manufacturer="Livisi",
         name=f"SHC {coordinator.controller_type} {coordinator.serial_number}",
+        configuration_url=f"http://{entry.data[CONF_HOST]}",
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

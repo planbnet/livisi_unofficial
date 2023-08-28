@@ -60,6 +60,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         self.capability_to_device: dict[str, str] = {}
         self.rooms: dict[str, Any] = {}
         self.serial_number: str = ""
+        self.os_version: str = ""
         self.controller_type: str = ""
         self.is_avatar: bool = False
         self.port: int = 0
@@ -108,6 +109,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             self.is_avatar = False
         self.controller_type = controller_type
         self.serial_number = controller_data["serialNumber"]
+        self.os_version = controller_data["osVersion"]
 
     async def async_get_devices(self) -> list[dict[str, Any]]:
         """Set the discovered devices list."""
