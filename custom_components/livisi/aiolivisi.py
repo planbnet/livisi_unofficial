@@ -222,7 +222,7 @@ class AioLivisi:
             return await self.async_send_authorized_request(
                 "get", f"capability/{capability_id}/state"
             )
-        except:
+        except Exception:
             LOGGER.warning("Error getting device state", exc_info=True)
             return None
 
