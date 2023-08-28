@@ -63,8 +63,10 @@ class Websocket:
             except ValidationError:
                 continue
 
-            if "device" in event_data.source:
-                event_data.source = event_data.source.replace("/device/", "")
+            # remove the url prefix and use just the id (which is unqiue)
+            event_data.source = event_data.source.removeprefix("/device/")
+            event_data.source = event_data.source.removeprefix("/capability/")
+
             if event_data.properties is None:
                 continue
 

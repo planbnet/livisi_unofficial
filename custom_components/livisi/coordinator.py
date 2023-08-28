@@ -18,6 +18,7 @@ from .livisi_errors import TokenExpiredException
 from .const import (
     AVATAR,
     AVATAR_PORT,
+    CAPABILITY_MAP,
     CLASSIC_PORT,
     CONF_HOST,
     CONF_PASSWORD,
@@ -113,7 +114,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         devices = await self.aiolivisi.async_get_devices()
         capability_mapping = {}
         for device in devices:
-            for capability_id in device.get("capabilities", []):
+            for capability_id in device.get(CAPABILITY_MAP, {}).values():
                 capability_mapping[capability_id] = device["id"]
         self.capability_to_device = capability_mapping
         return devices
@@ -121,7 +122,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
     async def async_get_device_state(self, capability: str, key: str) -> Any | None:
         """Get state from livisi devices."""
         response: dict[str, Any] = await self.aiolivisi.async_get_device_state(
-            capability[1:]
+            capability
         )
         if response is None:
             return None

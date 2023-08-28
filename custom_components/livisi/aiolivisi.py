@@ -74,13 +74,13 @@ class AioLivisi:
     async def async_send_authorized_request(
         self,
         method,
-        url: str,
+        path: str,
         payload=None,
     ) -> dict:
         """Make a request to the Livisi Smart Home controller."""
         ip_address = self._livisi_connection_data["ip_address"]
-        path = f"http://{ip_address}:{CLASSIC_PORT}/{url}"
-        return await self.async_send_request(method, path, payload, self._auth_headers)
+        url = f"http://{ip_address}:{CLASSIC_PORT}/{path}"
+        return await self.async_send_request(method, url, payload, self._auth_headers)
 
     async def async_send_unauthorized_request(
         self,
@@ -144,29 +144,29 @@ class AioLivisi:
 
     async def async_get_controller_status(self) -> dict[str, Any]:
         """Get Livisi Smart Home controller status."""
-        shc_info = await self.async_send_authorized_request("get", url="status")
+        shc_info = await self.async_send_authorized_request("get", path="status")
         return shc_info
 
     async def async_get_devices(
         self,
     ) -> list[dict[str, Any]]:
         """Send a request for getting the devices."""
-        devices = await self.async_send_authorized_request("get", url="device")
-        capabilities = await self.async_send_authorized_request("get", url="capability")
-        messages = await self.async_send_authorized_request("get", url="message")
+        devices = await self.async_send_authorized_request("get", path="device")
+        capabilities = await self.async_send_authorized_request(
+            "get", path="capability"
+        )
+        messages = await self.async_send_authorized_request("get", path="message")
 
         capability_map = {}
         capability_config = {}
 
         for capability in capabilities:
             if "device" in capability:
-                device_id = capability["device"].split("/")[-1]
+                device_id = capability["device"].removeprefix("/device/")
                 if device_id not in capability_map:
                     capability_map[device_id] = {}
                     capability_config[device_id] = {}
-                capability_map[device_id][capability["type"]] = (
-                    "/capability/" + capability["id"]
-                )
+                capability_map[device_id][capability["type"]] = capability["id"]
                 if "config" in capability:
                     capability_config[device_id][capability["type"]] = capability[
                         "config"
@@ -183,7 +183,9 @@ class AioLivisi:
             if self._lastest_message is None or msgtimestamp > self._lastest_message:
                 self._lastest_message = msgtimestamp
 
-            device_ids = [d.replace("/device/", "") for d in message.get("devices", [])]
+            device_ids = [
+                d.removeprefix("/device/") for d in message.get("devices", [])
+            ]
             if len(device_id) == 0:
                 source = message.get("source", "00000000000000000000000000000000")
                 device_ids.add(source.replace("/device/", ""))
@@ -213,26 +215,15 @@ class AioLivisi:
 
         return devices
 
-    async def async_get_device_state(self, capability) -> dict[str, Any] | None:
+    async def async_get_device_state(self, capability_id) -> dict[str, Any] | None:
         """Get the state of the device."""
-        url = f"{capability}/state"
         try:
-            return await self.async_send_authorized_request("get", url)
-        except Exception:
+            return await self.async_send_authorized_request(
+                "get", f"capability/{capability_id}/state"
+            )
+        except:
+            LOGGER.warning("Error getting device state", exc_info=True)
             return None
-
-    async def async_pss_set_state(self, capability_id, is_on: bool) -> dict[str, Any]:
-        """Set the PSS state."""
-        set_state_payload: dict[str, Any] = {
-            "id": uuid.uuid4().hex,
-            "type": "SetState",
-            "namespace": "core.RWE",
-            "target": capability_id,
-            "params": {"onState": {"type": "Constant", "value": is_on}},
-        }
-        return await self.async_send_authorized_request(
-            "post", "action", payload=set_state_payload
-        )
 
     async def async_set_onstate(self, capability_id, is_on: bool) -> dict[str, Any]:
         """Set the onState for devices that support it."""
@@ -240,7 +231,7 @@ class AioLivisi:
             "id": uuid.uuid4().hex,
             "type": "SetState",
             "namespace": "core.RWE",
-            "target": capability_id,
+            "target": f"/capability/{capability_id}",
             "params": {"onState": {"type": "Constant", "value": is_on}},
         }
         return await self.async_send_authorized_request(
@@ -255,7 +246,7 @@ class AioLivisi:
             "id": uuid.uuid4().hex,
             "type": "SetState",
             "namespace": "core.RWE",
-            "target": capability_id,
+            "target": f"/capability/{capability_id}",
             "params": {"value": {"type": "Constant", "value": value}},
         }
         return await self.async_send_authorized_request(
@@ -274,7 +265,7 @@ class AioLivisi:
             "id": uuid.uuid4().hex,
             "type": "SetState",
             "namespace": "core.RWE",
-            "target": capability_id,
+            "target": f"/capability/{capability_id}",
             "params": {params: {"type": "Constant", "value": target_temperature}},
         }
         return await self.async_send_authorized_request(

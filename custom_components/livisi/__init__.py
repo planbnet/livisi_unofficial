@@ -148,6 +148,23 @@ async def async_migrate_entry(hass, config_entry):
             entity_registry.async_remove(switch.entity_id)
         config_entry.version = 3
 
+    if config_entry.version == 3:
+        # update unique ids to just the capability id without the "/capability/" prefix
+        @callback
+        def simplify_unique_id(entity_entry):
+            """Remove id prefix from url."""
+            oldid = entity_entry.unique_id
+            if "/capability/" in oldid:
+                newid = oldid.replace("/capability/", "")
+                LOGGER.info("Updating id %s to %s", oldid, newid)
+                return {"new_unique_id": newid}
+            else:
+                LOGGER.info("Skipping %s", oldid)
+                return None
+
+        await er.async_migrate_entries(hass, config_entry.entry_id, simplify_unique_id)
+        config_entry.version = 4
+
     LOGGER.info("Migration to version %s successful", config_entry.version)
 
     return True

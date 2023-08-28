@@ -25,7 +25,7 @@ from .const import CONF_HOST, CONF_PASSWORD, DOMAIN, LOGGER
 class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a Livisi Smart Home config flow."""
 
-    VERSION = 3
+    VERSION = 4
 
     def __init__(self) -> None:
         """Create the configuration file."""

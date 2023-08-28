@@ -66,7 +66,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
-        response = await self.aio_livisi.async_pss_set_state(
+        response = await self.aio_livisi.async_set_onstate(
             self.capability_id, is_on=True
         )
         if response is None:
@@ -75,7 +75,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
-        response = await self.aio_livisi.async_pss_set_state(
+        response = await self.aio_livisi.async_set_onstate(
             self.capability_id, is_on=False
         )
         if response is None:
