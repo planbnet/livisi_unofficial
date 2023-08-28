@@ -1,7 +1,7 @@
 colorlog==6.7.0
 homeassistant==2023.8.0
 pip>=21.0,<23.3
-ruff==0.0.285
+ruff==0.0.286
 aiohttp
 websockets
 pydantic>=2.0,<3.0
