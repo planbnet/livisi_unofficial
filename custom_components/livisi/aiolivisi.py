@@ -114,18 +114,21 @@ class AioLivisi:
         self, method, url: str, payload=None, headers=None
     ) -> dict:
         """Send a request to the Livisi Smart Home controller and handle requesting new token."""
+
+        # The try...catch statement is needed as a workaround for random request failures on V1 SHC
         try:
             response = await self.__async_send_request(method, url, payload, headers)
         except Exception:
             response = await self.__async_send_request(method, url, payload, headers)
-            if "errorcode" in response:
-                if response["errorcode"] == 2007:
-                    await self.async_set_token()
-                    response = await self.__async_send_request(
-                        method, url, payload, headers
-                    )
-                else:
-                    raise ErrorCodeException(response["errorcode"])
+
+        if "errorcode" in response:
+            if response["errorcode"] == 2007:
+                await self.async_set_token()
+                response = await self.__async_send_request(
+                    method, url, payload, headers
+                )
+            else:
+                raise ErrorCodeException(response["errorcode"])
         return response
 
     async def __async_send_request(
