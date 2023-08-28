@@ -229,7 +229,7 @@ class AioLivisi:
     async def async_set_state(
         self, capability_id: str, key: str, value: bool | float
     ) -> dict[str, Any]:
-        """Sets the state of a capability."""
+        """Set the state of a capability."""
         set_state_payload: dict[str, Any] = {
             "id": uuid.uuid4().hex,
             "type": "SetState",
