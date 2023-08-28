@@ -1,5 +1,6 @@
 """Code to handle the communication with Livisi Smart home controllers."""
 from __future__ import annotations
+import asyncio
 from typing import Any
 import uuid
 
@@ -151,11 +152,11 @@ class AioLivisi:
         self,
     ) -> list[dict[str, Any]]:
         """Send a request for getting the devices."""
-        devices = await self.async_send_authorized_request("get", path="device")
-        capabilities = await self.async_send_authorized_request(
-            "get", path="capability"
+        devices, capabilities, messages = await asyncio.gather(
+            self.async_send_authorized_request("get", path="device"),
+            self.async_send_authorized_request("get", path="capability"),
+            self.async_send_authorized_request("get", path="message"),
         )
-        messages = await self.async_send_authorized_request("get", path="message")
 
         capability_map = {}
         capability_config = {}
