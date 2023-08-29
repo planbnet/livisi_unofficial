@@ -48,7 +48,7 @@ class AioLivisi:
         self._livisi_connection_data: dict[str, str] = None
         self._lastest_message = None
 
-    async def async_set_token(
+    async def async_retrieve_token(
         self, livisi_connection_data: dict[str, str] = None
     ) -> None:
         """Set the JWT from the LIVISI Smart Home Controller."""
@@ -117,21 +117,19 @@ class AioLivisi:
 
         # The try...catch statement is needed as a workaround for random request failures on V1 SHC
         try:
-            response = await self.__async_send_request(method, url, payload, headers)
+            response = await self._async_send_request(method, url, payload, headers)
         except Exception:
-            response = await self.__async_send_request(method, url, payload, headers)
+            response = await self._async_send_request(method, url, payload, headers)
 
         if "errorcode" in response:
             if response["errorcode"] == 2007:
-                await self.async_set_token()
-                response = await self.__async_send_request(
-                    method, url, payload, headers
-                )
+                await self.async_retrieve_token()
+                response = await self._async_send_request(method, url, payload, headers)
             else:
                 raise ErrorCodeException(response["errorcode"])
         return response
 
-    async def __async_send_request(
+    async def _async_send_request(
         self, method, url: str, payload=None, headers=None
     ) -> dict:
         async with self._web_session.request(
@@ -147,10 +145,6 @@ class AioLivisi:
 
     async def async_get_controller(self) -> dict[str, Any]:
         """Get Livisi Smart Home controller data."""
-        return await self.async_get_controller_status()
-
-    async def async_get_controller_status(self) -> dict[str, Any]:
-        """Get Livisi Smart Home controller status."""
         shc_info = await self.async_send_authorized_request("get", path="status")
         return shc_info
 

@@ -70,7 +70,9 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         try:
             return await self.async_get_devices()
         except TokenExpiredException:
-            await self.aiolivisi.async_set_token(self.aiolivisi.livisi_connection_data)
+            await self.aiolivisi.async_retrieve_token(
+                self.aiolivisi.livisi_connection_data
+            )
             return await self.async_get_devices()
         except ClientConnectorError as exc:
             raise UpdateFailed("Failed to get livisi devices from controller") from exc
@@ -97,7 +99,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                 "password": self.config_entry.data[CONF_PASSWORD],
             }
 
-            await self.aiolivisi.async_set_token(
+            await self.aiolivisi.async_retrieve_token(
                 livisi_connection_data=livisi_connection_data
             )
         controller_data = await self.aiolivisi.async_get_controller()

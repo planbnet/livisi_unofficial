@@ -74,7 +74,7 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             "password": user_input[CONF_PASSWORD],
         }
 
-        await self.aio_livisi.async_set_token(livisi_connection_data)
+        await self.aio_livisi.async_retrieve_token(livisi_connection_data)
 
     async def create_entity(
         self, user_input: dict[str, str], controller_info: dict[str, Any]
