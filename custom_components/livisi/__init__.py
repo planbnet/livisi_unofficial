@@ -3,14 +3,17 @@ from __future__ import annotations
 
 from typing import Final
 
-from aiohttp import ClientConnectorError
+from aiohttp import ClientConnectorError, TCPConnector, ClientSession
 
 from homeassistant import core
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client, device_registry as dr
+
+from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers.json import json_dumps
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .aiolivisi import AioLivisi
@@ -31,14 +34,38 @@ PLATFORMS: Final = [
 
 async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Livisi Smart Home from a config entry."""
-    web_session = aiohttp_client.async_get_clientsession(hass)
+
+    # create a custom web session which limits concurrent connections to 2
+    # (one for the websocket, one for requests) because the v1 SHC is very
+    # "special" about incoming connections
+    connector = TCPConnector(limit=2)
+    web_session = ClientSession(
+        connector=connector,
+        json_serialize=json_dumps,
+        response_class=aiohttp_client.HassClientResponse,
+    )
+
     aiolivisi = AioLivisi(web_session)
     coordinator = LivisiDataUpdateCoordinator(hass, entry, aiolivisi)
     try:
         await coordinator.async_setup()
-        await coordinator.async_set_all_rooms()
     except ClientConnectorError as exception:
         raise ConfigEntryNotReady from exception
+
+    # on v2 SHCs we can use a higher concurrent connection count
+    # so reconnect and update the web_session
+    # is_avatar is only set correctly after calling async_setup
+    if coordinator.is_avatar:
+        await web_session.close()
+        connector = TCPConnector(limit=20)
+        web_session = ClientSession(
+            connector=connector,
+            json_serialize=json_dumps,
+            response_class=aiohttp_client.HassClientResponse,
+        )
+        aiolivisi.web_session = web_session
+
+    await coordinator.async_set_all_rooms()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     device_registry = dr.async_get(hass)
@@ -57,15 +84,18 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     entry.async_create_background_task(
         hass, coordinator.ws_connect(), "livisi-ws_connect"
     )
+
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     unload_success = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     await coordinator.websocket.disconnect()
+    await coordinator.aiolivisi.web_session.close()
+
     if unload_success:
         hass.data[DOMAIN].pop(entry.entry_id)
 
@@ -76,7 +106,7 @@ async def async_migrate_entry(hass, config_entry):
     """Migrate old entry."""
     LOGGER.info("Migrating Livisi data from version %s", config_entry.version)
 
-    # Load devices with a temporary coordinator
+    # Load devices with a temporary coordinator (we can use the hass clientsession)
     web_session = aiohttp_client.async_get_clientsession(hass)
     aiolivisi = AioLivisi(web_session)
     coordinator = LivisiDataUpdateCoordinator(hass, config_entry, aiolivisi)
