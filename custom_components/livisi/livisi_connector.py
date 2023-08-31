@@ -10,6 +10,7 @@ from dateutil.parser import parse as parse_timestamp
 
 from .livisi_json_util import parse_dataclass
 from .livisi_controller import LivisiController
+from .livisi_room import LivisiRoom
 
 from .livisi_errors import (
     IncorrectIpAddressException,
@@ -54,7 +55,7 @@ class LivisiConnection:
         """Initialize the livisi connector."""
 
         self.host: str = None
-        self.controller = None
+        self.controller: LivisiController = None
 
         self._password: str = None
         self._token: str = None
@@ -276,9 +277,10 @@ class LivisiConnection:
             "post", "action", payload=set_state_payload
         )
 
-    async def async_get_all_rooms(self) -> dict[str, Any]:
+    async def async_get_all_rooms(self) -> list[LivisiRoom]:
         """Get all the rooms from LIVISI configuration."""
-        return await self.async_send_authorized_request("get", "location")
+        rooms = await self.async_send_authorized_request("get", "location")
+        return [parse_dataclass(item, LivisiRoom) for item in rooms]
 
     @property
     def livisi_connection_data(self):

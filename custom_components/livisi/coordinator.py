@@ -12,14 +12,18 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .livisi_room import LivisiRoom
+
+from .livisi_device import LivisiDevice
+from .livisi_connector import LivisiConnection, connect as livisi_connect
+from .livisi_websocket import LivisiWebsocketEvent
+
 from .livisi_errors import (
     IncorrectIpAddressException,
     ShcUnreachableException,
     WrongCredentialException,
 )
 
-from .livisi_connector import LivisiConnection, connect as livisi_connect
-from .livisi_websocket import LivisiWebsocketEvent
 
 from .const import (
     CAPABILITY_MAP,
@@ -58,7 +62,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         self.aiolivisi: LivisiConnection
         self.devices: set[str] = set()
         self.capability_to_device: dict[str, str] = {}
-        self.rooms: dict[str, Any] = {}
+        self.rooms: dict[str, str] = {}
 
     async def async_setup(self) -> None:
         """Set up the Livisi Smart Home Controller."""
@@ -95,7 +99,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         self._async_dispatcher_send(LIVISI_STATE_CHANGE, event_data.source, data)
         return True
 
-    async def async_get_devices(self) -> list[dict[str, Any]]:
+    async def async_get_devices(self) -> list[LivisiDevice]:
         """Set the discovered devices list."""
         devices = await self.aiolivisi.async_get_devices()
         capability_mapping = {}
@@ -114,21 +118,12 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             return None
         return response.get(key, {}).get("value")
 
-    async def async_set_all_rooms(self) -> None:
+    async def async_load_rooms(self) -> None:
         """Set the room list."""
-        response: list[dict[str, Any]] = await self.aiolivisi.async_get_all_rooms()
+        rooms: list[LivisiRoom] = await self.aiolivisi.async_get_all_rooms()
 
-        for available_room in response:
-            available_room_config: dict[str, Any] = available_room["config"]
-            self.rooms[available_room["id"]] = available_room_config["name"]
-
-    def get_room_name(self, device: dict[str, Any]) -> str | None:
-        """Get the room name from a device."""
-        room_id: str | None = device.get("location")
-        room_name: str | None = None
-        if room_id is not None:
-            room_name = self.rooms.get(room_id)
-        return room_name
+        for room in rooms:
+            self.rooms[room.id] = room.config.get("name")
 
     def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
         """Define a handler to fire when the data is received."""
