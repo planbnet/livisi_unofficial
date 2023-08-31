@@ -10,7 +10,6 @@ from aiohttp import ClientConnectorError
 
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import aiohttp_client
 
 from .aiolivisi import AioLivisi
 from .livisi_errors import (
@@ -67,14 +66,8 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _login(self, user_input: dict[str, str]) -> None:
         """Login into Livisi Smart Home."""
-        web_session = aiohttp_client.async_get_clientsession(self.hass)
-        self.aio_livisi = AioLivisi(web_session)
-        livisi_connection_data = {
-            "ip_address": user_input[CONF_HOST],
-            "password": user_input[CONF_PASSWORD],
-        }
-
-        await self.aio_livisi.async_retrieve_token(livisi_connection_data)
+        self.aio_livisi = AioLivisi()
+        await self.aio_livisi.login(user_input[CONF_HOST], user_input[CONF_PASSWORD])
 
     async def create_entity(
         self, user_input: dict[str, str], controller_info: dict[str, Any]

@@ -6,8 +6,7 @@ from dataclasses import dataclass, fields
 import json
 import websockets
 
-from .aiolivisi import AioLivisi
-from .const import AVATAR_PORT, LOGGER
+from .const import CLASSIC_WEBSOCKET_PORT, AVATAR_WEBSOCKET_PORT, LOGGER
 
 
 @dataclass
@@ -21,39 +20,53 @@ class LivisiWebsocketEvent:
     properties: dict | None
 
 
-class Websocket:
+class LivisiWebsocket:
     """Represents the websocket class."""
 
-    def __init__(self, aiolivisi: AioLivisi) -> None:
+    def __init__(self, aiolivisi) -> None:
         """Initialize the websocket."""
         self.aiolivisi = aiolivisi
         self.connection_url: str = None
+        self._websocket = None
+        self._disconnecting = False
 
-    async def connect(self, on_data, on_close, port: int) -> None:
+    def is_connected(self):
+        """Return whether the webservice is currently connectd."""
+        return self._websocket is not None
+
+    async def connect(self, on_data, on_close) -> None:
         """Connect to the socket."""
-        if port == AVATAR_PORT:
+        if self.aiolivisi.is_v2:
+            port = AVATAR_WEBSOCKET_PORT
             token = urllib.parse.quote(self.aiolivisi.token)
         else:
+            port = CLASSIC_WEBSOCKET_PORT
             token = self.aiolivisi.token
-        ip_address = self.aiolivisi.livisi_connection_data["ip_address"]
+        ip_address = self.aiolivisi.host
         self.connection_url = f"ws://{ip_address}:{port}/events?token={token}"
         try:
-            async with websockets.connect(
+            async with websockets.client.connect(
                 self.connection_url, ping_interval=10, ping_timeout=10
             ) as websocket:
                 try:
                     self._websocket = websocket
                     await self.consumer_handler(websocket, on_data)
                 except Exception:
-                    await on_close()
+                    if not self._disconnecting:
+                        await on_close()
                     return
         except Exception:
-            await on_close()
+            if not self._disconnecting:
+                await on_close()
             return
 
     async def disconnect(self) -> None:
         """Close the websocket."""
-        await self._websocket.close(code=1000, reason="Handle disconnect request")
+        self._disconnecting = True
+        if self._websocket is not None:
+            await self._websocket.close(code=1000, reason="Handle disconnect request")
+            self._websocket = None
+        self._disconnecting = False
 
     async def consumer_handler(self, websocket, on_data: Callable):
         """Parse data transmitted via the websocket."""
