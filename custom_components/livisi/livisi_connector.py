@@ -6,9 +6,10 @@ from typing import Any
 import uuid
 from aiohttp import ClientConnectionError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
-from dateutil.parser import parse as parseTimestamp
+from dateutil.parser import parse as parse_timestamp
 
-from .json_helper import LivisiClientResponse, json_dumps
+from .livisi_json_util import parse_dataclass
+from .livisi_controller import LivisiController
 
 from .livisi_errors import (
     IncorrectIpAddressException,
@@ -21,7 +22,7 @@ from .livisi_errors import (
 
 from .livisi_websocket import LivisiWebsocket
 
-from .const import (
+from .livisi_const import (
     AUTH_GRANT_TYPE,
     AUTH_PASSWORD,
     AUTH_USERNAME,
@@ -39,61 +40,50 @@ from .const import (
 )
 
 
-def create_web_session(concurrent_connections: int = 1):
-    """Create a custom web session which limits concurrent connections."""
-    connector = TCPConnector(limit=concurrent_connections)
-    web_session = ClientSession(
-        connector=connector,
-        json_serialize=json_dumps,
-        response_class=LivisiClientResponse,
-    )
-    return web_session
+async def connect(host: str, password: str) -> LivisiConnection:
+    """Initialize the lib and connect to the livisi SHC."""
+    connection = LivisiConnection()
+    await connection.connect(host, password)
+    return connection
 
 
-class AioLivisi:
+class LivisiConnection:
     """Handles the communication with the Livisi Smart Home controller."""
 
-    instance = None
+    def __init__(self) -> None:
+        """Initialize the livisi connector."""
 
-    async def close(self):
-        """Disconnect the http client session."""
-        if self._web_session is not None:
-            await self._web_session.close()
-            self._web_session = None
-        await self._websocket.disconnect()
+        self.host: str = None
+        self.controller = None
 
-    def __init__(self, host: str = None, password: str = None) -> None:
-        """Initialize aiolivisi lib."""
-
+        self._password: str = None
         self._token: str = None
-        self._refresh_token: str = None
-        self.host: str = host
-        self._password: str = password
-        self._lastest_message = None
+
         self._web_session = None
         self._websocket = LivisiWebsocket(self)
 
-        # initialize to SHC v1 defaults
-        self.is_v2 = False
-
-    async def connect(self, host: str = None, password: str = None):
+    async def connect(self, host: str, password: str):
         """Connect to the livisi SHC and retrieve controller information."""
         if self._web_session is not None:
             await self.close()
-        self._web_session = create_web_session(concurrent_connections=1)
+        self._web_session = self._create_web_session(concurrent_connections=1)
         if host is not None and password is not None:
             self.host = host
             self._password = password
         await self._async_retrieve_token()
-        shc_info = await self.async_get_controller()
-        if shc_info.get("controllerType") == AVATAR:
-            # update config for the new v2 controller
-            self.is_v2 = True
-            # reconnect with more concurrent connections
+        self.controller = await self._async_get_controller()
+        if self.controller.is_v2:
+            # reconnect with more concurrent connections on v2 SHC
             await self._web_session.close()
-            self._web_session = create_web_session(concurrent_connections=10)
+            self._web_session = self._create_web_session(concurrent_connections=10)
 
-        return shc_info
+    async def close(self):
+        """Disconnect the http client session and websocket."""
+        if self._web_session is not None:
+            await self._web_session.close()
+            self._web_session = None
+        self.controller = None
+        await self._websocket.disconnect()
 
     async def listen_for_events(self, on_data, on_close) -> None:
         """Connect to the websocket."""
@@ -118,6 +108,14 @@ class AioLivisi:
         }
         return await self._async_send_request(method, url, payload, auth_headers)
 
+    def _create_web_session(self, concurrent_connections: int = 1):
+        """Create a custom web session which limits concurrent connections."""
+        connector = TCPConnector(
+            limit=concurrent_connections, limit_per_host=concurrent_connections
+        )
+        web_session = ClientSession(connector=connector)
+        return web_session
+
     async def _async_retrieve_token(self) -> None:
         """Set the JWT from the LIVISI Smart Home Controller."""
         access_data: dict = {}
@@ -137,7 +135,7 @@ class AioLivisi:
                 headers=headers,
             )
             self.token = access_data["access_token"]
-            self._refresh_token = access_data["refresh_token"]
+            # self._refresh_token = access_data["refresh_token"]
         except TimeoutError as error:
             raise ShcUnreachableException from error
         except ClientError as error:
@@ -159,6 +157,7 @@ class AioLivisi:
             response = await self._async_send_request(method, url, payload, headers)
 
         if "errorcode" in response:
+            # reconnect on expired token
             if response["errorcode"] == 2007:
                 await self._async_retrieve_token()
                 response = await self._async_send_request(method, url, payload, headers)
@@ -180,10 +179,12 @@ class AioLivisi:
             data = await res.json()
             return data
 
-    async def async_get_controller(self) -> dict[str, Any]:
+    async def _async_get_controller(self) -> dict[str, Any]:
         """Get Livisi Smart Home controller data."""
         shc_info = await self.async_send_authorized_request("get", path="status")
-        return shc_info
+        controller = parse_dataclass(shc_info, LivisiController)
+        controller.is_v2 = shc_info.get("controllerType") == AVATAR
+        return controller
 
     async def async_get_devices(
         self,
@@ -214,12 +215,9 @@ class AioLivisi:
         update_available_devices = set()
         for message in messages:
             msgtype = message.get("type", "")
-            msgtimestamp = parseTimestamp(message.get("timestamp", ""))
+            msgtimestamp = parse_timestamp(message.get("timestamp", ""))
             if msgtimestamp is None:
                 continue
-
-            if self._lastest_message is None or msgtimestamp > self._lastest_message:
-                self._lastest_message = msgtimestamp
 
             device_ids = [
                 d.removeprefix("/device/") for d in message.get("devices", [])

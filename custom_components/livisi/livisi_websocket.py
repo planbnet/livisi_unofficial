@@ -1,23 +1,13 @@
 """Code for communication with the Livisi application websocket."""
 from collections.abc import Callable
 import urllib.parse
-from dataclasses import dataclass, fields
 
-import json
-import websockets
+from json import JSONDecodeError
+import websockets.client
 
-from .const import CLASSIC_WEBSOCKET_PORT, AVATAR_WEBSOCKET_PORT, LOGGER
-
-
-@dataclass
-class LivisiWebsocketEvent:
-    """Encapuses a livisi event sent via the websocket."""
-
-    namespace: str
-    type: str | None
-    source: str
-    timestamp: str | None
-    properties: dict | None
+from .livisi_json_util import parse_dataclass
+from .livisi_const import CLASSIC_WEBSOCKET_PORT, AVATAR_WEBSOCKET_PORT, LOGGER
+from .livisi_websocket_event import LivisiWebsocketEvent
 
 
 class LivisiWebsocket:
@@ -36,7 +26,7 @@ class LivisiWebsocket:
 
     async def connect(self, on_data, on_close) -> None:
         """Connect to the socket."""
-        if self.aiolivisi.is_v2:
+        if self.aiolivisi.controller.is_v2:
             port = AVATAR_WEBSOCKET_PORT
             token = urllib.parse.quote(self.aiolivisi.token)
         else:
@@ -72,14 +62,8 @@ class LivisiWebsocket:
         """Parse data transmitted via the websocket."""
         async for message in websocket:
             try:
-                parsed_json = json.loads(message)
-                # Only include keys that are fields in the LivisiWebsocketEvent dataclass
-                event_data_dict = {
-                    f.name: parsed_json.get(f.name)
-                    for f in fields(LivisiWebsocketEvent)
-                }
-                event_data = LivisiWebsocketEvent(**event_data_dict)
-            except json.JSONDecodeError:
+                event_data = parse_dataclass(message, LivisiWebsocketEvent)
+            except JSONDecodeError:
                 LOGGER.warning("Cannot decode websocket message", exc_info=True)
                 continue
 

@@ -35,13 +35,14 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     device_registry = dr.async_get(hass)
+    controller = coordinator.aiolivisi.controller
     device_registry.async_get_or_create(
-        config_entry_id=coordinator.serial_number,
+        config_entry_id=controller.serial_number,
         identifiers={(DOMAIN, entry.entry_id)},
-        model=f"SHC {coordinator.controller_type}",
-        sw_version=coordinator.os_version,
+        model=f"SHC {controller.controller_type}",
+        sw_version=controller.os_version,
         manufacturer="Livisi",
-        name=f"SHC {coordinator.controller_type} {coordinator.serial_number}",
+        name=f"SHC {controller.controller_type} {controller.serial_number}",
         configuration_url=f"http://{entry.data[CONF_HOST]}",
     )
 
@@ -59,8 +60,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     unload_success = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    await coordinator.websocket.disconnect()
-    await coordinator.aiolivisi.web_session.close()
+    await coordinator.aiolivisi.close()
 
     if unload_success:
         hass.data[DOMAIN].pop(entry.entry_id)

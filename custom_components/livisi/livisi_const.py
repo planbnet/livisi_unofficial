@@ -1,0 +1,101 @@
+"""Constants for the Livisi Smart Home integration."""
+import logging
+from typing import Final
+
+LOGGER = logging.getLogger(__package__)
+
+AVATAR = "Avatar"
+AVATAR_WEBSOCKET_PORT: Final = 9090
+CLASSIC_WEBSOCKET_PORT: Final = 8080
+WEBSERVICE_PORT: Final = 8080
+DEVICE_POLLING_DELAY: Final = 60
+LIVISI_STATE_CHANGE: Final = "livisi_state_change"
+LIVISI_REACHABILITY_CHANGE: Final = "livisi_reachability_change"
+
+SWITCH_DEVICE_TYPES: Final = ["ISS2", "PSS", "PSSO", "BT-PSS"]
+SMOKE_DETECTOR_DEVICE_TYPES: Final = ["WSD", "WSD2"]
+VARIABLE_DEVICE_TYPE: Final = "VariableActuator"
+BUTTON_DEVICE_TYPES: Final = ["ISS2", "WSC2", "ISC2", "BRC8"]
+MOTION_DEVICE_TYPES: Final = ["WMD", "WMDO"]
+VRCC_DEVICE_TYPE: Final = "VRCC"
+WDS_DEVICE_TYPE: Final = "WDS"
+
+BATTERY_POWERED_DEVICES = [
+    "BRC8",
+    "ISC2",
+    "RST",
+    "RST2",
+    "WDS",
+    "WMD",
+    "WMDO",
+    "WSD",
+    "WSD2",
+]
+
+CAPABILITY_LUMINANCE_SENSOR: Final = "LuminanceSensor"
+LUMINANCE: Final = "luminance"
+
+CAPABILITY_TEMPERATURE_SENSOR: Final = "TemperatureSensor"
+CAPABILITY_ROOM_TEMPERATURE: Final = "RoomTemperature"
+TEMPERATURE: Final = "temperature"
+
+CAPABILITY_HUMIDITY_SENSOR: Final = "HumiditySensor"
+CAPABILITY_ROOM_HUMIDITY: Final = "RoomHumidity"
+HUMIDITY: Final = "humidity"
+
+CAPABILITY_POWER_SENSOR: Final = "PowerConsumptionSensor"
+POWER_CONSUMPTION: Final = "powerConsumptionWatt"
+
+ON_STATE: Final = "onState"
+VALUE: Final = "value"
+POINT_TEMPERATURE: Final = "pointTemperature"
+SET_POINT_TEMPERATURE: Final = "setpointTemperature"
+
+IS_OPEN: Final = "isOpen"
+IS_SMOKE_ALARM: Final = "isSmokeAlarm"
+
+BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2, "WSC2": 2}
+
+MAX_TEMPERATURE: Final = 30.0
+MIN_TEMPERATURE: Final = 6.0
+
+USERNAME: Final = "admin"
+AUTH_USERNAME: Final = "username"
+AUTH_PASSWORD: Final = "password"
+AUTH_GRANT_TYPE: Final = "grant_type"
+REQUEST_TIMEOUT: Final = 2000
+
+CAPABILITY_MAP: Final = "capabilityMap"
+CAPABILITY_CONFIG: Final = "capabilityConfig"
+BATTERY_LOW: Final = "batteryLow"
+UPDATE_AVAILABLE: Final = "DeviceUpdateAvailable"
+
+AUTHENTICATION_HEADERS: Final = {
+    "Authorization": "Basic Y2xpZW50SWQ6Y2xpZW50UGFzcw==",
+    "Content-type": "application/json",
+    "Accept": "application/json",
+}
+
+LIVISI_EVENT_STATE_CHANGED = "StateChanged"
+LIVISI_EVENT_BUTTON_PRESSED = "ButtonPressed"
+LIVISI_EVENT_MOTION_DETECTED = "MotionDetected"
+
+STATE_PROPERTIES = [
+    ON_STATE,
+    VALUE,
+    POINT_TEMPERATURE,
+    SET_POINT_TEMPERATURE,
+    TEMPERATURE,
+    HUMIDITY,
+    LUMINANCE,
+    IS_OPEN,
+    IS_SMOKE_ALARM,
+    POWER_CONSUMPTION,
+]
+
+IS_REACHABLE: Final = "isReachable"
+LOCATION: Final = "location"
+
+EVENT_BUTTON_PRESSED = "button_pressed"
+EVENT_BUTTON_LONG_PRESSED = "button_long_pressed"
+EVENT_MOTION_DETECTED = "motion_detected"

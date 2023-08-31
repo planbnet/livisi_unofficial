@@ -18,7 +18,7 @@ from .livisi_errors import (
     WrongCredentialException,
 )
 
-from .aiolivisi import AioLivisi
+from .livisi_connector import LivisiConnection, connect as livisi_connect
 from .livisi_websocket import LivisiWebsocketEvent
 
 from .const import (
@@ -55,24 +55,18 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         )
         self.config_entry = config_entry
         self.hass = hass
-        self.aiolivisi: AioLivisi = AioLivisi()
+        self.aiolivisi: LivisiConnection
         self.devices: set[str] = set()
         self.capability_to_device: dict[str, str] = {}
         self.rooms: dict[str, Any] = {}
-        self.serial_number: str = ""
-        self.os_version: str = ""
-        self.controller_type: str = ""
 
     async def async_setup(self) -> None:
         """Set up the Livisi Smart Home Controller."""
         try:
-            controller_data = await self.aiolivisi.connect(
+            self.aiolivisi = await livisi_connect(
                 self.config_entry.data[CONF_HOST],
                 self.config_entry.data[CONF_PASSWORD],
             )
-            self.controller_type = controller_data["controllerType"]
-            self.serial_number = controller_data["serialNumber"]
-            self.os_version = controller_data["osVersion"]
         except ShcUnreachableException as exception:
             raise ConfigEntryNotReady from exception
         except WrongCredentialException as exception:
@@ -175,9 +169,10 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
     async def on_websocket_close(self) -> None:
         """Define a handler to fire when the websocket is closed."""
 
-        # simply reconnect
         try:
-            await self.ws_connect()
+            await self.aiolivisi.listen_for_events(
+                self.on_websocket_data, self.on_websocket_close
+            )
         except Exception as reconnect_error:
             for device_id in self.devices:
                 self._async_dispatcher_send(

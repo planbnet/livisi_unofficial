@@ -93,7 +93,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             self._target_temperature_capability,
             key=(
                 "setpointTemperature"
-                if self.coordinator.aiolivisi.is_v2
+                if self.coordinator.aiolivisi.controller.is_v2
                 else "pointTemperature"
             ),
             value=kwargs.get(ATTR_TEMPERATURE),
@@ -110,7 +110,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         target_temperature = await self.coordinator.async_get_device_state(
             self._target_temperature_capability,
             "setpointTemperature"
-            if self.coordinator.aiolivisi.is_v2
+            if self.coordinator.aiolivisi.controller.is_v2
             else "pointTemperature",
         )
         temperature = await self.coordinator.async_get_device_state(
