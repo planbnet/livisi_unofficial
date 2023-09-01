@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 import uuid
-from aiohttp import ClientConnectionError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
 
@@ -98,12 +97,14 @@ class LivisiConnection:
             "Content-type": "application/json",
             "Accept": "*/*",
         }
-        return await self._async_send_request(method, url, payload, auth_headers)
+        return await self._async_request(method, url, payload, auth_headers)
 
     def _create_web_session(self, concurrent_connections: int = 1):
         """Create a custom web session which limits concurrent connections."""
         connector = TCPConnector(
-            limit=concurrent_connections, limit_per_host=concurrent_connections
+            limit=concurrent_connections,
+            limit_per_host=concurrent_connections,
+            force_close=True,
         )
         web_session = ClientSession(connector=connector)
         return web_session
@@ -141,16 +142,11 @@ class LivisiConnection:
                 raise WrongCredentialException from error
             raise ShcUnreachableException from error
 
-    async def _async_send_request(
+    async def _async_request(
         self, method, url: str, payload=None, headers=None
     ) -> dict:
         """Send a request to the Livisi Smart Home controller and handle requesting new token."""
-
-        # The try...catch statement is needed as a workaround for random request failures on V1 SHC
-        try:
-            response = await self._async_send_request(method, url, payload, headers)
-        except ClientConnectionError:
-            response = await self._async_send_request(method, url, payload, headers)
+        response = await self._async_send_request(method, url, payload, headers)
 
         if "errorcode" in response:
             # reconnect on expired token
@@ -159,6 +155,7 @@ class LivisiConnection:
                 response = await self._async_send_request(method, url, payload, headers)
             else:
                 raise ErrorCodeException(response["errorcode"])
+
         return response
 
     async def _async_send_request(
@@ -186,6 +183,7 @@ class LivisiConnection:
         self,
     ) -> list[LivisiDevice]:
         """Send parallel requests for getting all required data."""
+
         devices, capabilities, messages, rooms = await asyncio.gather(
             self.async_send_authorized_request("get", path="device"),
             self.async_send_authorized_request("get", path="capability"),
