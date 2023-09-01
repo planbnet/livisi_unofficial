@@ -3,14 +3,6 @@ import logging
 from typing import Final
 
 LOGGER = logging.getLogger(__package__)
-DOMAIN = "livisi"
-
-LIVISI_EVENT = f"{DOMAIN}_event"
-
-CONF_HOST = "host"
-CONF_PASSWORD: Final = "password"
-
-CONF_SUBTYPE: Final = "subtype"
 
 AVATAR = "Avatar"
 AVATAR_WEBSOCKET_PORT: Final = 9090

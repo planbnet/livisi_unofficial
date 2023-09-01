@@ -3,20 +3,15 @@ from __future__ import annotations
 
 from typing import Final
 
-from aiohttp import ClientConnectorError, TCPConnector, ClientSession
-
 from homeassistant import core
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryNotReady
 
-from homeassistant.helpers import aiohttp_client
-from homeassistant.helpers.json import json_dumps
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .aiolivisi import AioLivisi
+
 from .const import CONF_HOST, DOMAIN, LOGGER, CAPABILITY_MAP, SWITCH_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 
@@ -34,48 +29,19 @@ PLATFORMS: Final = [
 
 async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Livisi Smart Home from a config entry."""
-
-    # create a custom web session which limits concurrent connections to 2
-    # (one for the websocket, one for requests) because the v1 SHC is very
-    # "special" about incoming connections
-    connector = TCPConnector(limit=2)
-    web_session = ClientSession(
-        connector=connector,
-        json_serialize=json_dumps,
-        response_class=aiohttp_client.HassClientResponse,
-    )
-
-    aiolivisi = AioLivisi(web_session)
-    coordinator = LivisiDataUpdateCoordinator(hass, entry, aiolivisi)
-    try:
-        await coordinator.async_setup()
-    except ClientConnectorError as exception:
-        raise ConfigEntryNotReady from exception
-
-    # on v2 SHCs we can use a higher concurrent connection count
-    # so reconnect and update the web_session
-    # is_avatar is only set correctly after calling async_setup
-    if coordinator.is_avatar:
-        await web_session.close()
-        connector = TCPConnector(limit=20)
-        web_session = ClientSession(
-            connector=connector,
-            json_serialize=json_dumps,
-            response_class=aiohttp_client.HassClientResponse,
-        )
-        aiolivisi.web_session = web_session
-
-    await coordinator.async_set_all_rooms()
+    coordinator = LivisiDataUpdateCoordinator(hass, entry)
+    await coordinator.async_setup()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     device_registry = dr.async_get(hass)
+    controller = coordinator.aiolivisi.controller
     device_registry.async_get_or_create(
-        config_entry_id=coordinator.serial_number,
+        config_entry_id=controller.serial_number,
         identifiers={(DOMAIN, entry.entry_id)},
-        model=f"SHC {coordinator.controller_type}",
-        sw_version=coordinator.os_version,
+        model=f"SHC {controller.controller_type}",
+        sw_version=controller.os_version,
         manufacturer="Livisi",
-        name=f"SHC {coordinator.controller_type} {coordinator.serial_number}",
+        name=f"SHC {controller.controller_type} {controller.serial_number}",
         configuration_url=f"http://{entry.data[CONF_HOST]}",
     )
 
@@ -93,8 +59,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     unload_success = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    await coordinator.websocket.disconnect()
-    await coordinator.aiolivisi.web_session.close()
+    await coordinator.aiolivisi.close()
 
     if unload_success:
         hass.data[DOMAIN].pop(entry.entry_id)
@@ -106,14 +71,11 @@ async def async_migrate_entry(hass, config_entry):
     """Migrate old entry."""
     LOGGER.info("Migrating Livisi data from version %s", config_entry.version)
 
-    # Load devices with a temporary coordinator (we can use the hass clientsession)
-    web_session = aiohttp_client.async_get_clientsession(hass)
-    aiolivisi = AioLivisi(web_session)
-    coordinator = LivisiDataUpdateCoordinator(hass, config_entry, aiolivisi)
+    coordinator = LivisiDataUpdateCoordinator(hass, config_entry)
     try:
         await coordinator.async_setup()
         devices = await coordinator.async_get_devices()
-    except ClientConnectorError as exception:
+    except Exception as exception:
         LOGGER.error(exception)
         return False
 

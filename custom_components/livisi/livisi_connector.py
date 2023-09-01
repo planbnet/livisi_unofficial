@@ -1,26 +1,34 @@
 """Code to handle the communication with Livisi Smart home controllers."""
 from __future__ import annotations
+
 import asyncio
 from typing import Any
 import uuid
+from aiohttp import ClientConnectionError
+from aiohttp.client import ClientSession, ClientError, TCPConnector
+from dateutil.parser import parse as parse_timestamp
 
-from dateutil.parser import parse as parseTimestamp
-from aiohttp.client import ClientSession, ClientError
+from .livisi_json_util import parse_dataclass
+from .livisi_controller import LivisiController
 
 from .livisi_errors import (
     IncorrectIpAddressException,
+    LivisiException,
     ShcUnreachableException,
     WrongCredentialException,
     ErrorCodeException,
 )
 
-from .const import (
+
+from .livisi_websocket import LivisiWebsocket
+
+from .livisi_const import (
     AUTH_GRANT_TYPE,
     AUTH_PASSWORD,
     AUTH_USERNAME,
     AUTHENTICATION_HEADERS,
+    AVATAR,
     BATTERY_LOW,
-    CLASSIC_PORT,
     LOCATION,
     LOGGER,
     CAPABILITY_MAP,
@@ -28,41 +36,106 @@ from .const import (
     REQUEST_TIMEOUT,
     USERNAME,
     UPDATE_AVAILABLE,
+    WEBSERVICE_PORT,
 )
 
-ERRORS = {1: Exception}
+
+async def connect(host: str, password: str) -> LivisiConnection:
+    """Initialize the lib and connect to the livisi SHC."""
+    connection = LivisiConnection()
+    await connection.connect(host, password)
+    return connection
 
 
-class AioLivisi:
+class LivisiConnection:
     """Handles the communication with the Livisi Smart Home controller."""
 
-    instance = None
+    def __init__(self) -> None:
+        """Initialize the livisi connector."""
 
-    def __init__(
-        self, web_session: ClientSession = None, auth_headers: dict[str, Any] = None
-    ) -> None:
-        """Initialize aiolivisi lib."""
-        self._web_session: ClientSession = web_session
-        self._auth_headers: dict[str, Any] = auth_headers
-        self._token: str = ""
-        self._livisi_connection_data: dict[str, str] = None
-        self._lastest_message = None
+        self.host: str = None
+        self.controller: LivisiController = None
 
-    async def async_retrieve_token(
-        self, livisi_connection_data: dict[str, str] = None
-    ) -> None:
+        self._password: str = None
+        self._token: str = None
+
+        self._web_session = None
+        self._websocket = LivisiWebsocket(self)
+
+    async def connect(self, host: str, password: str):
+        """Connect to the livisi SHC and retrieve controller information."""
+        if self._web_session is not None:
+            await self.close()
+        self._web_session = self._create_web_session(concurrent_connections=1)
+        if host is not None and password is not None:
+            self.host = host
+            self._password = password
+        await self._async_retrieve_token()
+        self.controller = await self._async_get_controller()
+        if self.controller.is_v2:
+            # reconnect with more concurrent connections on v2 SHC
+            await self._web_session.close()
+            self._web_session = self._create_web_session(concurrent_connections=10)
+
+    async def close(self):
+        """Disconnect the http client session and websocket."""
+        if self._web_session is not None:
+            await self._web_session.close()
+            self._web_session = None
+        self.controller = None
+        await self._websocket.disconnect()
+
+    async def listen_for_events(self, on_data, on_close) -> None:
+        """Connect to the websocket."""
+        if self._web_session is None:
+            raise LivisiException("Not authenticated to SHC")
+        if self._websocket.is_connected():
+            await self._websocket.disconnect()
+        await self._websocket.connect(on_data, on_close)
+
+    async def async_send_authorized_request(
+        self,
+        method,
+        path: str,
+        payload=None,
+    ) -> dict:
+        """Make a request to the Livisi Smart Home controller."""
+        url = f"http://{self.host}:{WEBSERVICE_PORT}/{path}"
+        auth_headers = {
+            "authorization": f"Bearer {self.token}",
+            "Content-type": "application/json",
+            "Accept": "*/*",
+        }
+        return await self._async_send_request(method, url, payload, auth_headers)
+
+    def _create_web_session(self, concurrent_connections: int = 1):
+        """Create a custom web session which limits concurrent connections."""
+        connector = TCPConnector(
+            limit=concurrent_connections, limit_per_host=concurrent_connections
+        )
+        web_session = ClientSession(connector=connector)
+        return web_session
+
+    async def _async_retrieve_token(self) -> None:
         """Set the JWT from the LIVISI Smart Home Controller."""
         access_data: dict = {}
+
+        login_credentials = {
+            AUTH_USERNAME: USERNAME,
+            AUTH_PASSWORD: self._password,
+            AUTH_GRANT_TYPE: "password",
+        }
+        headers = AUTHENTICATION_HEADERS
+
         try:
-            if livisi_connection_data is not None:
-                self._livisi_connection_data = livisi_connection_data
-            access_data = await self.async_get_jwt_token(self._livisi_connection_data)
+            access_data = await self._async_send_request(
+                "post",
+                url=f"http://{self.host}:{WEBSERVICE_PORT}/auth/token",
+                payload=login_credentials,
+                headers=headers,
+            )
             self.token = access_data["access_token"]
-            self._auth_headers = {
-                "authorization": f"Bearer {self.token}",
-                "Content-type": "application/json",
-                "Accept": "*/*",
-            }
+            # self._refresh_token = access_data["refresh_token"]
         except TimeoutError as error:
             raise ShcUnreachableException from error
         except ClientError as error:
@@ -72,45 +145,7 @@ class AioLivisi:
                 raise WrongCredentialException from error
             raise ShcUnreachableException from error
 
-    async def async_send_authorized_request(
-        self,
-        method,
-        path: str,
-        payload=None,
-    ) -> dict:
-        """Make a request to the Livisi Smart Home controller."""
-        ip_address = self._livisi_connection_data["ip_address"]
-        url = f"http://{ip_address}:{CLASSIC_PORT}/{path}"
-        return await self.async_send_request(method, url, payload, self._auth_headers)
-
-    async def async_send_unauthorized_request(
-        self,
-        method,
-        url: str,
-        headers,
-        payload=None,
-    ) -> dict:
-        """Send a request without JWT token."""
-        return await self.async_send_request(method, url, payload, headers)
-
-    async def async_get_jwt_token(self, livisi_connection_data: dict[str, str]):
-        """Send a request for getting the JWT token."""
-        login_credentials = {
-            AUTH_USERNAME: USERNAME,
-            AUTH_PASSWORD: livisi_connection_data["password"],
-            AUTH_GRANT_TYPE: "password",
-        }
-        headers = AUTHENTICATION_HEADERS
-        self._livisi_connection_data = livisi_connection_data
-        ip_address = self._livisi_connection_data["ip_address"]
-        return await self.async_send_request(
-            "post",
-            url=f"http://{ip_address}:{CLASSIC_PORT}/auth/token",
-            payload=login_credentials,
-            headers=headers,
-        )
-
-    async def async_send_request(
+    async def _async_send_request(
         self, method, url: str, payload=None, headers=None
     ) -> dict:
         """Send a request to the Livisi Smart Home controller and handle requesting new token."""
@@ -118,12 +153,13 @@ class AioLivisi:
         # The try...catch statement is needed as a workaround for random request failures on V1 SHC
         try:
             response = await self._async_send_request(method, url, payload, headers)
-        except Exception:
+        except ClientConnectionError:
             response = await self._async_send_request(method, url, payload, headers)
 
         if "errorcode" in response:
+            # reconnect on expired token
             if response["errorcode"] == 2007:
-                await self.async_retrieve_token()
+                await self._async_retrieve_token()
                 response = await self._async_send_request(method, url, payload, headers)
             else:
                 raise ErrorCodeException(response["errorcode"])
@@ -143,23 +179,32 @@ class AioLivisi:
             data = await res.json()
             return data
 
-    async def async_get_controller(self) -> dict[str, Any]:
+    async def _async_get_controller(self) -> dict[str, Any]:
         """Get Livisi Smart Home controller data."""
         shc_info = await self.async_send_authorized_request("get", path="status")
-        return shc_info
+        controller = parse_dataclass(shc_info, LivisiController)
+        controller.is_v2 = shc_info.get("controllerType") == AVATAR
+        return controller
 
     async def async_get_devices(
         self,
     ) -> list[dict[str, Any]]:
-        """Send a request for getting the devices."""
-        devices, capabilities, messages = await asyncio.gather(
+        """Send parallel requests for getting all required data."""
+        devices, capabilities, messages, rooms = await asyncio.gather(
             self.async_send_authorized_request("get", path="device"),
             self.async_send_authorized_request("get", path="capability"),
             self.async_send_authorized_request("get", path="message"),
+            self.async_send_authorized_request("get", path="location"),
         )
 
         capability_map = {}
         capability_config = {}
+
+        room_map = {}
+
+        for room in rooms:
+            roomid = room["id"]
+            room_map[roomid] = room.get("config", {}).get("name")
 
         for capability in capabilities:
             if "device" in capability:
@@ -177,12 +222,9 @@ class AioLivisi:
         update_available_devices = set()
         for message in messages:
             msgtype = message.get("type", "")
-            msgtimestamp = parseTimestamp(message.get("timestamp", ""))
+            msgtimestamp = parse_timestamp(message.get("timestamp", ""))
             if msgtimestamp is None:
                 continue
-
-            if self._lastest_message is None or msgtimestamp > self._lastest_message:
-                self._lastest_message = msgtimestamp
 
             device_ids = [
                 d.removeprefix("/device/") for d in message.get("devices", [])
@@ -210,7 +252,8 @@ class AioLivisi:
             if device_id in update_available_devices:
                 device[UPDATE_AVAILABLE] = True
             if LOCATION in device and device.get(LOCATION) is not None:
-                device[LOCATION] = device[LOCATION].removeprefix("/location/")
+                roomid = device[LOCATION].removeprefix("/location/")
+                device["room"] = room_map.get(roomid)
 
         LOGGER.debug("Loaded %d devices", len(devices))
 
@@ -241,10 +284,6 @@ class AioLivisi:
             "post", "action", payload=set_state_payload
         )
 
-    async def async_get_all_rooms(self) -> dict[str, Any]:
-        """Get all the rooms from LIVISI configuration."""
-        return await self.async_send_authorized_request("get", "location")
-
     @property
     def livisi_connection_data(self):
         """Return the connection data."""
@@ -262,12 +301,3 @@ class AioLivisi:
     @token.setter
     def token(self, new_value):
         self._token = new_value
-
-    @property
-    def web_session(self):
-        """Return the web session."""
-        return self._web_session
-
-    @web_session.setter
-    def web_session(self, new_value):
-        self._web_session = new_value

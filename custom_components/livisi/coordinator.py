@@ -6,20 +6,25 @@ from typing import Any
 
 from aiohttp import ClientConnectorError
 
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .aiolivisi import AioLivisi
-from .websocket import Websocket, LivisiWebsocketEvent
-from .livisi_errors import TokenExpiredException
+from .livisi_device import LivisiDevice
+from .livisi_connector import LivisiConnection, connect as livisi_connect
+from .livisi_websocket import LivisiWebsocketEvent
+
+from .livisi_errors import (
+    IncorrectIpAddressException,
+    ShcUnreachableException,
+    WrongCredentialException,
+)
+
 
 from .const import (
-    AVATAR,
-    AVATAR_PORT,
     CAPABILITY_MAP,
-    CLASSIC_PORT,
     CONF_HOST,
     CONF_PASSWORD,
     EVENT_BUTTON_PRESSED,
@@ -42,9 +47,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
 
     config_entry: ConfigEntry
 
-    def __init__(
-        self, hass: HomeAssistant, config_entry: ConfigEntry, aiolivisi: AioLivisi
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize my coordinator."""
         super().__init__(
             hass,
@@ -54,25 +57,27 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         )
         self.config_entry = config_entry
         self.hass = hass
-        self.aiolivisi = aiolivisi
-        self.websocket = Websocket(aiolivisi)
+        self.aiolivisi: LivisiConnection
         self.devices: set[str] = set()
-        self.capability_to_device: dict[str, str] = {}
-        self.rooms: dict[str, Any] = {}
-        self.serial_number: str = ""
-        self.os_version: str = ""
-        self.controller_type: str = ""
-        self.is_avatar: bool = False
-        self.port: int = 0
+        self._capability_to_device: dict[str, str] = {}
+
+    async def async_setup(self) -> None:
+        """Set up the Livisi Smart Home Controller."""
+        try:
+            self.aiolivisi = await livisi_connect(
+                self.config_entry.data[CONF_HOST],
+                self.config_entry.data[CONF_PASSWORD],
+            )
+        except ShcUnreachableException as exception:
+            raise ConfigEntryNotReady from exception
+        except WrongCredentialException as exception:
+            raise ConfigEntryNotReady from exception
+        except IncorrectIpAddressException as exception:
+            raise ConfigEntryNotReady from exception
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
         """Get device configuration from LIVISI."""
         try:
-            return await self.async_get_devices()
-        except TokenExpiredException:
-            await self.aiolivisi.async_retrieve_token(
-                self.aiolivisi.livisi_connection_data
-            )
             return await self.async_get_devices()
         except ClientConnectorError as exc:
             raise UpdateFailed("Failed to get livisi devices from controller") from exc
@@ -91,36 +96,14 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         self._async_dispatcher_send(LIVISI_STATE_CHANGE, event_data.source, data)
         return True
 
-    async def async_setup(self) -> None:
-        """Set up the Livisi Smart Home Controller."""
-        if not self.aiolivisi.livisi_connection_data:
-            livisi_connection_data = {
-                "ip_address": self.config_entry.data[CONF_HOST],
-                "password": self.config_entry.data[CONF_PASSWORD],
-            }
-
-            await self.aiolivisi.async_retrieve_token(
-                livisi_connection_data=livisi_connection_data
-            )
-        controller_data = await self.aiolivisi.async_get_controller()
-        if (controller_type := controller_data["controllerType"]) == AVATAR:
-            self.port = AVATAR_PORT
-            self.is_avatar = True
-        else:
-            self.port = CLASSIC_PORT
-            self.is_avatar = False
-        self.controller_type = controller_type
-        self.serial_number = controller_data["serialNumber"]
-        self.os_version = controller_data["osVersion"]
-
-    async def async_get_devices(self) -> list[dict[str, Any]]:
+    async def async_get_devices(self) -> list[LivisiDevice]:
         """Set the discovered devices list."""
         devices = await self.aiolivisi.async_get_devices()
         capability_mapping = {}
         for device in devices:
             for capability_id in device.get(CAPABILITY_MAP, {}).values():
                 capability_mapping[capability_id] = device["id"]
-        self.capability_to_device = capability_mapping
+        self._capability_to_device = capability_mapping
         return devices
 
     async def async_get_device_state(self, capability: str, key: str) -> Any | None:
@@ -132,26 +115,10 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             return None
         return response.get(key, {}).get("value")
 
-    async def async_set_all_rooms(self) -> None:
-        """Set the room list."""
-        response: list[dict[str, Any]] = await self.aiolivisi.async_get_all_rooms()
-
-        for available_room in response:
-            available_room_config: dict[str, Any] = available_room["config"]
-            self.rooms[available_room["id"]] = available_room_config["name"]
-
-    def get_room_name(self, device: dict[str, Any]) -> str | None:
-        """Get the room name from a device."""
-        room_id: str | None = device.get("location")
-        room_name: str | None = None
-        if room_id is not None:
-            room_name = self.rooms.get(room_id)
-        return room_name
-
-    def on_data(self, event_data: LivisiWebsocketEvent) -> None:
+    def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
         """Define a handler to fire when the data is received."""
         if event_data.type == LIVISI_EVENT_BUTTON_PRESSED:
-            device_id = self.capability_to_device.get(event_data.source)
+            device_id = self._capability_to_device.get(event_data.source)
             if device_id is not None:
                 livisi_event_data = {
                     "device_id": device_id,
@@ -164,7 +131,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                     LIVISI_EVENT, event_data.source, livisi_event_data
                 )
         elif event_data.type == LIVISI_EVENT_MOTION_DETECTED:
-            device_id = self.capability_to_device.get(event_data.source)
+            device_id = self._capability_to_device.get(event_data.source)
             if device_id is not None:
                 livisi_event_data = {
                     "device_id": device_id,
@@ -184,13 +151,22 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
             for prop in STATE_PROPERTIES:
                 self.publish_state(event_data, prop)
 
-    async def on_close(self) -> None:
+    async def on_websocket_close(self) -> None:
         """Define a handler to fire when the websocket is closed."""
-        for device_id in self.devices:
-            self._async_dispatcher_send(LIVISI_REACHABILITY_CHANGE, device_id, False)
 
-        await self.websocket.connect(self.on_data, self.on_close, self.port)
+        try:
+            await self.aiolivisi.listen_for_events(
+                self.on_websocket_data, self.on_websocket_close
+            )
+        except Exception as reconnect_error:
+            for device_id in self.devices:
+                self._async_dispatcher_send(
+                    LIVISI_REACHABILITY_CHANGE, device_id, False
+                )
+            raise reconnect_error
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
-        await self.websocket.connect(self.on_data, self.on_close, self.port)
+        await self.aiolivisi.listen_for_events(
+            self.on_websocket_data, self.on_websocket_close
+        )
