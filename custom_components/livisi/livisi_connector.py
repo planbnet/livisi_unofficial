@@ -8,6 +8,8 @@ from aiohttp import ClientConnectionError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
 
+from .livisi_device import LivisiDevice
+
 from .livisi_json_util import parse_dataclass
 from .livisi_controller import LivisiController
 
@@ -24,13 +26,9 @@ from .livisi_websocket import LivisiWebsocket
 
 from .livisi_const import (
     V2_NAME,
-    BATTERY_LOW,
     LOCATION,
     LOGGER,
-    CAPABILITY_MAP,
-    CAPABILITY_CONFIG,
     REQUEST_TIMEOUT,
-    UPDATE_AVAILABLE,
     WEBSERVICE_PORT,
 )
 
@@ -242,21 +240,26 @@ class LivisiConnection:
             elif msgtype == "DeviceUnreachable":
                 pass
 
+        devicelist = []
+
         for device in devices:
-            device_id = device["id"]
-            device[CAPABILITY_MAP] = capability_map.get(device_id, {})
-            device[CAPABILITY_CONFIG] = capability_config.get(device_id, {})
+            device_id = device.id
+            device["capabilities"] = capability_map.get(device_id, {})
+            device["capability_config"] = capability_config.get(device_id, {})
+            device["cls"] = device["class"]
             if device_id in low_battery_devices:
-                device[BATTERY_LOW] = True
+                device["battery_low"] = True
             if device_id in update_available_devices:
-                device[UPDATE_AVAILABLE] = True
+                device["update_available"] = True
             if LOCATION in device and device.get(LOCATION) is not None:
                 roomid = device[LOCATION].removeprefix("/location/")
                 device["room"] = room_map.get(roomid)
 
+            devicelist.append(parse_dataclass(device, LivisiDevice))
+
         LOGGER.debug("Loaded %d devices", len(devices))
 
-        return devices
+        return devicelist
 
     async def async_get_device_state(self, capability_id) -> dict[str, Any] | None:
         """Get the state of the device."""
