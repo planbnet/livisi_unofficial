@@ -12,7 +12,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.binary_sensor import BinarySensorEntity
 
-from .const import CAPABILITY_MAP, CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
+from .const import CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
+from .livisi_const import CAPABILITY_MAP
 from .coordinator import LivisiDataUpdateCoordinator
 
 

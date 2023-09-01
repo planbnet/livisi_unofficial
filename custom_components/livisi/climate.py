@@ -25,7 +25,7 @@ from .const import (
     VRCC_DEVICE_TYPE,
 )
 
-from .const import CAPABILITY_CONFIG
+from .livisi_const import CAPABILITY_CONFIG
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 

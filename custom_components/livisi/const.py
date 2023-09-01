@@ -12,10 +12,6 @@ CONF_PASSWORD: Final = "password"
 
 CONF_SUBTYPE: Final = "subtype"
 
-AVATAR = "Avatar"
-AVATAR_WEBSOCKET_PORT: Final = 9090
-CLASSIC_WEBSOCKET_PORT: Final = 8080
-WEBSERVICE_PORT: Final = 8080
 DEVICE_POLLING_DELAY: Final = 60
 LIVISI_STATE_CHANGE: Final = "livisi_state_change"
 LIVISI_REACHABILITY_CHANGE: Final = "livisi_reachability_change"
@@ -67,27 +63,6 @@ BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2, "WSC2": 2}
 MAX_TEMPERATURE: Final = 30.0
 MIN_TEMPERATURE: Final = 6.0
 
-USERNAME: Final = "admin"
-AUTH_USERNAME: Final = "username"
-AUTH_PASSWORD: Final = "password"
-AUTH_GRANT_TYPE: Final = "grant_type"
-REQUEST_TIMEOUT: Final = 2000
-
-CAPABILITY_MAP: Final = "capabilityMap"
-CAPABILITY_CONFIG: Final = "capabilityConfig"
-BATTERY_LOW: Final = "batteryLow"
-UPDATE_AVAILABLE: Final = "DeviceUpdateAvailable"
-
-AUTHENTICATION_HEADERS: Final = {
-    "Authorization": "Basic Y2xpZW50SWQ6Y2xpZW50UGFzcw==",
-    "Content-type": "application/json",
-    "Accept": "application/json",
-}
-
-LIVISI_EVENT_STATE_CHANGED = "StateChanged"
-LIVISI_EVENT_BUTTON_PRESSED = "ButtonPressed"
-LIVISI_EVENT_MOTION_DETECTED = "MotionDetected"
-
 STATE_PROPERTIES = [
     ON_STATE,
     VALUE,
@@ -100,9 +75,6 @@ STATE_PROPERTIES = [
     IS_SMOKE_ALARM,
     POWER_CONSUMPTION,
 ]
-
-IS_REACHABLE: Final = "isReachable"
-LOCATION: Final = "location"
 
 EVENT_BUTTON_PRESSED = "button_pressed"
 EVENT_BUTTON_LONG_PRESSED = "button_long_pressed"

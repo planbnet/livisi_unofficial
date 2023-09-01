@@ -23,18 +23,13 @@ from .livisi_errors import (
 from .livisi_websocket import LivisiWebsocket
 
 from .livisi_const import (
-    AUTH_GRANT_TYPE,
-    AUTH_PASSWORD,
-    AUTH_USERNAME,
-    AUTHENTICATION_HEADERS,
-    AVATAR,
+    V2_NAME,
     BATTERY_LOW,
     LOCATION,
     LOGGER,
     CAPABILITY_MAP,
     CAPABILITY_CONFIG,
     REQUEST_TIMEOUT,
-    USERNAME,
     UPDATE_AVAILABLE,
     WEBSERVICE_PORT,
 )
@@ -121,11 +116,15 @@ class LivisiConnection:
         access_data: dict = {}
 
         login_credentials = {
-            AUTH_USERNAME: USERNAME,
-            AUTH_PASSWORD: self._password,
-            AUTH_GRANT_TYPE: "password",
+            "username": "admin",
+            "password": self._password,
+            "grant_type": "password",
         }
-        headers = AUTHENTICATION_HEADERS
+        headers = {
+            "Authorization": "Basic Y2xpZW50SWQ6Y2xpZW50UGFzcw==",
+            "Content-type": "application/json",
+            "Accept": "application/json",
+        }
 
         try:
             access_data = await self._async_send_request(
@@ -183,7 +182,7 @@ class LivisiConnection:
         """Get Livisi Smart Home controller data."""
         shc_info = await self.async_send_authorized_request("get", path="status")
         controller = parse_dataclass(shc_info, LivisiController)
-        controller.is_v2 = shc_info.get("controllerType") == AVATAR
+        controller.is_v2 = shc_info.get("controllerType") == V2_NAME
         return controller
 
     async def async_get_devices(

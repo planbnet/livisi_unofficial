@@ -6,7 +6,7 @@ from json import JSONDecodeError
 import websockets.client
 
 from .livisi_json_util import parse_dataclass
-from .livisi_const import CLASSIC_WEBSOCKET_PORT, AVATAR_WEBSOCKET_PORT, LOGGER
+from .livisi_const import CLASSIC_WEBSOCKET_PORT, V2_WEBSOCKET_PORT, LOGGER
 from .livisi_websocket_event import LivisiWebsocketEvent
 
 
@@ -27,7 +27,7 @@ class LivisiWebsocket:
     async def connect(self, on_data, on_close) -> None:
         """Connect to the socket."""
         if self.aiolivisi.controller.is_v2:
-            port = AVATAR_WEBSOCKET_PORT
+            port = V2_WEBSOCKET_PORT
             token = urllib.parse.quote(self.aiolivisi.token)
         else:
             port = CLASSIC_WEBSOCKET_PORT
