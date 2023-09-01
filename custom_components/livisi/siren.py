@@ -11,6 +11,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .livisi_device import LivisiDevice
+
 from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, SMOKE_DETECTOR_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
@@ -28,19 +30,19 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add switch."""
-        shc_devices: list[dict[str, Any]] = coordinator.data
+        shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[SirenEntity] = []
         for device in shc_devices:
             if (
-                device["id"] not in known_devices
-                and device["type"] in SMOKE_DETECTOR_DEVICE_TYPES
+                device.id not in known_devices
+                and device.type in SMOKE_DETECTOR_DEVICE_TYPES
             ):
                 livisi_siren: SirenEntity = LivisiSiren(
                     config_entry, coordinator, device
                 )
-                LOGGER.debug("Include device type: %s as siren", device["type"])
-                coordinator.devices.add(device["id"])
-                known_devices.add(device["id"])
+                LOGGER.debug("Include device type: %s as siren", device.type)
+                coordinator.devices.add(device.id)
+                known_devices.add(device.id)
                 entities.append(livisi_siren)
         async_add_entities(entities)
 
@@ -58,7 +60,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
     ) -> None:
         """Initialize the Livisi siren."""
         super().__init__(config_entry, coordinator, device, "AlarmActuator")

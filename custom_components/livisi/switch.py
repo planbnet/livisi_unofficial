@@ -10,6 +10,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .livisi_device import LivisiDevice
+
 from .const import (
     DOMAIN,
     LIVISI_STATE_CHANGE,
@@ -33,22 +35,22 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add switch."""
-        shc_devices: list[dict[str, Any]] = coordinator.data
+        shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[SwitchEntity] = []
         for device in shc_devices:
-            if device["id"] not in known_devices:
+            if device.id not in known_devices:
                 switch = None
-                if device["type"] in SWITCH_DEVICE_TYPES:
+                if device.type in SWITCH_DEVICE_TYPES:
                     switch_type = device.get("tags", {}).get("typeCategory", "default")
                     if switch_type != "TCLightId":
                         switch = LivisiSwitch(config_entry, coordinator, device)
-                elif device["type"] == VARIABLE_DEVICE_TYPE:
+                elif device.type == VARIABLE_DEVICE_TYPE:
                     switch = LivisiVariable(config_entry, coordinator, device)
 
                 if switch is not None:
-                    LOGGER.debug("Include device type: %s", device["type"])
-                    coordinator.devices.add(device["id"])
-                    known_devices.add(device["id"])
+                    LOGGER.debug("Include device type: %s", device.type)
+                    coordinator.devices.add(device.id)
+                    known_devices.add(device.id)
                     entities.append(switch)
 
         async_add_entities(entities)
@@ -65,7 +67,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
     ) -> None:
         """Initialize the Livisi switch."""
         super().__init__(config_entry, coordinator, device, "SwitchActuator")
@@ -129,7 +131,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
     ) -> None:
         """Initialize the Livisi switch."""
         super().__init__(config_entry, coordinator, device, "BooleanStateActuator")

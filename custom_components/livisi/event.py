@@ -12,6 +12,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .livisi_device import LivisiDevice
+
 from .const import (
     DOMAIN,
     LOGGER,
@@ -37,11 +39,11 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add events."""
-        shc_devices: list[dict[str, Any]] = coordinator.data
+        shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[EventEntity] = []
         for device in shc_devices:
-            if device["id"] not in known_devices:
-                if device["type"] in MOTION_DEVICE_TYPES:
+            if device.id not in known_devices:
+                if device.type in MOTION_DEVICE_TYPES:
                     event: EventEntity = LivisiEvent(
                         config_entry,
                         coordinator,
@@ -53,13 +55,11 @@ async def async_setup_entry(
                         ),
                         "MotionDetectionSensor",
                     )
-                    LOGGER.debug(
-                        "Include motion sensor device type: %s", device["type"]
-                    )
-                    coordinator.devices.add(device["id"])
-                    known_devices.add(device["id"])
+                    LOGGER.debug("Include motion sensor device type: %s", device.type)
+                    coordinator.devices.add(device.id)
+                    known_devices.add(device.id)
                     entities.append(event)
-                if device["type"] in BUTTON_DEVICE_TYPES:
+                if device.type in BUTTON_DEVICE_TYPES:
                     event: EventEntity = LivisiEvent(
                         config_entry,
                         coordinator,
@@ -71,11 +71,9 @@ async def async_setup_entry(
                         ),
                         "PushButtonSensor",
                     )
-                    LOGGER.debug(
-                        "Include button sensor device type: %s", device["type"]
-                    )
-                    coordinator.devices.add(device["id"])
-                    known_devices.add(device["id"])
+                    LOGGER.debug("Include button sensor device type: %s", device.type)
+                    coordinator.devices.add(device.id)
+                    known_devices.add(device.id)
                     entities.append(event)
         async_add_entities(entities)
 
@@ -91,7 +89,7 @@ class LivisiEvent(LivisiEntity, EventEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
         entity_desc: EventEntityDescription,
         capability_name: str,
     ) -> None:

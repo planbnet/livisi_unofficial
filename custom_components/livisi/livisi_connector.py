@@ -176,7 +176,7 @@ class LivisiConnection:
             data = await res.json()
             return data
 
-    async def _async_get_controller(self) -> dict[str, Any]:
+    async def _async_get_controller(self) -> LivisiController:
         """Get Livisi Smart Home controller data."""
         shc_info = await self.async_send_authorized_request("get", path="status")
         controller = parse_dataclass(shc_info, LivisiController)
@@ -185,7 +185,7 @@ class LivisiConnection:
 
     async def async_get_devices(
         self,
-    ) -> list[dict[str, Any]]:
+    ) -> list[LivisiDevice]:
         """Send parallel requests for getting all required data."""
         devices, capabilities, messages, rooms = await asyncio.gather(
             self.async_send_authorized_request("get", path="device"),

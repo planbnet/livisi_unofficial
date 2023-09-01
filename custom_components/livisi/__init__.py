@@ -92,13 +92,13 @@ async def async_migrate_entry(hass, config_entry):
     update_ids: dict[str, str] = {}
     light_switches: list[str] = []
     for device in devices:
-        deviceid = device["id"]
+        deviceid = device.id
         if CAPABILITY_MAP not in device:
             break
         caps = device[CAPABILITY_MAP]
 
         if (
-            device["type"] in SWITCH_DEVICE_TYPES
+            device.type in SWITCH_DEVICE_TYPES
             and device.get("tags", {}).get("typeCategory") == "TCLightId"
             and "SwitchActuator" in caps
         ):

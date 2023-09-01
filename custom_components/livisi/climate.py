@@ -16,6 +16,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .livisi_device import LivisiDevice
+
 from .const import (
     DOMAIN,
     LIVISI_STATE_CHANGE,
@@ -25,7 +27,6 @@ from .const import (
     VRCC_DEVICE_TYPE,
 )
 
-from .livisi_const import CAPABILITY_CONFIG
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
@@ -42,16 +43,16 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add climate device."""
-        shc_devices: list[dict[str, Any]] = coordinator.data
+        shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[ClimateEntity] = []
         for device in shc_devices:
-            if device["type"] == VRCC_DEVICE_TYPE and device["id"] not in known_devices:
-                known_devices.add(device["id"])
+            if device.type == VRCC_DEVICE_TYPE and device.id not in known_devices:
+                known_devices.add(device.id)
                 livisi_climate: ClimateEntity = LivisiClimate(
                     config_entry, coordinator, device
                 )
                 LOGGER.debug("Include device type: %s", device.get("type"))
-                coordinator.devices.add(device["id"])
+                coordinator.devices.add(device.id)
                 entities.append(livisi_climate)
         async_add_entities(entities)
 
@@ -72,7 +73,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
     ) -> None:
         """Initialize the Livisi Climate."""
         super().__init__(
@@ -83,7 +84,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         self._temperature_capability = self.capabilities["RoomTemperature"]
         self._humidity_capability = self.capabilities["RoomHumidity"]
 
-        config = device.get(CAPABILITY_CONFIG, {}).get("RoomSetpoint", {})
+        config = device.capability_config.get("RoomSetpoint", {})
         self._attr_max_temp = config.get("maxTemperature", MAX_TEMPERATURE)
         self._attr_min_temp = config.get("minTemperature", MIN_TEMPERATURE)
 

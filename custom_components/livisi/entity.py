@@ -12,6 +12,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.binary_sensor import BinarySensorEntity
 
+from .livisi_device import LivisiDevice
+
 from .const import CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
 from .livisi_const import CAPABILITY_MAP
 from .coordinator import LivisiDataUpdateCoordinator
@@ -26,7 +28,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
         capability_name: str = None,
         *,
         battery: bool = False,
@@ -37,7 +39,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self.capabilities: Mapping[str, Any] = device[CAPABILITY_MAP]
         self.capability_id = None
 
-        device_id = device["id"]
+        device_id = device.id
         device_name = device.get("config", {}).get("name", "unknown")
 
         if capability_name is not None:
@@ -70,9 +72,9 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, device_id)},
-            manufacturer=device["manufacturer"],
-            model=device["type"],
-            sw_version=device["version"],
+            manufacturer=device.manufacturer,
+            model=device.type,
+            sw_version=device.version,
             name=device_name,
             suggested_area=room_name,
             configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device['id']}",

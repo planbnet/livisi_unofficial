@@ -2,7 +2,6 @@
 from __future__ import annotations
 from decimal import Decimal
 
-from typing import Any
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -15,6 +14,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .livisi_device import LivisiDevice
+
 from .const import (
     CAPABILITY_HUMIDITY_SENSOR,
     CAPABILITY_LUMINANCE_SENSOR,
@@ -22,7 +23,6 @@ from .const import (
     CAPABILITY_ROOM_TEMPERATURE,
     CAPABILITY_TEMPERATURE_SENSOR,
     CAPABILITY_POWER_SENSOR,
-    CAPABILITY_MAP,
     DOMAIN,
     HUMIDITY,
     LIVISI_STATE_CHANGE,
@@ -87,13 +87,13 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add Sensors."""
-        shc_devices: list[dict[str, Any]] = coordinator.data
+        shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[SensorEntity] = []
         for device in shc_devices:
-            if device["id"] not in known_devices:
-                known_devices.add(device["id"])
+            if device.id not in known_devices:
+                known_devices.add(device.id)
                 for capability_name in SENSOR_TYPES:
-                    if capability_name in device.get(CAPABILITY_MAP, {}):
+                    if capability_name in device.capa:
                         sensor: SensorEntity = LivisiSensor(
                             config_entry,
                             coordinator,
@@ -103,10 +103,10 @@ async def async_setup_entry(
                         )
                         LOGGER.debug(
                             "Include device type: %s as %s",
-                            device["type"],
+                            device.type,
                             capability_name,
                         )
-                        coordinator.devices.add(device["id"])
+                        coordinator.devices.add(device.id)
                         entities.append(sensor)
         async_add_entities(entities)
 
@@ -122,7 +122,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
         entity_desc: SensorEntityDescription,
         capability_name: str,
     ) -> None:
@@ -132,7 +132,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             coordinator,
             device,
             capability_name,
-            use_room_as_device_name=(device["type"] == VRCC_DEVICE_TYPE),
+            use_room_as_device_name=(device.type == VRCC_DEVICE_TYPE),
         )
         self.entity_description = entity_desc
         self._attr_translation_key = entity_desc.key

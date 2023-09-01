@@ -10,6 +10,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .livisi_device import LivisiDevice
+
 from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, SWITCH_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
@@ -27,20 +29,20 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add light."""
-        shc_devices: list[dict[str, Any]] = coordinator.data
+        shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[LightEntity] = []
         for device in shc_devices:
-            if device["id"] not in known_devices:
+            if device.id not in known_devices:
                 light = None
-                if device["type"] in SWITCH_DEVICE_TYPES:
+                if device.type in SWITCH_DEVICE_TYPES:
                     switch_type = device.get("tags", {}).get("typeCategory", "default")
                     if switch_type == "TCLightId":
                         light = LivisiSwitchLight(config_entry, coordinator, device)
 
                 if light is not None:
-                    LOGGER.debug("Include device type: %s as light", device["type"])
-                    coordinator.devices.add(device["id"])
-                    known_devices.add(device["id"])
+                    LOGGER.debug("Include device type: %s as light", device.type)
+                    coordinator.devices.add(device.id)
+                    known_devices.add(device.id)
                     entities.append(light)
 
         async_add_entities(entities)
@@ -57,7 +59,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
     ) -> None:
         """Initialize the Livisi light."""
         super().__init__(config_entry, coordinator, device, "SwitchActuator")

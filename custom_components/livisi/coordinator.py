@@ -24,7 +24,6 @@ from .livisi_errors import (
 
 
 from .const import (
-    CAPABILITY_MAP,
     CONF_HOST,
     CONF_PASSWORD,
     EVENT_BUTTON_PRESSED,
@@ -45,7 +44,7 @@ from .livisi_const import (
 )
 
 
-class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
+class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
     """Class to manage fetching LIVISI data API."""
 
     config_entry: ConfigEntry
@@ -104,8 +103,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         devices = await self.aiolivisi.async_get_devices()
         capability_mapping = {}
         for device in devices:
-            for capability_id in device.get(CAPABILITY_MAP, {}).values():
-                capability_mapping[capability_id] = device["id"]
+            for capability_id in device.capabilities.values():
+                capability_mapping[capability_id] = device.id
         self._capability_to_device = capability_mapping
         return devices
 

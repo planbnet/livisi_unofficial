@@ -1,7 +1,6 @@
 """Code to handle a Livisi Binary Sensor."""
 from __future__ import annotations
 
-from typing import Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -13,6 +12,8 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .livisi_device import LivisiDevice
 
 from .const import (
     BATTERY_POWERED_DEVICES,
@@ -40,12 +41,12 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add Window Sensor."""
-        shc_devices: list[dict[str, Any]] = coordinator.data
+        shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[BinarySensorEntity] = []
         for device in shc_devices:
-            if device["id"] not in known_devices:
-                known_devices.add(device["id"])
-                if device["type"] == WDS_DEVICE_TYPE:
+            if device.id not in known_devices:
+                known_devices.add(device.id)
+                if device.type == WDS_DEVICE_TYPE:
                     device_class = (
                         BinarySensorDeviceClass.DOOR
                         if (device.get("tags", {}).get("typeCategory") == "TCDoorId")
@@ -61,11 +62,11 @@ async def async_setup_entry(
                         capability_name="WindowDoorSensor",
                     )
                     LOGGER.debug(
-                        "Include device type: %s as contact sensor", device["type"]
+                        "Include device type: %s as contact sensor", device.type
                     )
-                    coordinator.devices.add(device["id"])
+                    coordinator.devices.add(device.id)
                     entities.append(livisi_contact)
-                if device["type"] in SMOKE_DETECTOR_DEVICE_TYPES:
+                if device.type in SMOKE_DETECTOR_DEVICE_TYPES:
                     livisi_smoke: BinarySensorEntity = LivisiBinarySensor(
                         config_entry,
                         coordinator,
@@ -77,16 +78,16 @@ async def async_setup_entry(
                         capability_name="SmokeDetectorSensor",
                     )
                     LOGGER.debug(
-                        "Include device type: %s as smoke detector", device["type"]
+                        "Include device type: %s as smoke detector", device.type
                     )
-                    coordinator.devices.add(device["id"])
+                    coordinator.devices.add(device.id)
                     entities.append(livisi_smoke)
-                if device["type"] in BATTERY_POWERED_DEVICES:
+                if device.type in BATTERY_POWERED_DEVICES:
                     livisi_binary: BinarySensorEntity = LivisiBatteryLowSensor(
                         config_entry, coordinator, device
                     )
-                    LOGGER.debug("Include battery sensor for: %s", device["type"])
-                    coordinator.devices.add(device["id"])
+                    LOGGER.debug("Include battery sensor for: %s", device.type)
+                    coordinator.devices.add(device.id)
                     entities.append(livisi_binary)
 
         async_add_entities(entities)
@@ -103,7 +104,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
         entity_desc: BinarySensorEntityDescription,
         capability_name: str,
     ) -> None:
@@ -147,7 +148,7 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
         self,
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
-        device: dict[str, Any],
+        device: LivisiDevice,
     ) -> None:
         """Initialize the Livisi window/door sensor."""
         super().__init__(config_entry, coordinator, device, battery=True)
@@ -162,7 +163,7 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
             (
                 device
                 for device in self.coordinator.data
-                if device["id"] + "_battery" == self.unique_id
+                if device.id + "_battery" == self.unique_id
             ),
             None,
         )
