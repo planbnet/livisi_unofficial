@@ -18,8 +18,8 @@ class LivisiDevice:
     cls: str
     product: str
     desc: str
-    capabilities: dict[str, Any]
-    capability_config: dict[str, Any]
+    capabilities: dict[str, str]
+    capability_config: dict[str, dict[str, Any]]
     room: str
     battery_low: bool
     update_available: bool

@@ -93,7 +93,7 @@ async def async_setup_entry(
             if device.id not in known_devices:
                 known_devices.add(device.id)
                 for capability_name in SENSOR_TYPES:
-                    if capability_name in device.capa:
+                    if capability_name in device.capabilities:
                         sensor: SensorEntity = LivisiSensor(
                             config_entry,
                             coordinator,

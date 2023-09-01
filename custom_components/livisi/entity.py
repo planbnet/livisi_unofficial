@@ -1,8 +1,6 @@
 """Code to handle a Livisi switches."""
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
@@ -15,7 +13,6 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from .livisi_device import LivisiDevice
 
 from .const import CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
-from .livisi_const import CAPABILITY_MAP
 from .coordinator import LivisiDataUpdateCoordinator
 
 
@@ -36,14 +33,14 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
     ) -> None:
         """Initialize the common properties of a Livisi device."""
         self.aio_livisi = coordinator.aiolivisi
-        self.capabilities: Mapping[str, Any] = device[CAPABILITY_MAP]
+        self.capabilities = device.capabilities
         self.capability_id = None
 
         device_id = device.id
-        device_name = device.get("config", {}).get("name", "unknown")
+        device_name = device.name or "Unknown"
 
         if capability_name is not None:
-            self.capability_id = self.capabilities[capability_name]
+            self.capability_id = self.capabilities.get(capability_name)
 
         if battery:
             self._attr_name = "Battery Low"
@@ -57,7 +54,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self._attr_available = False
         self._attr_unique_id = unique_id
 
-        room_name: str | None = device.get("room")
+        room_name: str | None = device.room
         # For livisi climate entities, the device should have the room name from
         # the livisi setup, as each livisi room gets exactly one VRCC device. The livisi
         # device name will always be some localized value of "Climate", so the full element
@@ -77,7 +74,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
             sw_version=device.version,
             name=device_name,
             suggested_area=room_name,
-            configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device['id']}",
+            configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device.id}",
             via_device=(DOMAIN, config_entry.entry_id),
         )
         super().__init__(coordinator)

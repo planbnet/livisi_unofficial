@@ -51,7 +51,7 @@ async def async_setup_entry(
                 livisi_climate: ClimateEntity = LivisiClimate(
                     config_entry, coordinator, device
                 )
-                LOGGER.debug("Include device type: %s", device.get("type"))
+                LOGGER.debug("Include device type: %s", device.type)
                 coordinator.devices.add(device.id)
                 entities.append(livisi_climate)
         async_add_entities(entities)

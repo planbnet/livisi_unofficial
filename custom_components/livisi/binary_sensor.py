@@ -49,7 +49,7 @@ async def async_setup_entry(
                 if device.type == WDS_DEVICE_TYPE:
                     device_class = (
                         BinarySensorDeviceClass.DOOR
-                        if (device.get("tags", {}).get("typeCategory") == "TCDoorId")
+                        if (device.tag_category == "TCDoorId")
                         else BinarySensorDeviceClass.WINDOW
                     )
                     livisi_contact: BinarySensorEntity = LivisiBinarySensor(
@@ -169,4 +169,4 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
         )
 
         if device is not None:
-            self._attr_is_on = device.get("batteryLow", False)
+            self._attr_is_on = device.battery_low

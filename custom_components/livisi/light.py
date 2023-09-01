@@ -35,7 +35,7 @@ async def async_setup_entry(
             if device.id not in known_devices:
                 light = None
                 if device.type in SWITCH_DEVICE_TYPES:
-                    switch_type = device.get("tags", {}).get("typeCategory", "default")
+                    switch_type = device.tag_category
                     if switch_type == "TCLightId":
                         light = LivisiSwitchLight(config_entry, coordinator, device)
 

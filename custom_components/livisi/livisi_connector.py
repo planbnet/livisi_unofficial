@@ -26,7 +26,6 @@ from .livisi_websocket import LivisiWebsocket
 
 from .livisi_const import (
     V2_NAME,
-    LOCATION,
     LOGGER,
     REQUEST_TIMEOUT,
     WEBSERVICE_PORT,
@@ -243,16 +242,16 @@ class LivisiConnection:
         devicelist = []
 
         for device in devices:
-            device_id = device.id
+            device_id = device.get("id")
             device["capabilities"] = capability_map.get(device_id, {})
             device["capability_config"] = capability_config.get(device_id, {})
-            device["cls"] = device["class"]
+            device["cls"] = device.get("class")
             if device_id in low_battery_devices:
                 device["battery_low"] = True
             if device_id in update_available_devices:
                 device["update_available"] = True
-            if LOCATION in device and device.get(LOCATION) is not None:
-                roomid = device[LOCATION].removeprefix("/location/")
+            if device.get("location") is not None:
+                roomid = device["location"].removeprefix("/location/")
                 device["room"] = room_map.get(roomid)
 
             devicelist.append(parse_dataclass(device, LivisiDevice))

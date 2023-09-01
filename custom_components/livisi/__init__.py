@@ -12,7 +12,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 
-from .const import CONF_HOST, DOMAIN, LOGGER, CAPABILITY_MAP, SWITCH_DEVICE_TYPES
+from .const import CONF_HOST, DOMAIN, LOGGER, SWITCH_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 
 
@@ -93,13 +93,11 @@ async def async_migrate_entry(hass, config_entry):
     light_switches: list[str] = []
     for device in devices:
         deviceid = device.id
-        if CAPABILITY_MAP not in device:
-            break
-        caps = device[CAPABILITY_MAP]
+        caps = device.capabilities
 
         if (
             device.type in SWITCH_DEVICE_TYPES
-            and device.get("tags", {}).get("typeCategory") == "TCLightId"
+            and device.tag_category == "TCLightId"
             and "SwitchActuator" in caps
         ):
             light_switches.append(caps["SwitchActuator"])
