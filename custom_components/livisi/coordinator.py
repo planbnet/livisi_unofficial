@@ -103,7 +103,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         for device in devices:
             for capability_id in device.get(CAPABILITY_MAP, {}).values():
                 capability_mapping[capability_id] = device["id"]
-        self.capability_to_device = capability_mapping
+        self._capability_to_device = capability_mapping
         return devices
 
     async def async_get_device_state(self, capability: str, key: str) -> Any | None:
@@ -118,7 +118,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
     def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
         """Define a handler to fire when the data is received."""
         if event_data.type == LIVISI_EVENT_BUTTON_PRESSED:
-            device_id = self.capability_to_device.get(event_data.source)
+            device_id = self._capability_to_device.get(event_data.source)
             if device_id is not None:
                 livisi_event_data = {
                     "device_id": device_id,
@@ -131,7 +131,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                     LIVISI_EVENT, event_data.source, livisi_event_data
                 )
         elif event_data.type == LIVISI_EVENT_MOTION_DETECTED:
-            device_id = self.capability_to_device.get(event_data.source)
+            device_id = self._capability_to_device.get(event_data.source)
             if device_id is not None:
                 livisi_event_data = {
                     "device_id": device_id,
