@@ -31,7 +31,6 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     """Set up Livisi Smart Home from a config entry."""
     coordinator = LivisiDataUpdateCoordinator(hass, entry)
     await coordinator.async_setup()
-    await coordinator.async_load_rooms()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     device_registry = dr.async_get(hass)

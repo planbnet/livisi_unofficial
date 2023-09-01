@@ -10,7 +10,6 @@ from dateutil.parser import parse as parse_timestamp
 
 from .livisi_json_util import parse_dataclass
 from .livisi_controller import LivisiController
-from .livisi_room import LivisiRoom
 
 from .livisi_errors import (
     IncorrectIpAddressException,
@@ -190,15 +189,22 @@ class LivisiConnection:
     async def async_get_devices(
         self,
     ) -> list[dict[str, Any]]:
-        """Send a request for getting the devices."""
-        devices, capabilities, messages = await asyncio.gather(
+        """Send parallel requests for getting all required data."""
+        devices, capabilities, messages, rooms = await asyncio.gather(
             self.async_send_authorized_request("get", path="device"),
             self.async_send_authorized_request("get", path="capability"),
             self.async_send_authorized_request("get", path="message"),
+            self.async_send_authorized_request("get", path="location"),
         )
 
         capability_map = {}
         capability_config = {}
+
+        room_map = {}
+
+        for room in rooms:
+            roomid = room["id"]
+            room_map[roomid] = room.get("config", {}).get("name")
 
         for capability in capabilities:
             if "device" in capability:
@@ -246,7 +252,8 @@ class LivisiConnection:
             if device_id in update_available_devices:
                 device[UPDATE_AVAILABLE] = True
             if LOCATION in device and device.get(LOCATION) is not None:
-                device[LOCATION] = device[LOCATION].removeprefix("/location/")
+                roomid = device[LOCATION].removeprefix("/location/")
+                device["room"] = room_map.get(roomid)
 
         LOGGER.debug("Loaded %d devices", len(devices))
 
@@ -276,11 +283,6 @@ class LivisiConnection:
         return await self.async_send_authorized_request(
             "post", "action", payload=set_state_payload
         )
-
-    async def async_get_all_rooms(self) -> list[LivisiRoom]:
-        """Get all the rooms from LIVISI configuration."""
-        rooms = await self.async_send_authorized_request("get", "location")
-        return [parse_dataclass(item, LivisiRoom) for item in rooms]
 
     @property
     def livisi_connection_data(self):
