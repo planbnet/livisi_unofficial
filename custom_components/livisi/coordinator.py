@@ -77,7 +77,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         except IncorrectIpAddressException as exception:
             raise ConfigEntryNotReady from exception
 
-    async def _async_update_data(self) -> list[dict[str, Any]]:
+    async def _async_update_data(self) -> list[LivisiDevice]:
         """Get device configuration from LIVISI."""
         try:
             return await self.async_get_devices()
@@ -102,20 +102,17 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         """Set the discovered devices list."""
         devices = await self.aiolivisi.async_get_devices()
         capability_mapping = {}
+
         for device in devices:
             for capability_id in device.capabilities.values():
                 capability_mapping[capability_id] = device.id
+            if device.unreachable:
+                self._async_dispatcher_send(
+                    LIVISI_REACHABILITY_CHANGE, device.id, False
+                )
+
         self._capability_to_device = capability_mapping
         return devices
-
-    async def async_get_device_state(self, capability: str, key: str) -> Any | None:
-        """Get state from livisi devices."""
-        response: dict[str, Any] = await self.aiolivisi.async_get_device_state(
-            capability
-        )
-        if response is None:
-            return None
-        return response.get(key, {}).get("value")
 
     def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
         """Define a handler to fire when the data is received."""

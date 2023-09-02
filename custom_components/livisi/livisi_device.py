@@ -23,6 +23,8 @@ class LivisiDevice:
     room: str
     battery_low: bool
     update_available: bool
+    updated: bool
+    unreachable: bool
 
     @property
     def name(self) -> str:

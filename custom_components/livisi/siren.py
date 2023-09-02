@@ -68,27 +68,33 @@ class LivisiSiren(LivisiEntity, SirenEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
-        response = await self.aio_livisi.async_set_state(
+        success = await self.aio_livisi.async_set_state(
             self.capability_id, key="onState", value=True
         )
-        if response is None:
+        if not success:
             self._attr_available = False
             raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
+        self._attr_is_on = True
+        self.async_write_ha_state()
+
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
-        response = await self.aio_livisi.async_set_state(
+        success = await self.aio_livisi.async_set_state(
             self.capability_id, key="onState", value=False
         )
-        if response is None:
+        if not success:
             self._attr_available = False
             raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
+
+        self._attr_is_on = False
+        self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
 
-        response = await self.coordinator.async_get_device_state(
+        response = await self.coordinator.aiolivisi.async_get_device_state(
             self.capability_id, "onState"
         )
         if response is None:

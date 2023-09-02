@@ -214,6 +214,9 @@ class LivisiConnection:
 
         low_battery_devices = set()
         update_available_devices = set()
+        unreachable_devices = set()
+        updated_devices = set()
+
         for message in messages:
             msgtype = message.get("type", "")
             msgtimestamp = parse_timestamp(message.get("timestamp", ""))
@@ -233,9 +236,11 @@ class LivisiConnection:
                 for device_id in device_ids:
                     update_available_devices.add(device_id)
             elif msgtype == "ProductUpdated" or msgtype == "ShcUpdateCompleted":
-                pass
+                for device_id in device_ids:
+                    updated_devices.add(device_id)
             elif msgtype == "DeviceUnreachable":
-                pass
+                for device_id in device_ids:
+                    unreachable_devices.add(device_id)
 
         devicelist = []
 
@@ -248,6 +253,10 @@ class LivisiConnection:
                 device["battery_low"] = True
             if device_id in update_available_devices:
                 device["update_available"] = True
+            if device_id in updated_devices:
+                device["updated"] = True
+            if device_id in unreachable_devices:
+                device["unreachable"] = True
             if device.get("location") is not None:
                 roomid = device["location"].removeprefix("/location/")
                 device["room"] = room_map.get(roomid)
@@ -258,19 +267,22 @@ class LivisiConnection:
 
         return devicelist
 
-    async def async_get_device_state(self, capability_id) -> dict[str, Any] | None:
-        """Get the state of the device."""
+    async def async_get_device_state(self, capability: str, key: str) -> Any | None:
+        """Get state of the device."""
         try:
-            return await self.async_send_authorized_request(
-                "get", f"capability/{capability_id}/state"
+            response = await self.async_send_authorized_request(
+                "get", f"capability/{capability}/state"
             )
+            if response is None:
+                return None
+            return response.get(key, {}).get("value")
         except Exception:
             LOGGER.warning("Error getting device state", exc_info=True)
             return None
 
     async def async_set_state(
         self, capability_id: str, key: str, value: bool | float
-    ) -> dict[str, Any]:
+    ) -> bool:
         """Set the state of a capability."""
         set_state_payload: dict[str, Any] = {
             "id": uuid.uuid4().hex,
@@ -279,9 +291,12 @@ class LivisiConnection:
             "target": f"/capability/{capability_id}",
             "params": {key: {"type": "Constant", "value": value}},
         }
-        return await self.async_send_authorized_request(
+        response = await self.async_send_authorized_request(
             "post", "action", payload=set_state_payload
         )
+        if response is None:
+            return False
+        return response.get("resultCode") == "Success"
 
     @property
     def livisi_connection_data(self):

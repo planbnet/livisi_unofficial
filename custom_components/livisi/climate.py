@@ -90,7 +90,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
-        response = await self.aio_livisi.async_set_state(
+        success = await self.aio_livisi.async_set_state(
             self._target_temperature_capability,
             key=(
                 "setpointTemperature"
@@ -99,25 +99,25 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             ),
             value=kwargs.get(ATTR_TEMPERATURE),
         )
-        if response is None:
+        if not success:
             self._attr_available = False
-            raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
+            raise HomeAssistantError(f"Failed to set temperature on {self._attr_name}")
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
 
         await super().async_added_to_hass()
 
-        target_temperature = await self.coordinator.async_get_device_state(
+        target_temperature = await self.coordinator.aiolivisi.async_get_device_state(
             self._target_temperature_capability,
             "setpointTemperature"
             if self.coordinator.aiolivisi.controller.is_v2
             else "pointTemperature",
         )
-        temperature = await self.coordinator.async_get_device_state(
+        temperature = await self.coordinator.aiolivisi.async_get_device_state(
             self._temperature_capability, "temperature"
         )
-        humidity = await self.coordinator.async_get_device_state(
+        humidity = await self.coordinator.aiolivisi.async_get_device_state(
             self._humidity_capability, "humidity"
         )
         if temperature is None:

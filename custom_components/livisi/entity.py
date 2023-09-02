@@ -35,8 +35,8 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self.aio_livisi = coordinator.aiolivisi
         self.capabilities = device.capabilities
         self.capability_id = None
+        self.device_id = device.id
 
-        device_id = device.id
         device_name = device.name or "Unknown"
 
         if capability_name is not None:
@@ -44,12 +44,12 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
 
         if battery:
             self._attr_name = "Battery Low"
-            unique_id = device_id + "_battery"
+            unique_id = self.device_id + "_battery"
         else:
             if self.capability_id is not None:
                 unique_id = self.capability_id
             else:
-                unique_id = device_id
+                unique_id = self.device_id
 
         self._attr_available = False
         self._attr_unique_id = unique_id
@@ -68,7 +68,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
             device_name = room_name
 
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_id)},
+            identifiers={(DOMAIN, self.device_id)},
             manufacturer=device.manufacturer,
             model=device.type,
             sw_version=device.version,
@@ -84,7 +84,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_REACHABILITY_CHANGE}_{self.unique_id}",
+                f"{LIVISI_REACHABILITY_CHANGE}_{self.device_id}",
                 self.update_reachability,
             )
         )

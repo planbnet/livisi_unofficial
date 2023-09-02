@@ -149,7 +149,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             )
         )
 
-        response = await self.coordinator.async_get_device_state(
+        response = await self.coordinator.aiolivisi.async_get_device_state(
             self.capability_id, self.entity_description.key
         )
         if response is None:
