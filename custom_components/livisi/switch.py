@@ -83,6 +83,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
             raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
         self._attr_is_on = True
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -95,6 +96,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
             raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
 
         self._attr_is_on = False
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
@@ -109,6 +111,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
             self._attr_available = False
         else:
             self._attr_is_on = response
+            self._attr_available = True
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -148,6 +151,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
             raise HomeAssistantError(f"Failed to set {self._attr_name}")
 
         self._attr_is_on = True
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -161,6 +165,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
             raise HomeAssistantError(f"Failed to unset {self._attr_name}")
 
         self._attr_is_on = False
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
@@ -174,6 +179,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
             self._attr_available = False
         else:
             self._attr_is_on = response
+            self._attr_available = True
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -186,4 +192,5 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
     def update_states(self, state: bool) -> None:
         """Update the state of the switch device."""
         self._attr_is_on = state
+        self._attr_available = True
         self.async_write_ha_state()

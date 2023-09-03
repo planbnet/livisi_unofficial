@@ -76,6 +76,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
             raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
         self._attr_is_on = True
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -86,6 +87,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
         if not success:
             self._attr_available = False
             raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
+        self._attr_available = True
 
         self._attr_is_on = False
         self.async_write_ha_state()
@@ -101,6 +103,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
             self._attr_available = False
         else:
             self._attr_is_on = response
+            self._attr_available = True
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,

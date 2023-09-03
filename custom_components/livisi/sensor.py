@@ -156,6 +156,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             self._attr_available = False
         else:
             self._attr_native_value = response
+            self._attr_available = True
 
     @callback
     def update_states(self, state: Decimal) -> None:

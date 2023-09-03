@@ -130,6 +130,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         if response is None:
             self._attr_available = False
         else:
+            self._attr_available = True
             self._attr_is_on = response
 
     @callback

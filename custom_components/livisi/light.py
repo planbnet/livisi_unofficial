@@ -77,6 +77,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
             raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
         self._attr_is_on = True
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
