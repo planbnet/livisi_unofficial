@@ -249,14 +249,10 @@ class LivisiConnection:
             device["capabilities"] = capability_map.get(device_id, {})
             device["capability_config"] = capability_config.get(device_id, {})
             device["cls"] = device.get("class")
-            if device_id in low_battery_devices:
-                device["battery_low"] = True
-            if device_id in update_available_devices:
-                device["update_available"] = True
-            if device_id in updated_devices:
-                device["updated"] = True
-            if device_id in unreachable_devices:
-                device["unreachable"] = True
+            device["battery_low"] = device_id in low_battery_devices
+            device["update_available"] = device_id in update_available_devices
+            device["updated"] = device_id in updated_devices
+            device["unreachable"] = device_id in unreachable_devices
             if device.get("location") is not None:
                 roomid = device["location"].removeprefix("/location/")
                 device["room"] = room_map.get(roomid)
