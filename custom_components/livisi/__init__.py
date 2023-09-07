@@ -35,8 +35,9 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     device_registry = dr.async_get(hass)
     controller = coordinator.aiolivisi.controller
+    entryid = entry.entry_id or controller.serial_number
     device_registry.async_get_or_create(
-        config_entry_id=controller.serial_number,
+        config_entry_id=entryid,
         identifiers={(DOMAIN, entry.entry_id)},
         model=f"SHC {controller.controller_type}",
         sw_version=controller.os_version,
