@@ -61,7 +61,6 @@ async def async_setup_entry(
         coordinator.async_add_listener(handle_coordinator_update)
     )
 
-
 class LivisiSmoke(LivisiEntity, SirenEntity):
     """Represents the Livisi Sirens."""
 
@@ -131,6 +130,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
 
 class LivisiSiren(LivisiEntity, SirenEntity):
     """Represents the Livisi Sirens."""
+
     _attr_supported_features = SirenEntityFeature.TURN_OFF | SirenEntityFeature.TURN_ON
 
     def __init__(
