@@ -121,7 +121,7 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
         self._attr_brightness = 255
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the entity on. With Brightness"""
+        """Turn the entity on. With Brightness."""
         if ATTR_BRIGHTNESS in kwargs:
             brightness = kwargs[ATTR_BRIGHTNESS]
             level = int(round((float(brightness) * 100) /255))
