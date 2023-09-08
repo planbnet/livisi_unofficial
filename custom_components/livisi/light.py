@@ -114,7 +114,8 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         capability_id: str,
-    ):
+    ) -> None:
+        """Initialize the Livisi Dimmer light."""
         super().__init__(config_entry, coordinator, device, capability_id)
         self._attr_name = None
         self._attr_brightness = 255
@@ -164,7 +165,7 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
-    
+
         response = await self.coordinator.aiolivisi.async_get_device_state(
             self.capability_id, "dimLevel"
         )
@@ -203,10 +204,4 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
     def update_states(self, state: bool) -> None:
         """Update the state of the switch device."""
         self._attr_is_on = state
-        self.async_write_ha_state()
-
-    @callback
-    def update_brightness(self, level: int) -> None:
-        """Update the state of the switch device."""
-        self._attr_brightness = brightness
         self.async_write_ha_state()
