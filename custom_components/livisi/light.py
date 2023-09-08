@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.light import LightEntity, ColorMode
+from homeassistant.components.light import LightEntity, ColorMode, ATTR_BRIGHTNESS
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
@@ -12,10 +12,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .livisi_device import LivisiDevice
 
-from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, SWITCH_DEVICE_TYPES
+from .const import DOMAIN, LIVISI_STATE_CHANGE, LOGGER, SWITCH_DEVICE_TYPES, DIMMING_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -37,7 +36,13 @@ async def async_setup_entry(
                 if device.type in SWITCH_DEVICE_TYPES:
                     switch_type = device.tag_category
                     if switch_type == "TCLightId":
-                        light = LivisiSwitchLight(config_entry, coordinator, device)
+                        capability_id = "SwitchActuator"
+                        light = LivisiSwitchLight(config_entry, coordinator, device, capability_id)
+                if device.type in DIMMING_DEVICE_TYPES:
+                    switch_type = device.tag_category
+                    if switch_type == "TCLightId":
+                        capability_id = "DimmerActuator"
+                        light = LivisiDimmerLight(config_entry, coordinator, device, capability_id)
 
                 if light is not None:
                     LOGGER.debug("Include device type: %s as light", device.type)
@@ -60,9 +65,10 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         config_entry: ConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
+        capability_id: str,
     ) -> None:
         """Initialize the Livisi light."""
-        super().__init__(config_entry, coordinator, device, "SwitchActuator")
+        super().__init__(config_entry, coordinator, device, capability_id)
         self._attr_name = None
         self._attr_supported_color_modes = [ColorMode.ONOFF]
 
@@ -96,14 +102,89 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
-        response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "onState"
+class LivisiDimmerLight(LivisiEntity, LightEntity):
+    """Represents a Livisi Light (currently only switches with the light category)."""
+
+    _attr_color_mode = ColorMode.BRIGHTNESS
+    _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+
+    def __init__(
+        self,
+        config_entry: ConfigEntry,
+        coordinator: LivisiDataUpdateCoordinator,
+        device: LivisiDevice,
+        capability_id: str,
+    ) -> None:
+        """Initialize the Livisi Dimmer light."""
+        super().__init__(config_entry, coordinator, device, capability_id)
+        self._attr_name = None
+        self._attr_brightness = 255
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the entity on. With Brightness."""
+        if ATTR_BRIGHTNESS in kwargs:
+            brightness = kwargs[ATTR_BRIGHTNESS]
+            level = int(round((float(brightness) * 100) /255))
+            success = await self.aio_livisi.async_set_state(
+                self.capability_id, key="dimLevel", value=level
+            )
+            if not success:
+                self._attr_available = False
+                raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
+                self._attr_is_on = False
+
+            self._attr_is_on = True
+            self._attr_brightness = brightness
+            self._attr_available = True
+            self.async_write_ha_state()
+        else:
+            success = await self.aio_livisi.async_set_state(
+                self.capability_id, key="dimLevel", value=100
+            )
+            if not success:
+                self._attr_available = False
+                raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
+
+            self._attr_is_on = True
+            self._attr_brightness = 255
+            self._attr_available = True
+            self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the entity off."""
+        success = await self.aio_livisi.async_set_state(
+            self.capability_id, key="dimLevel", value=0
         )
-        if response is None:
+        if not success:
+            self._attr_available = False
+            raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
+
+        self._attr_is_on = False
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Register callbacks."""
+        await super().async_added_to_hass()
+
+        response = await self.coordinator.aiolivisi.async_get_device_state(
+            self.capability_id, "dimLevel"
+        )
+        level = int(round((float(response) / 100) * 255))
+        if level is None:
             self._attr_is_on = False
             self._attr_available = False
+            self.async_write_ha_state()
+        if level == 0:
+            self._attr_is_on = False
+            self._attr_available = True
+            self._attr_brightness = 0
+            self.async_write_ha_state()
         else:
-            self._attr_is_on = response
+            self._attr_available = True
+            self._attr_is_on = True
+            self._attr_brightness = level
+            self.async_write_ha_state()
+
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -111,9 +192,16 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
                 self.update_states,
             )
         )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self._attr_brightness}",
+                self.update_brightness,
+            )
+        )
 
     @callback
     def update_states(self, state: bool) -> None:
-        """Update the state of the light device."""
+        """Update the state of the switch device."""
         self._attr_is_on = state
         self.async_write_ha_state()
