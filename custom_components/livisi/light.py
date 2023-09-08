@@ -168,17 +168,18 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
         response = await self.coordinator.aiolivisi.async_get_device_state(
             self.capability_id, "dimLevel"
         )
-        if response is None:
+        level = int(round((float(response) * 100) / 255))
+        if level is None:
             self._attr_is_on = False
             self._attr_available = False
-        if response == 0:
+        if level == 0:
             self._attr_is_on = False
             self._attr_available = True
-            self._attr_brightness = response
+            self._attr_brightness = level
         else:
             self._attr_available = True
             self._attr_is_on = True
-            self._attr_brightness = response
+            self._attr_brightness = level
 
         self.async_on_remove(
             async_dispatcher_connect(
@@ -187,9 +188,22 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
                 self.update_states,
             )
         )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                self.update_brightness,
+            )
+        )
 
     @callback
     def update_states(self, state: bool) -> None:
         """Update the state of the switch device."""
         self._attr_is_on = state
+        self.async_write_ha_state()
+
+    @callback
+    def update_brightness(self, state: int) -> None:
+        """Update the state of the switch device."""
+        self._attr_brightness = state
         self.async_write_ha_state()
