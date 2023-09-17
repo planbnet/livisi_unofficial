@@ -94,8 +94,8 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         if response is None:
             self._attr_available = False
         else:
-            self._attr_is_on = response
             self._attr_available = True
+            self.update_states(response)
 
         self.async_on_remove(
             async_dispatcher_connect(
