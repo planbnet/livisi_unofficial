@@ -89,7 +89,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "value"
+            self.capability_id, "onState"
         )
         if response is None:
             self._attr_available = False
