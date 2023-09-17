@@ -84,6 +84,27 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         self._attr_name = None
         self._attr_supported_color_modes = [ColorMode.ONOFF]
 
+    async def async_added_to_hass(self) -> None:
+        """Register callbacks."""
+        await super().async_added_to_hass()
+
+        response = await self.coordinator.aiolivisi.async_get_device_state(
+            self.capability_id, "value"
+        )
+        if response is None:
+            self._attr_available = False
+        else:
+            self._attr_is_on = response
+            self._attr_available = True
+
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                self.update_states,
+            )
+        )
+
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         success = await self.aio_livisi.async_set_state(
@@ -110,18 +131,6 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         self._attr_is_on = False
         self.async_write_ha_state()
 
-    async def async_added_to_hass(self) -> None:
-        """Register callbacks."""
-        await super().async_added_to_hass()
-
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
-                self.update_states,
-            )
-        )
-
     @callback
     def update_states(self, state: bool) -> None:
         """Update the state of the switch device."""
@@ -146,6 +155,24 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
         super().__init__(config_entry, coordinator, device, capability_id)
         self._attr_name = None
         self._attr_brightness = 255
+
+    async def async_added_to_hass(self) -> None:
+        """Register callbacks."""
+        await super().async_added_to_hass()
+
+        response = await self.coordinator.aiolivisi.async_get_device_state(
+            self.capability_id, "dimLevel"
+        )
+        if response is not None:
+            self.update_brightness(response)
+
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                self.update_brightness,
+            )
+        )
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on. With Brightness."""
@@ -187,23 +214,6 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
 
         self._attr_is_on = False
         self.async_write_ha_state()
-
-    async def async_added_to_hass(self) -> None:
-        """Register callbacks."""
-        await super().async_added_to_hass()
-
-        response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "dimLevel"
-        )
-        self.update_brightness(response)
-
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
-                self.update_brightness,
-            )
-        )
 
     @callback
     def update_brightness(self, dim_level: Decimal) -> None:
