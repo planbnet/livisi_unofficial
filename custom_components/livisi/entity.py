@@ -95,3 +95,9 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         """Update the reachability of the device."""
         self._attr_available = is_reachable
         self.async_write_ha_state()
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        # use the attribute because CoordinatorEntity just uses coordinator.last_update_success
+        return self._attr_available
