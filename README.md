@@ -9,11 +9,15 @@ It can be added as a custom repo to HACS and then installed as an integration. T
 * Devices with buttons are supported as basic event entities and device triggers
 * Support Smoke Detectors
 * Support temperature sensors for both the room climate devices and the individual thermostats
+* Support dimmers (thx @acidburn78)
 * Battery level indicators
+* Fixed availability state
 * Dropped the dependencies on the aiolivisi lib, which seems to be abandoned. The neccessary connection code is simply included in this integration (which was opposed by the home assistant team for the official integration, but is the only logical way forward)
 * Dropped the pydantic dependency
+* Rewritten rest/webservice communication code
+* Many, many bug fixes
 
-_Note: As I don't have any shutter contol devices (nor do I have window shutters at all) or dimmers, I cannot add these devices to this lib. If you are willing to add support from them (in the same style as the other devices are implemented), feel free to submit a PR_
+_Note: As I don't have any shutter contol devices (nor do I have window shutters at all), I cannot add these devices to this lib. If you are willing to add support from them (in the same style as the other devices are implemented), feel free to submit a PR_
 
 ## Caution
 
@@ -45,4 +49,4 @@ All configuration in done in the UI. See the [official documentation](https://ww
 
 * Luminance is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']` but as percent is the correct unit here, I don't think we should change it (at least until it causes problems in HA)
 
-
+* Home Assistant requires all communication to the service backend to be handled by a library (as it was done with the original, unmaintained aiolivisi lib). This prevents the merge of this library to the official core code base currently. However, I don't feel it makes sense to move the code to a seperately maintained library as it is only used here and additions often need to happen along the whole code path. Semantically such a split makes sense though, so to make a later separation possible, I added the `livisi_` prefix to all the "library" code.
