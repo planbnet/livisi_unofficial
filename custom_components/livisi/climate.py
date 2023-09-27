@@ -100,9 +100,9 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             value=kwargs.get(ATTR_TEMPERATURE),
         )
         if not success:
-            self._attr_available = False
+            self.update_reachability(False)
             raise HomeAssistantError(f"Failed to set temperature on {self._attr_name}")
-        self._attr_available = True
+        self.update_reachability(True)
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
@@ -123,12 +123,12 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         )
         if temperature is None:
             self._attr_current_temperature = None
-            self._attr_available = False
+            self.update_reachability(False)
         else:
             self._attr_target_temperature = target_temperature
             self._attr_current_temperature = temperature
             self._attr_current_humidity = humidity
-            self._attr_available = True
+            self.update_reachability(True)
 
         self.async_on_remove(
             async_dispatcher_connect(

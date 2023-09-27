@@ -51,7 +51,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
             else:
                 unique_id = self.device_id
 
-        self._attr_available = False
+        self._attr_available = not device.unreachable
         self._attr_unique_id = unique_id
 
         room_name: str | None = device.room
