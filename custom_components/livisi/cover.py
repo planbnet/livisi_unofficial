@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from typing import Any
+from decimal import Decimal
 
 from homeassistant.components.cover import (
     ATTR_POSITION,
@@ -165,7 +166,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
         )
 
     @callback
-    def update_states(self, shutter_level) -> None:
+    def update_states(self, shutter_level: Decimal) -> None:
         """Update the state of the cover device to the shutter position."""
         self._attr_current_cover_position = shutter_level
         self.async_write_ha_state()
