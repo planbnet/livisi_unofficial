@@ -57,6 +57,7 @@ POWER_CONSUMPTION: Final = "powerConsumptionWatt"
 
 ON_STATE: Final = "onState"
 SHUTTER_LEVEL = "shutterLevel"
+DIM_LEVEL = "dimLevel"
 VALUE: Final = "value"
 POINT_TEMPERATURE: Final = "pointTemperature"
 SET_POINT_TEMPERATURE: Final = "setpointTemperature"
@@ -81,6 +82,7 @@ STATE_PROPERTIES = [
     IS_SMOKE_ALARM,
     POWER_CONSUMPTION,
     SHUTTER_LEVEL,
+    DIM_LEVEL,
 ]
 
 EVENT_BUTTON_PRESSED = "button_pressed"

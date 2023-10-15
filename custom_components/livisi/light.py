@@ -14,6 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .livisi_device import LivisiDevice
 
 from .const import (
+    DIM_LEVEL,
     DOMAIN,
     LIVISI_STATE_CHANGE,
     LOGGER,
@@ -180,7 +181,7 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
             brightness = kwargs[ATTR_BRIGHTNESS]
             level = int(round((float(brightness) * 100) / 255))
             success = await self.aio_livisi.async_set_state(
-                self.capability_id, key="dimLevel", value=level
+                self.capability_id, key=DIM_LEVEL, value=level
             )
             if not success:
                 self.update_reachability(False)
@@ -192,7 +193,7 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
             self.async_write_ha_state()
         else:
             success = await self.aio_livisi.async_set_state(
-                self.capability_id, key="dimLevel", value=100
+                self.capability_id, key=DIM_LEVEL, value=100
             )
             if not success:
                 self.update_reachability(False)
@@ -206,7 +207,7 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="dimLevel", value=0
+            self.capability_id, key=DIM_LEVEL, value=0
         )
         if not success:
             self.update_reachability(False)
