@@ -17,7 +17,7 @@ from .const import (
     LIVISI_STATE_CHANGE,
     LOGGER,
     SWITCH_DEVICE_TYPES,
-    VARIABLE_DEVICE_TYPE,
+    VARIABLE_DEVICE_TYPES,
 )
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
@@ -44,7 +44,7 @@ async def async_setup_entry(
                     switch_type = device.tag_category
                     if switch_type != "TCLightId":
                         switch = LivisiSwitch(config_entry, coordinator, device)
-                elif device.type == VARIABLE_DEVICE_TYPE:
+                elif device.type in VARIABLE_DEVICE_TYPES:
                     switch = LivisiVariable(config_entry, coordinator, device)
 
                 if switch is not None:

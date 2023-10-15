@@ -18,7 +18,7 @@ from .const import (
     LIVISI_STATE_CHANGE,
     LOGGER,
     SMOKE_DETECTOR_DEVICE_TYPES,
-    SIREN_DEVICE_TYPE,
+    SIREN_DEVICE_TYPES,
 )
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
@@ -50,7 +50,7 @@ async def async_setup_entry(
                 coordinator.devices.add(device.id)
                 known_devices.add(device.id)
                 entities.append(livisi_siren)
-            if device.id not in known_devices and device.type in SIREN_DEVICE_TYPE:
+            if device.id not in known_devices and device.type in SIREN_DEVICE_TYPES:
                 livisi_siren: SirenEntity = LivisiSiren(
                     config_entry, coordinator, device
                 )

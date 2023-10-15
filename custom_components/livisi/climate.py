@@ -24,7 +24,7 @@ from .const import (
     LOGGER,
     MAX_TEMPERATURE,
     MIN_TEMPERATURE,
-    VRCC_DEVICE_TYPE,
+    VRCC_DEVICE_TYPES,
 )
 
 from .coordinator import LivisiDataUpdateCoordinator
@@ -46,7 +46,7 @@ async def async_setup_entry(
         shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[ClimateEntity] = []
         for device in shc_devices:
-            if device.type == VRCC_DEVICE_TYPE and device.id not in known_devices:
+            if device.type in VRCC_DEVICE_TYPES and device.id not in known_devices:
                 known_devices.add(device.id)
                 livisi_climate: ClimateEntity = LivisiClimate(
                     config_entry, coordinator, device

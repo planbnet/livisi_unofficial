@@ -20,7 +20,7 @@ from .const import (
     DOMAIN,
     LOGGER,
     LIVISI_STATE_CHANGE,
-    SHUTTER_DEVICE_TYPE,
+    SHUTTER_DEVICE_TYPES,
     SHUTTER_LEVEL,
 )
 from .coordinator import LivisiDataUpdateCoordinator
@@ -42,7 +42,7 @@ async def async_setup_entry(
         shc_devices: list[LivisiDevice] = coordinator.data
         entities: list[CoverEntity] = []
         for device in shc_devices:
-            if device.type == SHUTTER_DEVICE_TYPE and device.id not in known_devices:
+            if device.type in SHUTTER_DEVICE_TYPES and device.id not in known_devices:
                 livisi_shutter: CoverEntity = LivisiShutter(
                     config_entry, coordinator, device
                 )

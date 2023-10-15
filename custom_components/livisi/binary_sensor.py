@@ -22,7 +22,7 @@ from .const import (
     IS_SMOKE_ALARM,
     LIVISI_STATE_CHANGE,
     LOGGER,
-    WDS_DEVICE_TYPE,
+    WDS_DEVICE_TYPES,
     SMOKE_DETECTOR_DEVICE_TYPES,
 )
 from .coordinator import LivisiDataUpdateCoordinator
@@ -46,7 +46,7 @@ async def async_setup_entry(
         for device in shc_devices:
             if device.id not in known_devices:
                 known_devices.add(device.id)
-                if device.type == WDS_DEVICE_TYPE:
+                if device.type in WDS_DEVICE_TYPES:
                     device_class = (
                         BinarySensorDeviceClass.DOOR
                         if (device.tag_category == "TCDoorId")
