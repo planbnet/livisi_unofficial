@@ -29,7 +29,7 @@ from .const import (
     LOGGER,
     LUMINANCE,
     TEMPERATURE,
-    VRCC_DEVICE_TYPE,
+    VRCC_DEVICE_TYPES,
     POWER_CONSUMPTION,
 )
 from .coordinator import LivisiDataUpdateCoordinator
@@ -132,7 +132,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             coordinator,
             device,
             capability_name,
-            use_room_as_device_name=(device.type == VRCC_DEVICE_TYPE),
+            use_room_as_device_name=(device.type in VRCC_DEVICE_TYPES),
         )
         self.entity_description = entity_desc
         self._attr_translation_key = entity_desc.key
