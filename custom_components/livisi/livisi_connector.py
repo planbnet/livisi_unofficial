@@ -291,7 +291,7 @@ class LivisiConnection:
         if key is not None:
             params = {key: {"type": "Constant", "value": value}}
 
-        return self.async_send_command(
+        return await self.async_send_command(
             capability_id, "SetState", namespace=namespace, params=params
         )
 
