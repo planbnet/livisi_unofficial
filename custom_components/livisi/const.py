@@ -18,13 +18,15 @@ LIVISI_REACHABILITY_CHANGE: Final = "livisi_reachability_change"
 
 SWITCH_DEVICE_TYPES: Final = ["ISS2", "PSS", "PSSO", "BT-PSS"]
 SMOKE_DETECTOR_DEVICE_TYPES: Final = ["WSD", "WSD2"]
-VARIABLE_DEVICE_TYPE: Final = "VariableActuator"
 BUTTON_DEVICE_TYPES: Final = ["ISS2", "WSC2", "ISC2", "BRC8"]
 MOTION_DEVICE_TYPES: Final = ["WMD", "WMDO"]
+DIMMING_DEVICE_TYPES: Final = ["PSD", "ISD2"]
+
+VARIABLE_DEVICE_TYPE: Final = "VariableActuator"
 VRCC_DEVICE_TYPE: Final = "VRCC"
 WDS_DEVICE_TYPE: Final = "WDS"
-DIMMING_DEVICE_TYPES: Final = ["PSD", "ISD2"]
 SIREN_DEVICE_TYPE: Final = "SIR"
+SHUTTER_DEVICE_TYPE: Final = "ISR2"
 
 BATTERY_POWERED_DEVICES = [
     "BRC8",
@@ -54,6 +56,7 @@ CAPABILITY_POWER_SENSOR: Final = "PowerConsumptionSensor"
 POWER_CONSUMPTION: Final = "powerConsumptionWatt"
 
 ON_STATE: Final = "onState"
+SHUTTER_LEVEL = "shutterLevel"
 VALUE: Final = "value"
 POINT_TEMPERATURE: Final = "pointTemperature"
 SET_POINT_TEMPERATURE: Final = "setpointTemperature"
@@ -77,6 +80,7 @@ STATE_PROPERTIES = [
     IS_OPEN,
     IS_SMOKE_ALARM,
     POWER_CONSUMPTION,
+    SHUTTER_LEVEL,
 ]
 
 EVENT_BUTTON_PRESSED = "button_pressed"

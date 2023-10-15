@@ -279,15 +279,41 @@ class LivisiConnection:
             return None
 
     async def async_set_state(
-        self, capability_id: str, key: str, value: bool | float
+        self,
+        capability_id: str,
+        *,
+        key: str = None,
+        value: bool | float = None,
+        namespace: str = "core.RWE",
     ) -> bool:
         """Set the state of a capability."""
+        params = {}
+        if key is not None:
+            params = {key: {"type": "Constant", "value": value}}
+
+        return self.async_send_command(
+            capability_id, "SetState", namespace=namespace, params=params
+        )
+
+    async def async_send_command(
+        self,
+        capability_id: str,
+        command_type: str,
+        *,
+        namespace: str = "core.RWE",
+        params: dict = None,
+    ) -> bool:
+        """Send a command to a capability."""
+
+        if params is None:
+            params = {}
+
         set_state_payload: dict[str, Any] = {
             "id": uuid.uuid4().hex,
-            "type": "SetState",
-            "namespace": "core.RWE",
+            "type": command_type,
+            "namespace": namespace,
             "target": f"/capability/{capability_id}",
-            "params": {key: {"type": "Constant", "value": value}},
+            "params": params,
         }
         response = await self.async_send_authorized_request(
             "post", "action", payload=set_state_payload
