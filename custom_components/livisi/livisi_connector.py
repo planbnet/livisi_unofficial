@@ -203,14 +203,16 @@ class LivisiConnection:
         for capability in capabilities:
             if "device" in capability:
                 device_id = capability["device"].removeprefix("/device/")
+
                 if device_id not in capability_map:
                     capability_map[device_id] = {}
                     capability_config[device_id] = {}
-                capability_map[device_id][capability["type"]] = capability["id"]
-                if "config" in capability:
-                    capability_config[device_id][capability["type"]] = capability[
-                        "config"
-                    ]
+
+                cap_type = capability.get("type")
+                if cap_type is not None:
+                    capability_map[device_id][cap_type] = capability["id"]
+                    if "config" in capability:
+                        capability_config[device_id][cap_type] = capability["config"]
 
         low_battery_devices = set()
         update_available_devices = set()
