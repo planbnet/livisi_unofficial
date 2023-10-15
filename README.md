@@ -1,23 +1,22 @@
 # Livisi Unofficial Fork
 
-This project is in "works for me" state and I do not advise anyone to use it nor can or will I provide support on how to install it.
+This project is in "works for me" state, but it's in use by multiple people and probably more robust than the official implementation.
 It can be added as a custom repo to HACS and then installed as an integration. This will override the existing livisi integration and add the following features:
 
-* Support VariableActuators (Boolean vars in livisi) as switches
+* Support VariableActuators (boolean vars in livisi) as switches
 * Support light switches as lights (be sure to categorize them correctly in the livisi controller)
 * Support motion detectors (brightness sensor and events)
-* Devices with buttons are supported as basic event entities and device triggers
-* Support Smoke Detectors
+* Support smoke detectors
 * Support temperature sensors for both the room climate devices and the individual thermostats
 * Support dimmers (thx @acidburn78)
+* Support covers
 * Battery level indicators
+* Devices with buttons are supported as basic event entities and device triggers
 * Fixed availability state
-* Dropped the dependencies on the aiolivisi lib, which seems to be abandoned. The neccessary connection code is simply included in this integration (which was opposed by the home assistant team for the official integration, but is the only logical way forward)
+* Dropped the dependencies on the aiolivisi lib, which seems to be abandoned. The neccessary connection code is simply included in this integration (see note below)
 * Dropped the pydantic dependency
 * Rewritten rest/webservice communication code
-* Many, many bug fixes
-
-_Note: As I don't have any shutter contol devices (nor do I have window shutters at all), I cannot add these devices to this lib. If you are willing to add support from them (in the same style as the other devices are implemented), feel free to submit a PR_
+* Many, many more bug fixes
 
 ## Caution
 
