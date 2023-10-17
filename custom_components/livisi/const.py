@@ -27,7 +27,6 @@ VARIABLE_DEVICE_TYPES: Final = ["VariableActuator"]
 VRCC_DEVICE_TYPES: Final = ["VRCC"]
 WDS_DEVICE_TYPES: Final = ["WDS"]
 
-
 BATTERY_POWERED_DEVICES = [
     "BRC8",
     "ISC2",

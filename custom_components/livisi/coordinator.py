@@ -150,12 +150,6 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 )
             for prop in STATE_PROPERTIES:
                 self.publish_state(event_data, prop)
-        elif SHUTTER_LEVEL in event_data.properties:
-            LOGGER.error(
-                "FIXME: Remove this code and filter for event type: %s",
-                event_data.type,
-            )
-            self.publish_state(event_data, SHUTTER_LEVEL)
 
     async def on_websocket_close(self) -> None:
         """Define a handler to fire when the websocket is closed."""

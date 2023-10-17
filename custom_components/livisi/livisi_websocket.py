@@ -61,6 +61,9 @@ class LivisiWebsocket:
     async def consumer_handler(self, websocket, on_data: Callable):
         """Parse data transmitted via the websocket."""
         async for message in websocket:
+            LOGGER.error("FIXME: Remove this code:")
+            LOGGER.error(message)
+
             try:
                 event_data = parse_dataclass(message, LivisiWebsocketEvent)
             except JSONDecodeError:
