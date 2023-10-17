@@ -33,7 +33,6 @@ from .const import (
     LIVISI_STATE_CHANGE,
     LOGGER,
     DEVICE_POLLING_DELAY,
-    SHUTTER_LEVEL,
     STATE_PROPERTIES,
 )
 
