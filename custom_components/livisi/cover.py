@@ -70,6 +70,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
     ) -> None:
         """Initialize the cover."""
         super().__init__(config_entry, coordinator, device, "RollerShutterActuator")
+        self._attr_name = None
         self._attr_supported_features = (
             CoverEntityFeature.OPEN
             | CoverEntityFeature.CLOSE
