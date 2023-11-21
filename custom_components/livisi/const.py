@@ -64,7 +64,7 @@ SET_POINT_TEMPERATURE: Final = "setpointTemperature"
 IS_OPEN: Final = "isOpen"
 IS_SMOKE_ALARM: Final = "isSmokeAlarm"
 
-BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2, "WSC2": 2}
+BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2, "WSC2": 2, "ISR2": 2}
 
 MAX_TEMPERATURE: Final = 30.0
 MIN_TEMPERATURE: Final = 6.0
