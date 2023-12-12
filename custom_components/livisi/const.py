@@ -16,7 +16,9 @@ DEVICE_POLLING_DELAY: Final = 60
 LIVISI_STATE_CHANGE: Final = "livisi_state_change"
 LIVISI_REACHABILITY_CHANGE: Final = "livisi_reachability_change"
 
-BUTTON_DEVICE_TYPES: Final = ["ISS2", "WSC2", "ISC2", "BRC8"]
+BUTTON_COUNT: Final = {"BRC8": 8, "ISC2": 2, "ISS2": 2, "WSC2": 2, "ISR2": 2, "ISD2": 2}
+
+BUTTON_DEVICE_TYPES: Final = list(BUTTON_COUNT.keys())
 DIMMING_DEVICE_TYPES: Final = ["PSD", "ISD2"]
 MOTION_DEVICE_TYPES: Final = ["WMD", "WMDO"]
 SHUTTER_DEVICE_TYPES: Final = ["ISR2"]
@@ -63,8 +65,6 @@ SET_POINT_TEMPERATURE: Final = "setpointTemperature"
 
 IS_OPEN: Final = "isOpen"
 IS_SMOKE_ALARM: Final = "isSmokeAlarm"
-
-BUTTON_COUNT = {"BRC8": 8, "ISC2": 2, "ISS2": 2, "WSC2": 2, "ISR2": 2}
 
 MAX_TEMPERATURE: Final = 30.0
 MIN_TEMPERATURE: Final = 6.0
