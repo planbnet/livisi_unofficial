@@ -197,8 +197,11 @@ class LivisiConnection:
         room_map = {}
 
         for room in rooms:
-            roomid = room["id"]
-            room_map[roomid] = room.get("config", {}).get("name")
+            if "id" in room:
+                roomid = room["id"]
+                room_map[roomid] = room.get("config", {}).get("name")
+            else:
+                LOGGER.warning("Invalid room: %s", room)
 
         for capability in capabilities:
             if "device" in capability:
@@ -213,6 +216,8 @@ class LivisiConnection:
                     capability_map[device_id][cap_type] = capability["id"]
                     if "config" in capability:
                         capability_config[device_id][cap_type] = capability["config"]
+            else:
+                LOGGER.warning("Invalid capability: %s", capability)
 
         low_battery_devices = set()
         update_available_devices = set()
