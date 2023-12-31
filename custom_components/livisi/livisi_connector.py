@@ -159,19 +159,19 @@ class LivisiConnection:
         self, method, url: str, payload=None, headers=None
     ) -> dict:
         try:
-          async with self._web_session.request(
-              method,
-              url,
-              json=payload,
-              headers=headers,
-              ssl=False,
-              timeout=REQUEST_TIMEOUT,
-          ) as res:
-              data = await res.json()
-              return data
+            async with self._web_session.request(
+                method,
+                url,
+                json=payload,
+                headers=headers,
+                ssl=False,
+                timeout=REQUEST_TIMEOUT,
+            ) as res:
+                data = await res.json()
+                return data
         except TimeoutError as error:
             raise ShcUnreachableException from error
-          
+
     async def _async_get_controller(self) -> LivisiController:
         """Get Livisi Smart Home controller data."""
         shc_info = await self.async_send_authorized_request("get", path="status")
