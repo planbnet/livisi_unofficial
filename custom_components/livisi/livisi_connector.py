@@ -132,9 +132,6 @@ class LivisiConnection:
                 headers=headers,
             )
             self.token = access_data["access_token"]
-            # self._refresh_token = access_data["refresh_token"]
-        except TimeoutError as error:
-            raise ShcUnreachableException from error
         except ClientError as error:
             if len(access_data) == 0:
                 raise IncorrectIpAddressException from error
@@ -161,16 +158,19 @@ class LivisiConnection:
     async def _async_send_request(
         self, method, url: str, payload=None, headers=None
     ) -> dict:
-        async with self._web_session.request(
-            method,
-            url,
-            json=payload,
-            headers=headers,
-            ssl=False,
-            timeout=REQUEST_TIMEOUT,
-        ) as res:
-            data = await res.json()
-            return data
+        try:
+            async with self._web_session.request(
+                method,
+                url,
+                json=payload,
+                headers=headers,
+                ssl=False,
+                timeout=REQUEST_TIMEOUT,
+            ) as res:
+                data = await res.json()
+                return data
+        except TimeoutError as error:
+            raise ShcUnreachableException from error
 
     async def _async_get_controller(self) -> LivisiController:
         """Get Livisi Smart Home controller data."""
