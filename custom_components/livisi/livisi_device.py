@@ -34,6 +34,8 @@ class LivisiDevice:
     @property
     def tag_category(self) -> str:
         """Get tag type category from config."""
+        if self.tags is None:
+            return None
         return self.tags.get("typeCategory")
 
     @property
