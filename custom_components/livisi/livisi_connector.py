@@ -168,6 +168,10 @@ class LivisiConnection:
                 timeout=REQUEST_TIMEOUT,
             ) as res:
                 data = await res.json()
+                if data is None:
+                    raise LivisiException(
+                        f"No data received from SHC, response code {res.status} ({res.reason})"
+                    )
                 return data
         except TimeoutError as error:
             raise ShcUnreachableException from error
