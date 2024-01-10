@@ -145,7 +145,7 @@ class LivisiConnection:
         """Send a request to the Livisi Smart Home controller and handle requesting new token."""
         response = await self._async_send_request(method, url, payload, headers)
 
-        if "errorcode" in response:
+        if response is not None and "errorcode" in response:
             # reconnect on expired token
             if response["errorcode"] == 2007:
                 await self._async_retrieve_token()
