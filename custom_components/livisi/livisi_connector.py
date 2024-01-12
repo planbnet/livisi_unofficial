@@ -283,7 +283,6 @@ class LivisiConnection:
             if response is None:
                 return None
             if not isinstance(response, dict):
-                LOGGER.warning("Response is not a dictionary: %r", response)
                 return None
             return response.get(key, {}).get("value")
         except Exception:
