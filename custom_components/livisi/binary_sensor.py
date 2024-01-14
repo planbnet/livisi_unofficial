@@ -19,7 +19,7 @@ from homeassistant.helpers import event as evt
 from homeassistant.const import Platform
 
 from .livisi_device import LivisiDevice
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from .const import (
     BATTERY_POWERED_DEVICES,
@@ -214,7 +214,9 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
 
         self._delay_listener: CALLBACK_TYPE | None = None
         # TODO: Use static variables
-        self.off_delay_entity_id: str = device.name + "_duration"
+        self.off_delay_entity_id: str = (
+            Platform.NUMBER + "." + device.name + "_duration"
+        )
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
@@ -239,8 +241,9 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
             off_delay = self.get_off_delay()
             lastactive = datetime.fromisoformat(response)
             now = datetime.now(timezone.utc)
-            remaining_detected_time = now - lastactive - off_delay
-            if remaining_detected_time > 0:
+            delta = now - lastactive
+
+            if delta.seconds < off_delay:
                 self._attr_is_on = True
 
                 @callback
@@ -250,6 +253,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
                     self._attr_is_on = False
                     self.async_write_ha_state()
 
+                remaining_detected_time = off_delay - delta.seconds
                 self._delay_listener = evt.async_call_later(
                     self.hass, remaining_detected_time, off_delay_listener
                 )
@@ -283,6 +287,9 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
             )
 
     def get_off_delay(self) -> float:
-        """Get the Delay"""
-        id = Platform.NUMBER + "." + self.off_delay_entity_id
-        return float(self.hass.states.get(id).state)
+        """Get the Delay."""
+        id = self.off_delay_entity_id
+        state = self.hass.states.get(id)
+        if state is None:
+            return None
+        return float(state.state)
