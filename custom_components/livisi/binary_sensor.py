@@ -1,6 +1,8 @@
 """Code to handle a Livisi Binary Sensor."""
 from __future__ import annotations
 
+from typing import Any
+
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -12,8 +14,12 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.core import CALLBACK_TYPE
+from homeassistant.helpers import event as evt
+from homeassistant.const import Platform
 
 from .livisi_device import LivisiDevice
+from datetime import datetime, timezone, timedelta
 
 from .const import (
     BATTERY_POWERED_DEVICES,
@@ -22,6 +28,8 @@ from .const import (
     IS_SMOKE_ALARM,
     LIVISI_STATE_CHANGE,
     LOGGER,
+    LIVISI_EVENT,
+    MOTION_DEVICE_TYPES,
     WDS_DEVICE_TYPES,
     SMOKE_DETECTOR_DEVICE_TYPES,
 )
@@ -89,7 +97,20 @@ async def async_setup_entry(
                     LOGGER.debug("Include battery sensor for: %s", device.type)
                     coordinator.devices.add(device.id)
                     entities.append(livisi_binary)
-
+                if device.type in MOTION_DEVICE_TYPES:
+                    livisi_motion: BinarySensorEntity = LivisiMotionSensor(
+                        config_entry,
+                        coordinator,
+                        device,
+                        BinarySensorEntityDescription(
+                            key="motionDetectedCount",
+                            device_class=BinarySensorDeviceClass.MOTION,
+                        ),
+                        capability_name="MotionDetectionSensor",
+                    )
+                    LOGGER.debug("Include motion sensor device type: %s", device.type)
+                    coordinator.devices.add(device.id)
+                    entities.append(livisi_motion)
         async_add_entities(entities)
 
     config_entry.async_on_unload(
@@ -171,3 +192,97 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
 
         if device is not None:
             self._attr_is_on = device.battery_low
+
+
+class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
+    """Represents a Livisi Motion Sensor."""
+
+    def __init__(
+        self,
+        config_entry: ConfigEntry,
+        coordinator: LivisiDataUpdateCoordinator,
+        device: LivisiDevice,
+        entity_desc: BinarySensorEntityDescription,
+        capability_name: str,
+    ) -> None:
+        """Initialize the Livisi sensor."""
+        super().__init__(config_entry, coordinator, device, capability_name)
+        self.entity_description = entity_desc
+        self._attr_device_class: BinarySensorDeviceClass = (
+            BinarySensorDeviceClass.MOTION
+        )
+
+        self._delay_listener: CALLBACK_TYPE | None = None
+        # TODO: Use static variables
+        self.off_delay_entity_id: str = device.name + "_duration"
+
+    async def async_added_to_hass(self) -> None:
+        """Register callbacks."""
+        await super().async_added_to_hass()
+
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_EVENT}_{self.capability_id}",
+                self.trigger_event,
+            )
+        )
+
+        response = await self.coordinator.aiolivisi.async_get_device_state(
+            self.capability_id, self.entity_description.key, "lastChanged"
+        )
+        if response is None:
+            self.update_reachability(False)
+        else:
+            self.update_reachability(True)
+
+            off_delay = self.get_off_delay()
+            lastactive = datetime.fromisoformat(response)
+            now = datetime.now(timezone.utc)
+            remaining_detected_time = now - lastactive - off_delay
+            if remaining_detected_time > 0:
+                self._attr_is_on = True
+
+                @callback
+                def off_delay_listener(now: Any) -> None:
+                    """Switch device off after a delay."""
+                    self._delay_listener = None
+                    self._attr_is_on = False
+                    self.async_write_ha_state()
+
+                self._delay_listener = evt.async_call_later(
+                    self.hass, remaining_detected_time, off_delay_listener
+                )
+            else:
+                self._attr_is_on = False
+
+    @callback
+    def trigger_event(self, event_data: Any) -> None:
+        """Update the state of the device."""
+        self._attr_is_on = True
+        self.async_write_ha_state()
+
+        # From this example:
+        # https://github.com/home-assistant/core/blob/dev/homeassistant/components/rfxtrx/binary_sensor.py#L21
+        if self._delay_listener:
+            self._delay_listener()
+            self._delay_listener = None
+
+        off_delay = self.get_off_delay()
+        if self.is_on and off_delay is not None:
+
+            @callback
+            def off_delay_listener(now: Any) -> None:
+                """Switch device off after a delay."""
+                self._delay_listener = None
+                self._attr_is_on = False
+                self.async_write_ha_state()
+
+            self._delay_listener = evt.async_call_later(
+                self.hass, off_delay, off_delay_listener
+            )
+
+    def get_off_delay(self) -> float:
+        """Get the Delay"""
+        id = Platform.NUMBER + "." + self.off_delay_entity_id
+        return float(self.hass.states.get(id).state)
