@@ -8,7 +8,9 @@ __pycache__
 
 # misc
 .coverage
-.vscode
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
 coverage.xml
 .ruff_cache
 

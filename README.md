@@ -49,3 +49,14 @@ All configuration in done in the UI. See the [official documentation](https://ww
 * Luminance is provided in percent by Livisi. Currently we get a warning: `<LivisiSensor> is using native unit of measurement '%' which is not a valid unit for the device class ('illuminance') it is using; expected one of ['lx']` but as percent is the correct unit here, I don't think we should change it (at least until it causes problems in HA)
 
 * Home Assistant requires all communication to the service backend to be handled by a library (as it was done with the original, unmaintained aiolivisi lib). This prevents the merge of this library to the official core code base currently. However, I don't feel it makes sense to move the code to a seperately maintained library as it is only used here and additions often need to happen along the whole code path. Semantically such a split makes sense though, so to make a later separation possible, I added the `livisi_` prefix to all the "library" code.
+
+
+## Development
+
+1. Clone this repository and open it in a devcontainer.
+2. `cd scripts`
+3. Only run the first time or on updates: `./setup`
+4. `./develop`
+
+You can also use the VSCode launch configuration `Home Assistant`.
+
