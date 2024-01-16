@@ -150,6 +150,8 @@ class LivisiConnection:
             if response["errorcode"] == 2007:
                 await self._async_retrieve_token()
                 response = await self._async_send_request(method, url, payload, headers)
+                if response is not None and "errorcode" in response:
+                    raise ErrorCodeException(response["errorcode"])
             else:
                 raise ErrorCodeException(response["errorcode"])
 
