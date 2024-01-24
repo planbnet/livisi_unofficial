@@ -43,6 +43,11 @@
             "luminance": {
                 "name": "Luminance"
             }
+        },
+        "number": {
+            "duration": {
+                "name": "Duration"
+            }
         }
     }
 }

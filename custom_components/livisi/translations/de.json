@@ -43,6 +43,11 @@
             "luminance": {
                 "name": "Helligkeit"
             }
+        },
+        "number": {
+            "duration": {
+                "name": "Auslösedauer"
+            }
         }
     }
 }
