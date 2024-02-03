@@ -284,22 +284,19 @@ class LivisiConnection:
 
         return devicelist
 
-    async def async_get_device_state(
-        self, capability: str, key: str, valueKey: str = "value"
-    ) -> Any | None:
+    async def async_get_device_state(self, capability: str, key: str) -> Any | None:
         """Get state of the device."""
-        requestUrl = f"capability/{capability}/state"
         try:
-            response = await self.async_send_authorized_request("get", requestUrl)
+            response = await self.async_send_authorized_request(
+                "get", f"capability/{capability}/state"
+            )
             if response is None:
                 return None
             if not isinstance(response, dict):
                 return None
-            return response.get(key, {}).get(valueKey, None)
+            return response.get(key, {}).get("value")
         except Exception:
-            LOGGER.warning(
-                f"Error getting device state (url: {requestUrl})", exc_info=True
-            )
+            LOGGER.warning("Error getting device state", exc_info=True)
             return None
 
     async def async_set_state(
