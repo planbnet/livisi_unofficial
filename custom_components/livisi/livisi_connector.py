@@ -1,4 +1,5 @@
 """Code to handle the communication with Livisi Smart home controllers."""
+
 from __future__ import annotations
 
 import asyncio
@@ -208,6 +209,7 @@ class LivisiConnection:
                 room_map[roomid] = room.get("config", {}).get("name")
             else:
                 LOGGER.warning("Invalid room: %s", room)
+                LOGGER.warning(rooms)
 
         for capability in capabilities:
             if "device" in capability:
@@ -224,6 +226,7 @@ class LivisiConnection:
                         capability_config[device_id][cap_type] = capability["config"]
             else:
                 LOGGER.warning("Invalid capability: %s", capability)
+                LOGGER.warning(capabilities)
 
         low_battery_devices = set()
         update_available_devices = set()
@@ -231,6 +234,11 @@ class LivisiConnection:
         updated_devices = set()
 
         for message in messages:
+            if isinstance(message, str):
+                LOGGER.warning("Invalid message")
+                LOGGER.warning(messages)
+                continue
+
             msgtype = message.get("type", "")
             msgtimestamp = parse_timestamp(message.get("timestamp", ""))
             if msgtimestamp is None:
