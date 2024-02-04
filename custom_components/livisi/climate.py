@@ -1,4 +1,5 @@
 """Code to handle a Livisi Virtual Climate Control."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -68,6 +69,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
     _attr_hvac_mode = HVACMode.HEAT
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+    _enable_turn_on_off_backwards_compatibility = False
 
     def __init__(
         self,
@@ -111,9 +113,11 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
 
         target_temperature = await self.coordinator.aiolivisi.async_get_device_state(
             self._target_temperature_capability,
-            "setpointTemperature"
-            if self.coordinator.aiolivisi.controller.is_v2
-            else "pointTemperature",
+            (
+                "setpointTemperature"
+                if self.coordinator.aiolivisi.controller.is_v2
+                else "pointTemperature"
+            ),
         )
         temperature = await self.coordinator.aiolivisi.async_get_device_state(
             self._temperature_capability, "temperature"
