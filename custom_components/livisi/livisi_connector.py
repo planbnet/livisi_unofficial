@@ -152,8 +152,13 @@ class LivisiConnection:
                 await self._async_retrieve_token()
                 response = await self._async_send_request(method, url, payload, headers)
                 if response is not None and "errorcode" in response:
+                    LOGGER.error(
+                        "Livisi sent error code %d after token request",
+                        response.get("errorcode"),
+                    )
                     raise ErrorCodeException(response["errorcode"])
             else:
+                LOGGER.error("Livisi sent error code %d", response.get("errorcode"))
                 raise ErrorCodeException(response["errorcode"])
 
         return response
@@ -190,6 +195,10 @@ class LivisiConnection:
         self,
     ) -> list[LivisiDevice]:
         """Send parallel requests for getting all required data."""
+
+        status = await self.async_send_authorized_request("get", path="status")
+        if status.get("operationStatus", "unknown") != "active":
+            raise LivisiConnection("Livisi controller is not active")
 
         devices, capabilities, messages, rooms = await asyncio.gather(
             self.async_send_authorized_request("get", path="device"),
