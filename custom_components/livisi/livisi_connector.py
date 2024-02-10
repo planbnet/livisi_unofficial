@@ -205,7 +205,16 @@ class LivisiConnection:
             self.async_send_authorized_request("get", path="capability"),
             self.async_send_authorized_request("get", path="message"),
             self.async_send_authorized_request("get", path="location"),
+            return_exceptions=True,
         )
+
+        for result, path in zip(
+            (devices, capabilities, messages, rooms),
+            ("device", "capability", "message", "location"),
+        ):
+            if isinstance(result, Exception):
+                LOGGER.warn(f"Error loading {path}")
+                raise result  # Re-raise the exception immediately
 
         capability_map = {}
         capability_config = {}
