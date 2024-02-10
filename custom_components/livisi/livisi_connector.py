@@ -62,7 +62,11 @@ class LivisiConnection:
         if host is not None and password is not None:
             self.host = host
             self._password = password
-        await self._async_retrieve_token()
+        try:
+            await self._async_retrieve_token()
+        finally:
+            await self.close()
+
         self.controller = await self._async_get_controller()
         if self.controller.is_v2:
             # reconnect with more concurrent connections on v2 SHC
