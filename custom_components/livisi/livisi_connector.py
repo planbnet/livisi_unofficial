@@ -200,23 +200,22 @@ class LivisiConnection:
     async def async_get_devices(
         self,
     ) -> list[LivisiDevice]:
-        """Send parallel requests for getting all required data."""
+        """Send requests for getting all required data."""
 
-        status = await self.async_send_authorized_request("get", path="status")
-        if status.get("operationStatus", "unknown") != "active":
-            raise LivisiConnection("Livisi controller is not active")
+        # retrieve messages first, this will also refresh the token if
+        # needed so subsequent parallel requests don't fail
+        messages = await self.async_send_authorized_request("get", path="message")
 
-        devices, capabilities, messages, rooms = await asyncio.gather(
+        devices, capabilities, rooms = await asyncio.gather(
             self.async_send_authorized_request("get", path="device"),
             self.async_send_authorized_request("get", path="capability"),
-            self.async_send_authorized_request("get", path="message"),
             self.async_send_authorized_request("get", path="location"),
             return_exceptions=True,
         )
 
         for result, path in zip(
-            (devices, capabilities, messages, rooms),
-            ("device", "capability", "message", "location"),
+            (devices, capabilities, rooms),
+            ("device", "capability", "location"),
         ):
             if isinstance(result, Exception):
                 LOGGER.warn(f"Error loading {path}")
