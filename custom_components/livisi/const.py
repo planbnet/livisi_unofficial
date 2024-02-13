@@ -42,6 +42,7 @@ BATTERY_POWERED_DEVICES = [
     "SIR",
     "WRT",
     "BT-WDS",
+    "BT-WS",
 ]
 
 CAPABILITY_LUMINANCE_SENSOR: Final = "LuminanceSensor"
