@@ -4,6 +4,7 @@ This project is in "works for me" state, but it's in use by multiple people and 
 It can be added as a custom repo to HACS and then installed as an integration. This will override the existing livisi integration and add the following features:
 
 * Support VariableActuators (boolean vars in livisi) as switches
+* Support switching between auto and manual mode
 * Support light switches as lights (be sure to categorize them correctly in the livisi controller)
 * Support motion detectors (brightness sensor and events)
 * Support smoke detectors
