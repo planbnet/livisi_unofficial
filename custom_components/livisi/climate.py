@@ -21,10 +21,15 @@ from .livisi_device import LivisiDevice
 
 from .const import (
     DOMAIN,
+    HUMIDITY,
     LIVISI_STATE_CHANGE,
     LOGGER,
     MAX_TEMPERATURE,
     MIN_TEMPERATURE,
+    OPERATION_MODE,
+    POINT_TEMPERATURE,
+    SETPOINT_TEMPERATURE,
+    TEMPERATURE,
     VRCC_DEVICE_TYPES,
 )
 
@@ -65,7 +70,7 @@ async def async_setup_entry(
 class LivisiClimate(LivisiEntity, ClimateEntity):
     """Represents the Livisi Climate."""
 
-    _attr_hvac_modes = []
+    _attr_hvac_modes = [HVACMode.AUTO, HVACMode.HEAT]
     _attr_hvac_mode = HVACMode.HEAT
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
@@ -90,7 +95,18 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         self._attr_max_temp = config.get("maxTemperature", MAX_TEMPERATURE)
         self._attr_min_temp = config.get("minTemperature", MIN_TEMPERATURE)
 
+        self._thermostat_actuator_ids: [str] = [
+            id.strip()
+            for id in device.capability_config.get("RoomSetpoint", {})
+            .get("underlyingCapabilityIds", "")
+            .split(",")
+        ]
+
     async def async_set_temperature(self, **kwargs: Any) -> None:
+        """Set new target temperature. Overrides hass method."""
+        await self.async_set_livisi_temperature(kwargs.get(ATTR_TEMPERATURE))
+
+    async def async_set_livisi_temperature(self, target_temp) -> bool:
         """Set new target temperature."""
         success = await self.aio_livisi.async_set_state(
             self._target_temperature_capability,
@@ -99,31 +115,56 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
                 if self.coordinator.aiolivisi.controller.is_v2
                 else "pointTemperature"
             ),
-            value=kwargs.get(ATTR_TEMPERATURE),
+            value=target_temp,
         )
         if not success:
             self.update_reachability(False)
             raise HomeAssistantError(f"Failed to set temperature on {self._attr_name}")
         self.update_reachability(True)
+        return success
+
+    async def async_set_mode(self, auto: bool) -> bool:
+        """Set new manual/auto mode."""
+
+        # ignore if no thermostats are connected
+        if len(self._thermostat_actuator_ids) == 0:
+            return False
+
+        # setting one of the thermostats is enough, livisi will sync the state
+        thermostat_capability_id = self._thermostat_actuator_ids[0]
+
+        success = await self.aio_livisi.async_set_state(
+            thermostat_capability_id,
+            key="operationMode",
+            value=("Auto" if auto else "Manu"),
+        )
+        if not success:
+            self.update_reachability(False)
+            raise HomeAssistantError(f"Failed to set mode on {self._attr_name}")
+        self.update_reachability(True)
+
+        return success
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
 
         await super().async_added_to_hass()
 
+        target_temp_property = (
+            SETPOINT_TEMPERATURE
+            if self.coordinator.aiolivisi.controller.is_v2
+            else POINT_TEMPERATURE
+        )
+
         target_temperature = await self.coordinator.aiolivisi.async_get_device_state(
             self._target_temperature_capability,
-            (
-                "setpointTemperature"
-                if self.coordinator.aiolivisi.controller.is_v2
-                else "pointTemperature"
-            ),
+            target_temp_property,
         )
         temperature = await self.coordinator.aiolivisi.async_get_device_state(
-            self._temperature_capability, "temperature"
+            self._temperature_capability, TEMPERATURE
         )
         humidity = await self.coordinator.aiolivisi.async_get_device_state(
-            self._humidity_capability, "humidity"
+            self._humidity_capability, HUMIDITY
         )
         if temperature is None:
             self._attr_current_temperature = None
@@ -134,30 +175,55 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             self._attr_current_humidity = humidity
             self.update_reachability(True)
 
+        if len(self._thermostat_actuator_ids) > 0:
+            mode = await self.coordinator.aiolivisi.async_get_device_state(
+                self._thermostat_actuator_ids[0], OPERATION_MODE
+            )
+            self.update_mode(mode)
+
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._target_temperature_capability}",
+                f"{LIVISI_STATE_CHANGE}_{self._target_temperature_capability}_{target_temp_property}",
                 self.update_target_temperature,
             )
         )
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._temperature_capability}",
+                f"{LIVISI_STATE_CHANGE}_{self._temperature_capability}_{TEMPERATURE}",
                 self.update_temperature,
             )
         )
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._humidity_capability}",
+                f"{LIVISI_STATE_CHANGE}_{self._humidity_capability}_{HUMIDITY}",
                 self.update_humidity,
             )
         )
 
-    def set_hvac_mode(self, hvac_mode: HVACMode) -> None:
-        """Do nothing as LIVISI devices do not support changing the hvac mode."""
+        for thermostat_capability in self._thermostat_actuator_ids:
+            self.async_on_remove(
+                async_dispatcher_connect(
+                    self.hass,
+                    f"{LIVISI_STATE_CHANGE}_{thermostat_capability}_{OPERATION_MODE}",
+                    self.update_mode,
+                )
+            )
+
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        """Find a matching thermostat and use it to set the hvac mode."""
+        if hvac_mode == HVACMode.OFF:
+            if await self.async_set_livisi_temperature(self._attr_min_temp):
+                self._attr_hvac_mode = HVACMode.OFF
+        elif hvac_mode == HVACMode.AUTO:
+            if await self.async_set_mode(auto=True):
+                self._attr_hvac_mode = HVACMode.AUTO
+        elif hvac_mode == HVACMode.HEAT:
+            if await self.async_set_mode(auto=False):
+                self._attr_hvac_mode = HVACMode.HEAT
+        self.async_write_ha_state()
 
     @property
     def hvac_action(self) -> HVACAction | None:
@@ -165,6 +231,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         if (
             self._attr_current_temperature is None
             or self._attr_target_temperature is None
+            or self._attr_hvac_mode == HVACMode.OFF
         ):
             return HVACAction.OFF
         if self._attr_target_temperature > self._attr_current_temperature:
@@ -190,3 +257,13 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         """Update the humidity of the climate device."""
         self._attr_current_humidity = humidity
         self.async_write_ha_state()
+
+    @callback
+    def update_mode(self, val: any) -> None:
+        """Update the current mode if devices switch from manual to automatic or vice versa."""
+        if val == "Auto":
+            self._attr_hvac_mode = HVACMode.AUTO
+        else:
+            self._attr_hvac_mode = HVACMode.HEAT
+        if self.hass is not None:
+            self.async_write_ha_state()

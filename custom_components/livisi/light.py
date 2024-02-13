@@ -1,4 +1,5 @@
 """Code to handle a Livisi switches."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -18,6 +19,7 @@ from .const import (
     DOMAIN,
     LIVISI_STATE_CHANGE,
     LOGGER,
+    ON_STATE,
     SWITCH_DEVICE_TYPES,
     DIMMING_DEVICE_TYPES,
 )
@@ -90,7 +92,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "onState"
+            self.capability_id, ON_STATE
         )
         if response is None:
             self.update_reachability(False)
@@ -101,7 +103,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
                 self.update_states,
             )
         )
@@ -109,7 +111,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="onState", value=True
+            self.capability_id, key=ON_STATE, value=True
         )
 
         if not success:
@@ -123,7 +125,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="onState", value=False
+            self.capability_id, key=ON_STATE, value=False
         )
         if not success:
             self.update_reachability(False)
@@ -162,7 +164,7 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "dimLevel"
+            self.capability_id, DIM_LEVEL
         )
         if response is not None:
             self.update_brightness(response)
@@ -170,7 +172,7 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{DIM_LEVEL}",
                 self.update_brightness,
             )
         )

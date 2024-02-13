@@ -16,6 +16,7 @@ coverage.xml
 
 # example file of my local config that should not be public
 devices.json
+messages.json
 
 # Home Assistant configuration
 config/*

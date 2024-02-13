@@ -1,4 +1,5 @@
 """Code to handle a Livisi switches."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -16,7 +17,9 @@ from .const import (
     DOMAIN,
     LIVISI_STATE_CHANGE,
     LOGGER,
+    ON_STATE,
     SWITCH_DEVICE_TYPES,
+    VALUE,
     VARIABLE_DEVICE_TYPES,
 )
 from .coordinator import LivisiDataUpdateCoordinator
@@ -76,7 +79,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="onState", value=True
+            self.capability_id, key="ON_STATE", value=True
         )
         if not success:
             self.update_reachability(False)
@@ -89,7 +92,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="onState", value=False
+            self.capability_id, key="ON_STATE", value=False
         )
         if not success:
             self.update_reachability(False)
@@ -104,7 +107,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "onState"
+            self.capability_id, ON_STATE
         )
         if response is None:
             self._attr_is_on = False
@@ -115,7 +118,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
                 self.update_states,
             )
         )
@@ -173,7 +176,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "value"
+            self.capability_id, VALUE
         )
         if response is None:
             self.update_reachability(False)
@@ -184,7 +187,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{VALUE}",
                 self.update_states,
             )
         )

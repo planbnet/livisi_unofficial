@@ -117,10 +117,12 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
+        property_name: str = self.entity_description.key
+
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{property_name}",
                 self.update_states,
             )
         )

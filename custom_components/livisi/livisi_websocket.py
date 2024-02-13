@@ -1,4 +1,5 @@
 """Code for communication with the Livisi application websocket."""
+
 from collections.abc import Callable
 import urllib.parse
 

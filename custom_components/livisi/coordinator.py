@@ -85,9 +85,16 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         except ClientConnectorError as exc:
             raise UpdateFailed("Failed to get livisi devices from controller") from exc
 
-    def _async_dispatcher_send(self, event: str, source: str, data: Any) -> None:
+    def _async_dispatcher_send(
+        self, event: str, source: str, data: Any, property_name=None
+    ) -> None:
         if data is not None:
-            async_dispatcher_send(self.hass, f"{event}_{source}", data)
+            if property_name is None:
+                async_dispatcher_send(self.hass, f"{event}_{source}", data)
+            else:
+                async_dispatcher_send(
+                    self.hass, f"{event}_{source}_{property_name}", data
+                )
 
     def publish_state(
         self, event_data: LivisiWebsocketEvent, property_name: str
@@ -96,7 +103,9 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         data = event_data.properties.get(property_name, None)
         if data is None:
             return False
-        self._async_dispatcher_send(LIVISI_STATE_CHANGE, event_data.source, data)
+        self._async_dispatcher_send(
+            LIVISI_STATE_CHANGE, event_data.source, data, property_name
+        )
         return True
 
     async def async_get_devices(self) -> list[LivisiDevice]:

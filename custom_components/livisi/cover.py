@@ -1,4 +1,5 @@
 """Code to handle a Livisi shutters."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -161,7 +162,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{SHUTTER_LEVEL}",
                 self.update_states,
             )
         )

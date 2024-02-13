@@ -1,4 +1,5 @@
 """Constants for the Livisi Smart Home integration."""
+
 import logging
 from typing import Final
 
@@ -64,7 +65,9 @@ SHUTTER_LEVEL: Final = "shutterLevel"
 DIM_LEVEL: Final = "dimLevel"
 VALUE: Final = "value"
 POINT_TEMPERATURE: Final = "pointTemperature"
-SET_POINT_TEMPERATURE: Final = "setpointTemperature"
+SETPOINT_TEMPERATURE: Final = "setpointTemperature"
+OPERATION_MODE: Final = "operationMode"
+ACTIVE_CHANNEL: Final = "activeChannel"
 
 IS_OPEN: Final = "isOpen"
 IS_SMOKE_ALARM: Final = "isSmokeAlarm"
@@ -76,7 +79,7 @@ STATE_PROPERTIES = [
     ON_STATE,
     VALUE,
     POINT_TEMPERATURE,
-    SET_POINT_TEMPERATURE,
+    SETPOINT_TEMPERATURE,
     TEMPERATURE,
     HUMIDITY,
     LUMINANCE,
@@ -85,6 +88,7 @@ STATE_PROPERTIES = [
     POWER_CONSUMPTION,
     SHUTTER_LEVEL,
     DIM_LEVEL,
+    OPERATION_MODE,
 ]
 
 EVENT_BUTTON_PRESSED = "button_pressed"

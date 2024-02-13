@@ -1,4 +1,5 @@
 """Code to handle a Livisi switches."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,9 +15,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .livisi_device import LivisiDevice
 
 from .const import (
+    ACTIVE_CHANNEL,
     DOMAIN,
     LIVISI_STATE_CHANGE,
     LOGGER,
+    ON_STATE,
     SMOKE_DETECTOR_DEVICE_TYPES,
     SIREN_DEVICE_TYPES,
 )
@@ -83,7 +86,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="onState", value=True
+            self.capability_id, key=ON_STATE, value=True
         )
         if not success:
             self.update_reachability(False)
@@ -96,7 +99,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="onState", value=False
+            self.capability_id, key="ON_STATE", value=False
         )
         if not success:
             self.update_reachability(False)
@@ -111,7 +114,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "onState"
+            self.capability_id, ON_STATE
         )
         if response is None:
             self.update_reachability(False)
@@ -121,7 +124,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
                 self.update_states,
             )
         )
@@ -179,7 +182,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
         await super().async_added_to_hass()
 
         response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, "activeChannel"
+            self.capability_id, ACTIVE_CHANNEL
         )
         if response is None:
             self.update_reachability(False)
@@ -192,13 +195,26 @@ class LivisiSiren(LivisiEntity, SirenEntity):
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}",
-                self.update_states,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
+                self.update_state,
+            )
+        )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ACTIVE_CHANNEL}",
+                self.update_active_channel,
             )
         )
 
     @callback
-    def update_states(self, state: bool) -> None:
+    def update_state(self, state: bool) -> None:
         """Update the state of the siren device."""
         self._attr_is_on = state
+        self.async_write_ha_state()
+
+    @callback
+    def update_active_channel(self, active_channel: str) -> None:
+        """Update the state of the siren device."""
+        self._attr_is_on = active_channel == "Alarm"
         self.async_write_ha_state()
