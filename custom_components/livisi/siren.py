@@ -99,7 +99,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="ON_STATE", value=False
+            self.capability_id, key=ON_STATE, value=False
         )
         if not success:
             self.update_reachability(False)

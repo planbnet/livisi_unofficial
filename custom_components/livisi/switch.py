@@ -79,7 +79,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="ON_STATE", value=True
+            self.capability_id, key=ON_STATE, value=True
         )
         if not success:
             self.update_reachability(False)
@@ -92,7 +92,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="ON_STATE", value=False
+            self.capability_id, key=ON_STATE, value=False
         )
         if not success:
             self.update_reachability(False)
