@@ -42,6 +42,15 @@
             },
             "luminance": {
                 "name": "Helligkeit"
+            },
+            "cpu_usage": {
+                "name": "CPU Nutzung"
+            },
+            "ram_usage": {
+                "name": "RAM Nutzung"
+            },
+            "disk_usage": {
+                "name": "Disk Nutzung"
             }
         }
     }

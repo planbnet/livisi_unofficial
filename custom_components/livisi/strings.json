@@ -42,6 +42,15 @@
       },
       "luminance": {
         "name": "[%key:component::sensor::entity_component::luminance::name%]"
+      },
+      "cpu_usage": {
+        "name": "CPU usage"
+      },
+      "ram_usage": {
+        "name": "RAM usage"
+      },
+      "disk_usage": {
+        "name": "Disk usage"
       }
     }
   }
