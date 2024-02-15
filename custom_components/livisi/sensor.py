@@ -51,6 +51,14 @@ CONTROLLER_SENSORS = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
     ),
+    "CPULoad": SensorEntityDescription(
+        key="CPULoad",
+        translation_key="cpu_usage",
+        native_unit_of_measurement=PERCENTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
     "diskUsage": SensorEntityDescription(
         key="diskUsage",
         translation_key="disk_usage",
@@ -61,6 +69,14 @@ CONTROLLER_SENSORS = {
     ),
     "memoryUsage": SensorEntityDescription(
         key="memoryUsage",
+        translation_key="ram_usage",
+        native_unit_of_measurement=PERCENTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
+    "memoryLoad": SensorEntityDescription(
+        key="memoryLoad",
         translation_key="ram_usage",
         native_unit_of_measurement=PERCENTAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
