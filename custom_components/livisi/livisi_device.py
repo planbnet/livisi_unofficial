@@ -1,8 +1,11 @@
 """Code to represent a livisi device."""
+
 from __future__ import annotations
 from typing import Any
 
 from dataclasses import dataclass
+
+from .livisi_const import SHC_ID
 
 
 @dataclass
@@ -13,6 +16,7 @@ class LivisiDevice:
     type: str
     tags: dict[str, str]
     config: dict[str, Any]
+    state: dict[str, Any]
     manufacturer: str
     version: str
     cls: str
@@ -42,3 +46,8 @@ class LivisiDevice:
     def tag_type(self) -> str:
         """Get tag type from config."""
         return self.tags.get("type")
+
+    @property
+    def is_shc(self) -> bool:
+        """Indicate whether this device is the controller."""
+        return self.id == SHC_ID

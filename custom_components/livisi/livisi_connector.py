@@ -28,6 +28,7 @@ from .livisi_const import (
     V2_NAME,
     LOGGER,
     REQUEST_TIMEOUT,
+    SHC_ID,
     WEBSERVICE_PORT,
 )
 
@@ -206,10 +207,18 @@ class LivisiConnection:
         # needed so subsequent parallel requests don't fail
         messages = await self.async_send_authorized_request("get", path="message")
 
-        devices, capabilities, rooms = await asyncio.gather(
+        (
+            low_battery_devices,
+            update_available_devices,
+            unreachable_devices,
+            updated_devices,
+        ) = self.parse_messages(messages)
+
+        devices, capabilities, rooms, shc_state = await asyncio.gather(
             self.async_send_authorized_request("get", path="device"),
             self.async_send_authorized_request("get", path="capability"),
             self.async_send_authorized_request("get", path="location"),
+            self.async_send_authorized_request("get", path=f"device/{SHC_ID}/state"),
             return_exceptions=True,
         )
 
@@ -230,9 +239,6 @@ class LivisiConnection:
             if "id" in room:
                 roomid = room["id"]
                 room_map[roomid] = room.get("config", {}).get("name")
-            else:
-                LOGGER.warning("Invalid room: %s", room)
-                LOGGER.warning(rooms)
 
         for capability in capabilities:
             if "device" in capability:
@@ -247,10 +253,36 @@ class LivisiConnection:
                     capability_map[device_id][cap_type] = capability["id"]
                     if "config" in capability:
                         capability_config[device_id][cap_type] = capability["config"]
-            else:
-                LOGGER.warning("Invalid capability: %s", capability)
-                LOGGER.warning(capabilities)
 
+        devicelist = []
+
+        for device in devices:
+            device_id = device.get("id")
+            device["capabilities"] = capability_map.get(device_id, {})
+            device["capability_config"] = capability_config.get(device_id, {})
+            device["cls"] = device.get("class")
+            device["battery_low"] = device_id in low_battery_devices
+            device["update_available"] = device_id in update_available_devices
+            device["updated"] = device_id in updated_devices
+            device["unreachable"] = device_id in unreachable_devices
+            if device.get("location") is not None:
+                roomid = device["location"].removeprefix("/location/")
+                device["room"] = room_map.get(roomid)
+
+            if device_id == SHC_ID:
+                if isinstance(shc_state, Exception):
+                    device["state"] = {}
+                else:
+                    device["state"] = shc_state
+
+            devicelist.append(parse_dataclass(device, LivisiDevice))
+
+        LOGGER.debug("Loaded %d devices", len(devices))
+
+        return devicelist
+
+    def parse_messages(self, messages):
+        """Parse message data from shc."""
         low_battery_devices = set()
         update_available_devices = set()
         unreachable_devices = set()
@@ -270,8 +302,8 @@ class LivisiConnection:
             device_ids = [
                 d.removeprefix("/device/") for d in message.get("devices", [])
             ]
-            if len(device_id) == 0:
-                source = message.get("source", "00000000000000000000000000000000")
+            if len(device_ids) == 0:
+                source = message.get("source", SHC_ID)
                 device_ids.add(source.replace("/device/", ""))
             if msgtype == "DeviceLowBattery":
                 for device_id in device_ids:
@@ -285,27 +317,12 @@ class LivisiConnection:
             elif msgtype == "DeviceUnreachable":
                 for device_id in device_ids:
                     unreachable_devices.add(device_id)
-
-        devicelist = []
-
-        for device in devices:
-            device_id = device.get("id")
-            device["capabilities"] = capability_map.get(device_id, {})
-            device["capability_config"] = capability_config.get(device_id, {})
-            device["cls"] = device.get("class")
-            device["battery_low"] = device_id in low_battery_devices
-            device["update_available"] = device_id in update_available_devices
-            device["updated"] = device_id in updated_devices
-            device["unreachable"] = device_id in unreachable_devices
-            if device.get("location") is not None:
-                roomid = device["location"].removeprefix("/location/")
-                device["room"] = room_map.get(roomid)
-
-            devicelist.append(parse_dataclass(device, LivisiDevice))
-
-        LOGGER.debug("Loaded %d devices", len(devices))
-
-        return devicelist
+        return (
+            low_battery_devices,
+            update_available_devices,
+            unreachable_devices,
+            updated_devices,
+        )
 
     async def async_get_device_state(self, capability: str, key: str) -> Any | None:
         """Get state of the device."""

@@ -1,4 +1,5 @@
 """Constants for the Livisi Smart Home integration."""
+
 import logging
 from typing import Final
 
@@ -9,6 +10,8 @@ V2_WEBSOCKET_PORT: Final = 9090
 CLASSIC_WEBSOCKET_PORT: Final = 8080
 WEBSERVICE_PORT: Final = 8080
 REQUEST_TIMEOUT: Final = 2000
+
+SHC_ID: Final = "00000000000000000000000000000000"
 
 BATTERY_LOW: Final = "batteryLow"
 UPDATE_AVAILABLE: Final = "DeviceUpdateAvailable"

@@ -10,9 +10,15 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.components.sensor.const import SensorDeviceClass, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfTemperature, UnitOfPower
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfTemperature,
+    UnitOfPower,
+    EntityCategory,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .livisi_device import LivisiDevice
@@ -36,7 +42,35 @@ from .const import (
 from .coordinator import LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
-SENSOR_TYPES = {
+
+# if not isinstance(shc_state, Exception):
+# {"configVersion": {"value": 707,"lastChanged": "2024-02-13T11:21:45.171684Z"},"cpuUsage": {"value": 3.0,"lastChanged": "2024-02-15T08:02:35.827063Z"},"currentUtcOffset": {"value": 60.0,"lastChanged": "1970-01-01T00:00:00Z"},"deviceConfigurationState": {"value": "Complete","lastChanged": "1970-01-01T00:00:00Z"},"deviceInclusionState": {"value": "Included","lastChanged": "2023-03-04T20:14:38.123688Z"},"discoveryActive": {"value": false,"lastChanged": "1970-01-01T00:00:00Z"},"diskUsage": {"value": 65.0,"lastChanged": "2024-02-15T07:57:35.829675Z"},"ethIpAddress": {"value": "192.168.10.121","lastChanged": "1970-01-01T00:00:00Z"},"ethMacAddress": {"value": "94:c6:91:3e:01:32","lastChanged": "1970-01-01T00:00:00Z"},"firmwareVersion": {"value": null,"lastChanged": "1970-01-01T00:00:00Z"},"inUseAdapter": {"value": "eth","lastChanged": "1970-01-01T00:00:00Z"},"innogyLayerAttached": {"value": true,"lastChanged": "1970-01-01T00:00:00Z"},"isReachable": {"value": null,"lastChanged": "1970-01-01T00:00:00Z"},"lastReboot": {"value": "2024-02-15T07:52:35+00:00","lastChanged": "2024-02-15T07:52:35.439616Z"},"lbDongleAttached": {"value": false,"lastChanged": "1970-01-01T00:00:00Z"},"memoryUsage": {"value": 27.0,"lastChanged": "2024-02-15T07:57:35.829820Z"},"operationStatus": {"value": "active","lastChanged": "2024-02-15T07:53:32.753651Z"},"updateAvailable": {"value": "","lastChanged": "2024-01-16T00:02:52.673931Z"},"updateState": {"value": "UpToDate","lastChanged": "1970-01-01T00:00:00Z"},"wMBusDongleAttached": {"value": false,"lastChanged": "1970-01-01T00:00:00Z"},"wifiIpAddress": {"value": "","lastChanged": "1970-01-01T00:00:00Z"},"wifiMacAddress": {"value": "80:91:33:75:b4:5b","lastChanged": "1970-01-01T00:00:00Z"},"wifiSignalStrength": {"value": 0,"lastChanged": "1970-01-01T00:00:00Z"}}%
+
+CONTROLLER_SENSORS = {
+    "cpuUsage": SensorEntityDescription(
+        key="cpuUsage",
+        native_unit_of_measurement=PERCENTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
+    "diskUsage": SensorEntityDescription(
+        key="diskUsage",
+        native_unit_of_measurement=PERCENTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
+    "memoryUsage": SensorEntityDescription(
+        key="memoryUsage",
+        native_unit_of_measurement=PERCENTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
+}
+
+CAPABILITY_SENSORS = {
     CAPABILITY_LUMINANCE_SENSOR: SensorEntityDescription(
         key=LUMINANCE,
         device_class=SensorDeviceClass.ILLUMINANCE,
@@ -93,22 +127,34 @@ async def async_setup_entry(
         for device in shc_devices:
             if device.id not in known_devices:
                 known_devices.add(device.id)
-                for capability_name in SENSOR_TYPES:
-                    if capability_name in device.capabilities:
-                        sensor: SensorEntity = LivisiSensor(
+                if device.is_shc:
+                    for sensor_name in CONTROLLER_SENSORS:
+                        sensor: SensorEntity = LivisiControllerSensor(
                             config_entry,
                             coordinator,
                             device,
-                            SENSOR_TYPES.get(capability_name),
-                            capability_name=capability_name,
-                        )
-                        LOGGER.debug(
-                            "Include device type: %s as %s",
-                            device.type,
-                            capability_name,
+                            CONTROLLER_SENSORS.get(sensor_name),
                         )
                         coordinator.devices.add(device.id)
+                        LOGGER.debug("Include SHC sensor %s", sensor_name)
                         entities.append(sensor)
+                else:
+                    for capability_name in CAPABILITY_SENSORS:
+                        if capability_name in device.capabilities:
+                            sensor: SensorEntity = LivisiSensor(
+                                config_entry,
+                                coordinator,
+                                device,
+                                CAPABILITY_SENSORS.get(capability_name),
+                                capability_name=capability_name,
+                            )
+                            LOGGER.debug(
+                                "Include device type: %s as %s",
+                                device.type,
+                                capability_name,
+                            )
+                            coordinator.devices.add(device.id)
+                            entities.append(sensor)
         async_add_entities(entities)
 
     config_entry.async_on_unload(
@@ -166,3 +212,39 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         """Update the state of the device."""
         self._attr_native_value = state
         self.async_write_ha_state()
+
+
+class LivisiControllerSensor(LivisiEntity, SensorEntity):
+    """Represents a Livisi SHC Sensor."""
+
+    def __init__(
+        self,
+        config_entry: ConfigEntry,
+        coordinator: LivisiDataUpdateCoordinator,
+        device: LivisiDevice,
+        entity_desc: SensorEntityDescription,
+    ) -> None:
+        """Initialize the Livisi sensor."""
+        super().__init__(
+            config_entry,
+            coordinator,
+            device,
+        )
+        self._attr_name = entity_desc.key
+        self._attr_unique_id = device.id + "_" + entity_desc.key
+        self.entity_description = entity_desc
+        self._attr_translation_key = entity_desc.key
+
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, config_entry.entry_id)}
+        )
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        shc_devices: list[LivisiDevice] = self.coordinator.data
+        for device in shc_devices:
+            if device.is_shc:
+                return device.state.get(self.entity_description.key, {}).get(
+                    "value", None
+                )

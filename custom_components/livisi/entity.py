@@ -1,4 +1,5 @@
-"""Code to handle a Livisi switches."""
+"""Code to handle a Livisi entity."""
+
 from __future__ import annotations
 
 
