@@ -1,4 +1,5 @@
 """The Livisi Smart Home integration."""
+
 from __future__ import annotations
 
 from typing import Final
@@ -79,6 +80,9 @@ async def async_migrate_entry(hass, config_entry):
     except Exception as exception:
         LOGGER.error(exception)
         return False
+    finally:
+        if coordinator.aiolivisi is not None:
+            await coordinator.aiolivisi.close()
 
     # list of capabilities where unique id of entities will be changed
     # from device id to capability id
