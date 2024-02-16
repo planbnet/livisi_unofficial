@@ -36,6 +36,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     device_registry = dr.async_get(hass)
+    entity_registry = er.async_get(hass)
     controller = coordinator.aiolivisi.controller
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
@@ -49,6 +50,20 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await coordinator.async_config_entry_first_refresh()
+
+    # Remove devices that have no entities (because they were removed)
+    for device_entry in dr.async_entries_for_config_entry(
+        device_registry, entry.entry_id
+    ):
+        device_id = device_entry.id
+        is_shc = device_entry.via_device_id is None
+        if not is_shc and device_id not in coordinator.devices:
+            entities = er.async_entries_for_device(
+                entity_registry, device_id, include_disabled_entities=True
+            )
+            if len(entities) == 0:
+                device_registry.async_remove_device(device_entry.id)
+
     entry.async_create_background_task(
         hass, coordinator.ws_connect(), "livisi-ws_connect"
     )
