@@ -12,6 +12,7 @@ from homeassistant.components.sensor.const import SensorDeviceClass, SensorState
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
+    LIGHT_LUX,
     UnitOfTemperature,
     UnitOfPower,
     EntityCategory,
@@ -90,7 +91,7 @@ CAPABILITY_SENSORS = {
         key=LUMINANCE,
         device_class=SensorDeviceClass.ILLUMINANCE,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=PERCENTAGE,
+        native_unit_of_measurement=LIGHT_LUX,
     ),
     CAPABILITY_TEMPERATURE_SENSOR: SensorEntityDescription(
         key=TEMPERATURE,
@@ -220,13 +221,36 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         if response is None:
             self.update_reachability(False)
         else:
-            self._attr_native_value = response
+            self._attr_native_value = self.convert_to_hass(response)
             self.update_reachability(True)
+
+    def convert_to_hass(self, number: Decimal):
+        """Convert livisi value to hass value."""
+        if number is None:
+            return None
+        if self.entity_description.native_unit_of_measurement == LIGHT_LUX:
+            # brightness sensors report % values in livisi but hass does not support this
+            # so we just assume a max brighness (100%) of 400lx and scale accordingly
+            # unfortunately, this value does not scale lineary. So i measured a few
+            # data points and approximate with 3 linear functions.
+            # for more info on the sensor see (though this isn't too helpful for
+            # converting the percentage values livisi provides):
+            # https://github.com/Peter-matic/HM-Sec-MDIR_WMD/blob/main/README.md
+
+            if number < 4:  # seems to be capped, 3 is the lowest i have seen
+                return 0
+            elif number <= 10:  # measured 1 lx at 10%
+                return int(number / 10)
+            elif number <= 50:
+                return int(1.4 * number) - 10  # measured 60 lux at 50%
+            else:
+                return int(number * 6.8 - 280)  # scale the rest up to 100% = 400lx
+        return number
 
     @callback
     def update_states(self, state: Decimal) -> None:
         """Update the state of the device."""
-        self._attr_native_value = state
+        self._attr_native_value = self.convert_to_hass(state)
         self.async_write_ha_state()
 
 
