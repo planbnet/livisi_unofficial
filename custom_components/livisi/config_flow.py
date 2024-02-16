@@ -1,4 +1,5 @@
 """Config flow for Livisi Home Assistant."""
+
 from __future__ import annotations
 
 import voluptuous as vol
@@ -52,8 +53,13 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         except IncorrectIpAddressException:
             errors["base"] = "wrong_ip_address"
         else:
-            if self.aio_livisi.controller:
-                return await self.create_entity(user_input, self.aio_livisi.controller)
+            try:
+                if self.aio_livisi.controller:
+                    return await self.create_entity(
+                        user_input, self.aio_livisi.controller
+                    )
+            finally:
+                await self.aio_livisi.close()
 
             errors["base"] = "cannot_connect"
 
