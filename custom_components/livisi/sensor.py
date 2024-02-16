@@ -198,7 +198,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             use_room_as_device_name=(device.type in VRCC_DEVICE_TYPES),
         )
         self.entity_description = entity_desc
-        self._attr_translation_key = entity_desc.translation_key
+        self._attr_translation_key = entity_desc.key
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
@@ -247,6 +247,7 @@ class LivisiControllerSensor(LivisiEntity, SensorEntity):
             device,
         )
         self._attr_name = entity_desc.key
+        self._attr_translation_key = entity_desc.translation_key
         self._attr_unique_id = device.id + "_" + entity_desc.key
         self.entity_description = entity_desc
 
