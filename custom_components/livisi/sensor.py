@@ -246,7 +246,6 @@ class LivisiControllerSensor(LivisiEntity, SensorEntity):
             coordinator,
             device,
         )
-        self._attr_name = entity_desc.key
         self._attr_translation_key = entity_desc.translation_key
         self._attr_unique_id = device.id + "_" + entity_desc.key
         self.entity_description = entity_desc
