@@ -6,12 +6,13 @@ from typing import Final
 LOGGER = logging.getLogger(__package__)
 
 V2_NAME = "Avatar"
+V1_NAME = "Classic"
 V2_WEBSOCKET_PORT: Final = 9090
 CLASSIC_WEBSOCKET_PORT: Final = 8080
 WEBSERVICE_PORT: Final = 8080
 REQUEST_TIMEOUT: Final = 2000
 
-SHC_ID: Final = "00000000000000000000000000000000"
+SHC2_ID: Final = "00000000000000000000000000000000"
 
 BATTERY_LOW: Final = "batteryLow"
 UPDATE_AVAILABLE: Final = "DeviceUpdateAvailable"

@@ -8,6 +8,8 @@ import uuid
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
 
+from custom_components.livisi.const import CONTROLLER_DEVICE_TYPES
+
 from .livisi_device import LivisiDevice
 
 from .livisi_json_util import parse_dataclass
@@ -25,10 +27,11 @@ from .livisi_errors import (
 from .livisi_websocket import LivisiWebsocket
 
 from .livisi_const import (
+    V1_NAME,
     V2_NAME,
     LOGGER,
     REQUEST_TIMEOUT,
-    SHC_ID,
+    SHC2_ID,
     WEBSERVICE_PORT,
 )
 
@@ -202,6 +205,7 @@ class LivisiConnection:
         shc_info = await self.async_send_authorized_request("get", path="status")
         controller = parse_dataclass(shc_info, LivisiController)
         controller.is_v2 = shc_info.get("controllerType") == V2_NAME
+        controller.is_v1 = shc_info.get("controllerType") == V1_NAME
         return controller
 
     async def async_get_devices(
@@ -220,13 +224,24 @@ class LivisiConnection:
             updated_devices,
         ) = self.parse_messages(messages)
 
-        devices, capabilities, rooms, shc_state = await asyncio.gather(
+        devices, capabilities, rooms = await asyncio.gather(
             self.async_send_authorized_request("get", path="device"),
             self.async_send_authorized_request("get", path="capability"),
             self.async_send_authorized_request("get", path="location"),
-            self.async_send_authorized_request("get", path=f"device/{SHC_ID}/state"),
             return_exceptions=True,
         )
+
+        if self.controller.is_v2:
+            shc_state = await self.async_send_authorized_request(
+                "get", path=f"device/{SHC2_ID}/state"
+            )
+
+        if self.controller.is_v1:
+            controller_device = next((x for x in devices if x["type"] == "SHC"), None)
+            if controller_device:
+                shc_state = await self.async_send_authorized_request(
+                    "get", path=f"device/{controller_device['id']}/state"
+                )["state"]
 
         for result, path in zip(
             (devices, capabilities, rooms),
@@ -275,7 +290,16 @@ class LivisiConnection:
                 roomid = device["location"].removeprefix("/location/")
                 device["room"] = room_map.get(roomid)
 
-            if device_id == SHC_ID:
+            # TODO: Can we remove this if the controller Device types match?
+            # For SHC2
+            if device_id == SHC2_ID:
+                if isinstance(shc_state, Exception):
+                    device["state"] = {}
+                else:
+                    device["state"] = shc_state
+
+            # For SHC1
+            if device["type"] in CONTROLLER_DEVICE_TYPES:
                 if isinstance(shc_state, Exception):
                     device["state"] = {}
                 else:
@@ -309,7 +333,7 @@ class LivisiConnection:
                 d.removeprefix("/device/") for d in message.get("devices", [])
             ]
             if len(device_ids) == 0:
-                source = message.get("source", SHC_ID)
+                source = message.get("source", SHC2_ID)
                 device_ids = [source.replace("/device/", "")]
             if msgtype == "DeviceLowBattery":
                 for device_id in device_ids:
