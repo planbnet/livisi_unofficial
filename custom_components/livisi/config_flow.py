@@ -11,6 +11,7 @@ from .livisi_controller import LivisiController
 
 from .livisi_connector import LivisiConnection, connect as livisi_connect
 from .livisi_errors import (
+    ErrorCodeException,
     WrongCredentialException,
     IncorrectIpAddressException,
     ShcUnreachableException,
@@ -52,6 +53,8 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "cannot_connect"
         except IncorrectIpAddressException:
             errors["base"] = "wrong_ip_address"
+        except ErrorCodeException:
+            errors["base"] = "cannot_connect"
         else:
             try:
                 if self.aio_livisi.controller:

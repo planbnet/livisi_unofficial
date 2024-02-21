@@ -14,13 +14,13 @@ from .livisi_json_util import parse_dataclass
 from .livisi_controller import LivisiController
 
 from .livisi_errors import (
+    ERROR_CODES,
     IncorrectIpAddressException,
     LivisiException,
     ShcUnreachableException,
     WrongCredentialException,
     ErrorCodeException,
 )
-
 
 from .livisi_websocket import LivisiWebsocket
 
@@ -154,8 +154,9 @@ class LivisiConnection:
         response = await self._async_send_request(method, url, payload, headers)
 
         if response is not None and "errorcode" in response:
+            errorcode = response.get("errorcode")
             # reconnect on expired token
-            if response["errorcode"] == 2007:
+            if errorcode == 2007:
                 await self._async_retrieve_token()
                 response = await self._async_send_request(method, url, payload, headers)
                 if response is not None and "errorcode" in response:
@@ -165,7 +166,12 @@ class LivisiConnection:
                     )
                     raise ErrorCodeException(response["errorcode"])
             else:
-                LOGGER.error("Livisi sent error code %d", response.get("errorcode"))
+                LOGGER.error(
+                    "Error code %d (%s) on url %s",
+                    errorcode,
+                    ERROR_CODES.get(errorcode, "unknown"),
+                    url,
+                )
                 raise ErrorCodeException(response["errorcode"])
 
         return response
