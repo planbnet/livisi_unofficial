@@ -95,11 +95,8 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         self._attr_max_temp = config.get("maxTemperature", MAX_TEMPERATURE)
         self._attr_min_temp = config.get("minTemperature", MIN_TEMPERATURE)
 
-        self._thermostat_actuator_ids: [str] = [
-            id.strip()
-            for id in device.capability_config.get("RoomSetpoint", {})
-            .get("underlyingCapabilityIds", "")
-            .split(",")
+        self._thermostat_actuator_ids = [
+            id.strip() for id in config.get("underlyingCapabilityIds", "").split(",")
         ]
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
@@ -111,9 +108,9 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         success = await self.aio_livisi.async_set_state(
             self._target_temperature_capability,
             key=(
-                "setpointTemperature"
+                SETPOINT_TEMPERATURE
                 if self.coordinator.aiolivisi.controller.is_v2
-                else "pointTemperature"
+                else POINT_TEMPERATURE
             ),
             value=target_temp,
         )
