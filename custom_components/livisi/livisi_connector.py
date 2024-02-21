@@ -239,8 +239,10 @@ class LivisiConnection:
         if self.controller.is_v1:
             controller_device = next((x for x in devices if x["type"] == "SHC"), None)
             if controller_device:
-                shc_state = await self.async_send_authorized_request(
-                    "get", path=f"device/{controller_device['id']}/state"
+                shc_state = (
+                    await self.async_send_authorized_request(
+                        "get", path=f"device/{controller_device['id']}/state"
+                    )
                 )["state"]
 
         for result, path in zip(
