@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 import uuid
+from aiohttp import ServerDisconnectedError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
 
-from custom_components.livisi.const import CONTROLLER_DEVICE_TYPES
+from custom_components.livisi.const import COMMAND_RESTART, CONTROLLER_DEVICE_TYPES
 
 from .livisi_device import LivisiDevice
 
@@ -384,11 +385,62 @@ class LivisiConnection:
         if key is not None:
             params = {key: {"type": "Constant", "value": value}}
 
-        return await self.async_send_command(
+        return await self.async_send_capability_command(
             capability_id, "SetState", namespace=namespace, params=params
         )
 
-    async def async_send_command(
+    async def _async_send_command(
+        self,
+        target: str,
+        command_type: str,
+        *,
+        namespace: str = "core.RWE",
+        params: dict = None,
+    ) -> bool:
+        """Send a command to a target."""
+
+        if params is None:
+            params = {}
+
+        set_state_payload: dict[str, Any] = {
+            "id": uuid.uuid4().hex,
+            "type": command_type,
+            "namespace": namespace,
+            "target": target,
+            "params": params,
+        }
+        try:
+            response = await self.async_send_authorized_request(
+                "post", "action", payload=set_state_payload
+            )
+            if response is None:
+                return False
+            return response.get("resultCode") == "Success"
+        except ServerDisconnectedError:
+            # Funny thing: The SHC restarts immediatly upon processing the restart command, it doesn't even answer to the request
+            # In order to not throw an error we need to catch and assume the request was successfull.
+            if command_type == COMMAND_RESTART:
+                return True
+            raise
+
+    async def async_send_device_command(
+        self,
+        device_id: str,
+        command_type: str,
+        *,
+        namespace: str = "core.RWE",
+        params: dict = None,
+    ) -> bool:
+        """Send a command to a device."""
+
+        return await self._async_send_command(
+            target=f"/device/{device_id}",
+            command_type=command_type,
+            namespace=namespace,
+            params=params,
+        )
+
+    async def async_send_capability_command(
         self,
         capability_id: str,
         command_type: str,
@@ -398,22 +450,12 @@ class LivisiConnection:
     ) -> bool:
         """Send a command to a capability."""
 
-        if params is None:
-            params = {}
-
-        set_state_payload: dict[str, Any] = {
-            "id": uuid.uuid4().hex,
-            "type": command_type,
-            "namespace": namespace,
-            "target": f"/capability/{capability_id}",
-            "params": params,
-        }
-        response = await self.async_send_authorized_request(
-            "post", "action", payload=set_state_payload
+        return await self._async_send_command(
+            target=f"/capability/{capability_id}",
+            command_type=command_type,
+            namespace=namespace,
+            params=params,
         )
-        if response is None:
-            return False
-        return response.get("resultCode") == "Success"
 
     @property
     def livisi_connection_data(self):

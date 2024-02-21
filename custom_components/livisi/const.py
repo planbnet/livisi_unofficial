@@ -95,3 +95,5 @@ STATE_PROPERTIES = [
 EVENT_BUTTON_PRESSED = "button_pressed"
 EVENT_BUTTON_LONG_PRESSED = "button_long_pressed"
 EVENT_MOTION_DETECTED = "motion_detected"
+
+COMMAND_RESTART = "Restart"
