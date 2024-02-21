@@ -304,7 +304,7 @@ class LivisiConnection:
             ]
             if len(device_ids) == 0:
                 source = message.get("source", SHC_ID)
-                device_ids.add(source.replace("/device/", ""))
+                device_ids = [source.replace("/device/", "")]
             if msgtype == "DeviceLowBattery":
                 for device_id in device_ids:
                     low_battery_devices.add(device_id)
