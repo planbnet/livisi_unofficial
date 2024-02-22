@@ -1,5 +1,6 @@
 """Code to handle a Livisi Number Sensor."""
 from __future__ import annotations
+import platform
 
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription
@@ -45,7 +46,7 @@ async def async_setup_entry(
                         config_entry,
                         device,
                         NumberEntityDescription(
-                            key=device.name + "_duration",
+                            key="duration",
                             name="Duration",
                             entity_category=EntityCategory.CONFIG,
                             native_max_value=65535,
@@ -82,6 +83,10 @@ class NoopConfigNumber(RestoreNumber):
         unique_id = device.id + "_" + entity_desc.key + "_number"
         self._attr_unique_id = unique_id
         self.device_id = device.id
+        self._attr_translation_key = entity_desc.key
+        self.entity_id = str.lower(
+            platform.NUMBER + "." + device.name + "_" + entity_desc.key
+        )
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, device.id)},
@@ -102,14 +107,10 @@ class NoopConfigNumber(RestoreNumber):
             last_number_data := await self.async_get_last_number_data()
         ):
             if last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-                self.number = last_number_data.native_value
-
-    @property
-    def native_value(self) -> float | None:
-        """Return the value of the sensor property."""
-        return self.number
+                self._attr_native_value = last_number_data.native_value
+            if self._attr_native_value is None:
+                self._attr_native_value = 20
 
     async def async_set_native_value(self, value: float) -> None:
         """Set sensor config."""
-        self.number = value
-
+        self._attr_native_value = value
