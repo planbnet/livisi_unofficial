@@ -17,8 +17,11 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.core import CALLBACK_TYPE
 from homeassistant.helpers import event as evt
-from homeassistant.const import Platform
-
+from homeassistant.const import (
+    Platform,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+)
 from .livisi_device import LivisiDevice
 from datetime import datetime, timezone, timedelta
 
@@ -279,7 +282,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
             self._delay_listener = None
 
         off_delay = self.get_off_delay()
-        if self.is_on and off_delay is not None:
+        if self.is_on:
 
             @callback
             def off_delay_listener(now: Any) -> None:
@@ -296,6 +299,4 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
         """Get the Delay."""
         id = self.off_delay_entity_id
         state = self.hass.states.get(id)
-        if state is None:
-            return None
         return float(state.state)

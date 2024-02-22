@@ -11,6 +11,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.const import (
+    Platform,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
@@ -85,7 +86,7 @@ class NoopConfigNumber(RestoreNumber):
         self.device_id = device.id
         self._attr_translation_key = entity_desc.key
         self.entity_id = str.lower(
-            platform.NUMBER + "." + device.name + "_" + entity_desc.key
+            Platform.NUMBER + "." + device.name + "_" + entity_desc.key
         )
 
         self._attr_device_info = DeviceInfo(
@@ -103,13 +104,17 @@ class NoopConfigNumber(RestoreNumber):
     async def async_added_to_hass(self) -> None:
         """Restore last state."""
         await super().async_added_to_hass()
+
+        # Set to default Value first as the calls to retrieve the state
+        # are awaiting endlessly when the entity is initialized for the first time
+        if self._attr_native_value is None:
+            self._attr_native_value = 20
+
         if (last_state := await self.async_get_last_state()) and (
             last_number_data := await self.async_get_last_number_data()
         ):
             if last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
                 self._attr_native_value = last_number_data.native_value
-            if self._attr_native_value is None:
-                self._attr_native_value = 20
 
     async def async_set_native_value(self, value: float) -> None:
         """Set sensor config."""
