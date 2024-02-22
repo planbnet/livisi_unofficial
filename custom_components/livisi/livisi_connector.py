@@ -65,10 +65,9 @@ class LivisiConnection:
             self._password = password
         try:
             await self._async_retrieve_token()
-        except Exception as connection_error:
-            LOGGER.error(connection_error)
+        except:
             await self.close()
-            raise connection_error
+            raise
 
         self.controller = await self._async_get_controller()
         if self.controller.is_v2:

@@ -5,12 +5,15 @@ from __future__ import annotations
 from typing import Final
 
 from homeassistant import core
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+
+from .livisi_errors import WrongCredentialException
 
 
 from .const import CONF_HOST, DOMAIN, LOGGER, SWITCH_DEVICE_TYPES
@@ -32,7 +35,14 @@ PLATFORMS: Final = [
 async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Livisi Smart Home from a config entry."""
     coordinator = LivisiDataUpdateCoordinator(hass, entry)
-    await coordinator.async_setup()
+    try:
+        await coordinator.async_setup()
+    except Exception as exception:
+        LOGGER.error(exception, exc_info=True)
+        # no need to retry if the credentials are wrong
+        if isinstance(exception, WrongCredentialException):
+            return False
+        raise ConfigEntryNotReady(exception) from exception
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     device_registry = dr.async_get(hass)
@@ -93,7 +103,7 @@ async def async_migrate_entry(hass, config_entry):
         await coordinator.async_setup()
         devices = await coordinator.async_get_devices()
     except Exception as exception:
-        LOGGER.error(exception)
+        LOGGER.error(exception, exc_info=True)
         return False
     finally:
         if coordinator.aiolivisi is not None:
