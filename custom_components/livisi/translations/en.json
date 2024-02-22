@@ -52,6 +52,11 @@
             "disk_usage": {
                 "name": "Disk usage"
             }
+        },
+        "number": {
+            "duration": {
+                "name": "Duration"
+            }
         }
     }
 }
