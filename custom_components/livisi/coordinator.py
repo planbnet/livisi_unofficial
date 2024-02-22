@@ -7,7 +7,6 @@ from typing import Any
 
 from aiohttp import ClientConnectorError
 
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -16,13 +15,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .livisi_device import LivisiDevice
 from .livisi_connector import LivisiConnection, connect as livisi_connect
 from .livisi_websocket import LivisiWebsocketEvent
-
-from .livisi_errors import (
-    IncorrectIpAddressException,
-    ShcUnreachableException,
-    WrongCredentialException,
-)
-
 
 from .const import (
     CONF_HOST,
@@ -66,17 +58,10 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
     async def async_setup(self) -> None:
         """Set up the Livisi Smart Home Controller."""
-        try:
-            self.aiolivisi = await livisi_connect(
-                self.config_entry.data[CONF_HOST],
-                self.config_entry.data[CONF_PASSWORD],
-            )
-        except ShcUnreachableException as exception:
-            raise ConfigEntryNotReady from exception
-        except WrongCredentialException as exception:
-            raise ConfigEntryNotReady from exception
-        except IncorrectIpAddressException as exception:
-            raise ConfigEntryNotReady from exception
+        self.aiolivisi = await livisi_connect(
+            self.config_entry.data[CONF_HOST],
+            self.config_entry.data[CONF_PASSWORD],
+        )
 
     async def _async_update_data(self) -> list[LivisiDevice]:
         """Get device configuration from LIVISI."""

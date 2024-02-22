@@ -95,9 +95,10 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         self._attr_max_temp = config.get("maxTemperature", MAX_TEMPERATURE)
         self._attr_min_temp = config.get("minTemperature", MIN_TEMPERATURE)
 
-        self._thermostat_actuator_ids = [
-            id.strip() for id in config.get("underlyingCapabilityIds", "").split(",")
-        ]
+        capabilities = config.get("underlyingCapabilityIds")
+        if capabilities is None:
+            capabilities = ""
+        self._thermostat_actuator_ids = [id.strip() for id in capabilities.split(",")]
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature. Overrides hass method."""
