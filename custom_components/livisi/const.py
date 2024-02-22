@@ -29,7 +29,6 @@ SWITCH_DEVICE_TYPES: Final = ["ISS2", "PSS", "PSSO", "BT-PSS"]
 VARIABLE_DEVICE_TYPES: Final = ["VariableActuator"]
 VRCC_DEVICE_TYPES: Final = ["VRCC"]
 WDS_DEVICE_TYPES: Final = ["WDS", "BT-WDS"]
-CONTROLLER_DEVICE_TYPES: Final = ["SHC", "SHC2"]  # TODO: Is this the right type?
 
 BATTERY_POWERED_DEVICES = [
     "BRC8",

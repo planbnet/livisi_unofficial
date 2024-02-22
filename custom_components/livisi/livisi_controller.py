@@ -1,4 +1,5 @@
 """Code to represent a livisi device."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,5 +13,6 @@ class LivisiController:
     serial_number: str
     os_version: str
 
+    device_id: str
     is_v2: bool
     is_v1: bool

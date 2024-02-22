@@ -5,8 +5,7 @@ from typing import Any
 
 from dataclasses import dataclass
 
-from custom_components.livisi.const import CONTROLLER_DEVICE_TYPES
-
+from .livisi_const import CONTROLLER_DEVICE_TYPES
 
 
 @dataclass
