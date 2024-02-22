@@ -5,8 +5,7 @@ from typing import Any
 
 from dataclasses import dataclass
 
-from custom_components.livisi.const import CONTROLLER_DEVICE_TYPES
-
+from .livisi_const import CONTROLLER_DEVICE_TYPES
 
 
 @dataclass
@@ -51,5 +50,4 @@ class LivisiDevice:
     @property
     def is_shc(self) -> bool:
         """Indicate whether this device is the controller."""
-        # TODO: Does this work for V2?
         return self.type in CONTROLLER_DEVICE_TYPES

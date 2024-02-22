@@ -12,7 +12,7 @@ CLASSIC_WEBSOCKET_PORT: Final = 8080
 WEBSERVICE_PORT: Final = 8080
 REQUEST_TIMEOUT: Final = 2000
 
-SHC2_ID: Final = "00000000000000000000000000000000"
+CONTROLLER_DEVICE_TYPES: Final = ["SHC", "SHCA"]
 
 BATTERY_LOW: Final = "batteryLow"
 UPDATE_AVAILABLE: Final = "DeviceUpdateAvailable"
@@ -26,3 +26,5 @@ IS_REACHABLE: Final = "isReachable"
 EVENT_BUTTON_PRESSED = "button_pressed"
 EVENT_BUTTON_LONG_PRESSED = "button_long_pressed"
 EVENT_MOTION_DETECTED = "motion_detected"
+
+COMMAND_RESTART = "Restart"

@@ -9,8 +9,6 @@ from aiohttp import ServerDisconnectedError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
 
-from custom_components.livisi.const import COMMAND_RESTART, CONTROLLER_DEVICE_TYPES
-
 from .livisi_device import LivisiDevice
 
 from .livisi_json_util import parse_dataclass
@@ -28,11 +26,12 @@ from .livisi_errors import (
 from .livisi_websocket import LivisiWebsocket
 
 from .livisi_const import (
+    COMMAND_RESTART,
+    CONTROLLER_DEVICE_TYPES,
     V1_NAME,
     V2_NAME,
     LOGGER,
     REQUEST_TIMEOUT,
-    SHC2_ID,
     WEBSERVICE_PORT,
 )
 
@@ -232,20 +231,6 @@ class LivisiConnection:
             return_exceptions=True,
         )
 
-        if self.controller.is_v2:
-            shc_state = await self.async_send_authorized_request(
-                "get", path=f"device/{SHC2_ID}/state"
-            )
-
-        if self.controller.is_v1:
-            controller_device = next((x for x in devices if x["type"] == "SHC"), None)
-            if controller_device:
-                shc_state = (
-                    await self.async_send_authorized_request(
-                        "get", path=f"device/{controller_device['id']}/state"
-                    )
-                )["state"]
-
         for result, path in zip(
             (devices, capabilities, rooms),
             ("device", "capability", "location"),
@@ -253,6 +238,20 @@ class LivisiConnection:
             if isinstance(result, Exception):
                 LOGGER.warn(f"Error loading {path}")
                 raise result  # Re-raise the exception immediately
+
+        controller_id = next(
+            (x.get("id") for x in devices if x.get("type") in CONTROLLER_DEVICE_TYPES),
+            None,
+        )
+        if controller_id is not None:
+            try:
+                shc_state = await self.async_send_authorized_request(
+                    "get", path=f"device/{controller_id}/state"
+                )
+                if self.controller.is_v1:
+                    shc_state = shc_state["state"]
+            except Exception:
+                LOGGER.warning("Error getting shc state", exc_info=True)
 
         capability_map = {}
         capability_config = {}
@@ -293,20 +292,8 @@ class LivisiConnection:
                 roomid = device["location"].removeprefix("/location/")
                 device["room"] = room_map.get(roomid)
 
-            # TODO: Can we remove this if the controller Device types match?
-            # For SHC2
-            if device_id == SHC2_ID:
-                if isinstance(shc_state, Exception):
-                    device["state"] = {}
-                else:
-                    device["state"] = shc_state
-
-            # For SHC1
             if device["type"] in CONTROLLER_DEVICE_TYPES:
-                if isinstance(shc_state, Exception):
-                    device["state"] = {}
-                else:
-                    device["state"] = shc_state
+                device["state"] = shc_state
 
             devicelist.append(parse_dataclass(device, LivisiDevice))
 
@@ -336,7 +323,7 @@ class LivisiConnection:
                 d.removeprefix("/device/") for d in message.get("devices", [])
             ]
             if len(device_ids) == 0:
-                source = message.get("source", SHC2_ID)
+                source = message.get("source", "")
                 device_ids = [source.replace("/device/", "")]
             if msgtype == "DeviceLowBattery":
                 for device_id in device_ids:
