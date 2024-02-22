@@ -5,7 +5,7 @@ from typing import Any
 
 from dataclasses import dataclass
 
-from .livisi_const import SHC_ID
+from .livisi_const import CONTROLLER_DEVICE_TYPES
 
 
 @dataclass
@@ -50,4 +50,4 @@ class LivisiDevice:
     @property
     def is_shc(self) -> bool:
         """Indicate whether this device is the controller."""
-        return self.id == SHC_ID
+        return self.type in CONTROLLER_DEVICE_TYPES
