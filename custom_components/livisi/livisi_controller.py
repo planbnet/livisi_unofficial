@@ -13,6 +13,5 @@ class LivisiController:
     serial_number: str
     os_version: str
 
-    device_id: str
     is_v2: bool
     is_v1: bool
