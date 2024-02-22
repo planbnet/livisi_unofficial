@@ -1,6 +1,5 @@
 """Code to handle a Livisi Number Sensor."""
 from __future__ import annotations
-import platform
 
 
 from homeassistant.components.number import NumberEntity, NumberEntityDescription

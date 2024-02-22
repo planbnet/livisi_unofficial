@@ -19,11 +19,9 @@ from homeassistant.core import CALLBACK_TYPE
 from homeassistant.helpers import event as evt
 from homeassistant.const import (
     Platform,
-    STATE_UNAVAILABLE,
-    STATE_UNKNOWN,
 )
 from .livisi_device import LivisiDevice
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from .const import (
     BATTERY_POWERED_DEVICES,
