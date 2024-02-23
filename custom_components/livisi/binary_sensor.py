@@ -127,7 +127,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
             )
         )
 
-        response = await self.coordinator.aiolivisi.async_get_device_state(
+        response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, self.entity_description.key
         )
         if response is None:

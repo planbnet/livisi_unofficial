@@ -150,7 +150,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
-        response = await self.aio_livisi.async_get_device_state(
+        response = await self.aio_livisi.async_get_value(
             self.capability_id, SHUTTER_LEVEL
         )
         if response is None:
