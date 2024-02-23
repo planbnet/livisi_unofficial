@@ -154,14 +154,14 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             else POINT_TEMPERATURE
         )
 
-        target_temperature = await self.coordinator.aiolivisi.async_get_device_state(
+        target_temperature = await self.coordinator.aiolivisi.async_get_value(
             self._target_temperature_capability,
             target_temp_property,
         )
-        temperature = await self.coordinator.aiolivisi.async_get_device_state(
+        temperature = await self.coordinator.aiolivisi.async_get_value(
             self._temperature_capability, TEMPERATURE
         )
-        humidity = await self.coordinator.aiolivisi.async_get_device_state(
+        humidity = await self.coordinator.aiolivisi.async_get_value(
             self._humidity_capability, HUMIDITY
         )
         if temperature is None:
@@ -174,7 +174,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             self.update_reachability(True)
 
         if len(self._thermostat_actuator_ids) > 0:
-            mode = await self.coordinator.aiolivisi.async_get_device_state(
+            mode = await self.coordinator.aiolivisi.async_get_value(
                 self._thermostat_actuator_ids[0], OPERATION_MODE
             )
             self.update_mode(mode)

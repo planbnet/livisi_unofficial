@@ -341,19 +341,29 @@ class LivisiConnection:
             updated_devices,
         )
 
-    async def async_get_device_state(self, capability: str, key: str) -> Any | None:
-        """Get state of the device."""
+    async def async_get_value(
+        self, capability: str, property: str, key: str = "value"
+    ) -> Any | None:
+        """Get current value of the capability."""
+        state = await self.async_get_state(capability, property)
+        if state is None:
+            return None
+        return state.get(key, None)
+
+    async def async_get_state(self, capability: str, property: str) -> dict | None:
+        """Get state of a capability."""
+        requestUrl = f"capability/{capability}/state"
         try:
-            response = await self.async_send_authorized_request(
-                "get", f"capability/{capability}/state"
-            )
+            response = await self.async_send_authorized_request("get", requestUrl)
             if response is None:
                 return None
             if not isinstance(response, dict):
                 return None
-            return response.get(key, {}).get("value")
+            return response.get(property, None)
         except Exception:
-            LOGGER.warning("Error getting device state", exc_info=True)
+            LOGGER.warning(
+                f"Error getting device state (url: {requestUrl})", exc_info=True
+            )
             return None
 
     async def async_set_state(

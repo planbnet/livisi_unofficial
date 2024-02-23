@@ -113,7 +113,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
-        response = await self.coordinator.aiolivisi.async_get_device_state(
+        response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, ON_STATE
         )
         if response is None:
@@ -181,7 +181,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
-        response = await self.coordinator.aiolivisi.async_get_device_state(
+        response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, ACTIVE_CHANNEL
         )
         if response is None:
