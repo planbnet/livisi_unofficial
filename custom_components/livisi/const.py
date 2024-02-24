@@ -60,6 +60,24 @@ HUMIDITY: Final = "humidity"
 CAPABILITY_POWER_SENSOR: Final = "PowerConsumptionSensor"
 POWER_CONSUMPTION: Final = "powerConsumptionWatt"
 
+#
+# Type: "TwoWayMeter"
+# Capabilites:
+# TwoWayMeterPowerConsumptionSensor
+#   "properties": {"powerInWatt": 58}
+# TwoWayMeterEnergyFeedSensor
+#   "properties": {"energyPerDayInKWh": 0.003,"totalEnergy": 60682.68}
+# TwoWayMeterEnergyConsumptionSensor
+#   "properties": {"energyPerDayInKWh": 4.775,"energyPerMonthInKWh": 152.721,"totalEnergy": 23386.434}
+
+# Type: "GenerationMeter"
+# Capabilites:
+# GenerationMeterPowerConsumptionSensor
+#   "properties": {"powerInWatt": 847},
+# GenerationMeterEnergySensor
+#   "properties": {"energyPerDayInKWh": 1.257,"energyPerMonthInKWh": 297.583,"totalEnergy": 107317.164}
+
+
 ON_STATE: Final = "onState"
 SHUTTER_LEVEL: Final = "shutterLevel"
 DIM_LEVEL: Final = "dimLevel"
