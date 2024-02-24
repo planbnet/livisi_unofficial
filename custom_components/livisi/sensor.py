@@ -15,6 +15,7 @@ from homeassistant.const import (
     LIGHT_LUX,
     UnitOfTemperature,
     UnitOfPower,
+    UnitOfEnergy,
     EntityCategory,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -31,11 +32,20 @@ from .const import (
     CAPABILITY_ROOM_TEMPERATURE,
     CAPABILITY_TEMPERATURE_SENSOR,
     CAPABILITY_POWER_SENSOR,
+    CAPABILITY_METER_2WAY_ENERGY_OUT,
+    CAPABILITY_METER_2WAY_ENERGY_IN,
+    CAPABILITY_METER_2WAY_POWER,
+    CAPABILITY_METER_GENERATION_POWER,
+    CAPABILITY_METER_GENERATION_ENERGY,
     DOMAIN,
     HUMIDITY,
     LIVISI_STATE_CHANGE,
     LOGGER,
     LUMINANCE,
+    METER_ENERGY_PER_DAY,
+    METER_ENERGY_PER_MONTH,
+    METER_ENERGY_TOTAL,
+    METER_POWER,
     TEMPERATURE,
     VRCC_DEVICE_TYPES,
     POWER_CONSUMPTION,
@@ -87,42 +97,130 @@ CONTROLLER_SENSORS = {
 }
 
 CAPABILITY_SENSORS = {
-    CAPABILITY_LUMINANCE_SENSOR: SensorEntityDescription(
-        key=LUMINANCE,
-        device_class=SensorDeviceClass.ILLUMINANCE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=LIGHT_LUX,
-    ),
-    CAPABILITY_TEMPERATURE_SENSOR: SensorEntityDescription(
-        key=TEMPERATURE,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-    ),
-    CAPABILITY_ROOM_TEMPERATURE: SensorEntityDescription(
-        key=TEMPERATURE,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-    ),
-    CAPABILITY_HUMIDITY_SENSOR: SensorEntityDescription(
-        key=HUMIDITY,
-        device_class=SensorDeviceClass.HUMIDITY,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=PERCENTAGE,
-    ),
-    CAPABILITY_ROOM_HUMIDITY: SensorEntityDescription(
-        key=HUMIDITY,
-        device_class=SensorDeviceClass.HUMIDITY,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=PERCENTAGE,
-    ),
-    CAPABILITY_POWER_SENSOR: SensorEntityDescription(
-        key=POWER_CONSUMPTION,
-        device_class=SensorDeviceClass.POWER,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.WATT,
-    ),
+    CAPABILITY_LUMINANCE_SENSOR: [
+        SensorEntityDescription(
+            key=LUMINANCE,
+            device_class=SensorDeviceClass.ILLUMINANCE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=LIGHT_LUX,
+        )
+    ],
+    CAPABILITY_TEMPERATURE_SENSOR: [
+        SensorEntityDescription(
+            key=TEMPERATURE,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        )
+    ],
+    CAPABILITY_ROOM_TEMPERATURE: [
+        SensorEntityDescription(
+            key=TEMPERATURE,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        )
+    ],
+    CAPABILITY_HUMIDITY_SENSOR: [
+        SensorEntityDescription(
+            key=HUMIDITY,
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=PERCENTAGE,
+        )
+    ],
+    CAPABILITY_ROOM_HUMIDITY: [
+        SensorEntityDescription(
+            key=HUMIDITY,
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=PERCENTAGE,
+        )
+    ],
+    CAPABILITY_POWER_SENSOR: [
+        SensorEntityDescription(
+            key=POWER_CONSUMPTION,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+        )
+    ],
+    CAPABILITY_METER_2WAY_POWER: [
+        SensorEntityDescription(
+            key=METER_POWER,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+        )
+    ],
+    CAPABILITY_METER_GENERATION_POWER: [
+        SensorEntityDescription(
+            key=METER_POWER,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfPower.WATT,
+        )
+    ],
+    CAPABILITY_METER_GENERATION_ENERGY: [
+        SensorEntityDescription(
+            key=METER_ENERGY_PER_DAY,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+        SensorEntityDescription(
+            key=METER_ENERGY_PER_MONTH,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+        SensorEntityDescription(
+            key=METER_ENERGY_TOTAL,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+    ],
+    CAPABILITY_METER_2WAY_ENERGY_IN: [
+        SensorEntityDescription(
+            key=METER_ENERGY_PER_DAY,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+        SensorEntityDescription(
+            key=METER_ENERGY_PER_MONTH,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+        SensorEntityDescription(
+            key=METER_ENERGY_TOTAL,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+    ],
+    CAPABILITY_METER_2WAY_ENERGY_OUT: [
+        SensorEntityDescription(
+            key=METER_ENERGY_PER_DAY,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+        SensorEntityDescription(
+            key=METER_ENERGY_PER_MONTH,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+        SensorEntityDescription(
+            key=METER_ENERGY_TOTAL,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        ),
+    ],
 }
 
 
@@ -158,20 +256,22 @@ async def async_setup_entry(
                 else:
                     for capability_name in CAPABILITY_SENSORS:
                         if capability_name in device.capabilities:
-                            sensor: SensorEntity = LivisiSensor(
-                                config_entry,
-                                coordinator,
-                                device,
-                                CAPABILITY_SENSORS.get(capability_name),
-                                capability_name=capability_name,
-                            )
+                            properties = CAPABILITY_SENSORS.get(capability_name)
                             LOGGER.debug(
                                 "Include device type: %s as %s",
                                 device.type,
                                 capability_name,
                             )
+                            for prop in properties:
+                                sensor: SensorEntity = LivisiSensor(
+                                    config_entry,
+                                    coordinator,
+                                    device,
+                                    prop,
+                                    capability_name=capability_name,
+                                )
+                                entities.append(sensor)
                             coordinator.devices.add(device.id)
-                            entities.append(sensor)
         async_add_entities(entities)
 
     config_entry.async_on_unload(
@@ -199,7 +299,8 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             use_room_as_device_name=(device.type in VRCC_DEVICE_TYPES),
         )
         self.entity_description = entity_desc
-        self._attr_translation_key = entity_desc.key
+        if entity_desc.translation_key is None:
+            self._attr_translation_key = entity_desc.key
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
