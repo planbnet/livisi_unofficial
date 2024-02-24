@@ -263,6 +263,11 @@ async def async_setup_entry(
                                 capability_name,
                             )
                             for prop in properties:
+                                LOGGER.debug(
+                                    "Generate property %s for %s",
+                                    prop,
+                                    capability_name,
+                                )
                                 sensor: SensorEntity = LivisiSensor(
                                     config_entry,
                                     coordinator,
