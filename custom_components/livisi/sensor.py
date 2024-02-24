@@ -229,6 +229,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         if number is None:
             return None
         if self.entity_description.native_unit_of_measurement == LIGHT_LUX:
+            # WRONG, see below
             # brightness sensors report % values in livisi but hass does not support this
             # so we just assume a max brighness (100%) of 400lx and scale accordingly
             # unfortunately, this value does not scale lineary. So i measured a few
@@ -237,14 +238,24 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             # converting the percentage values livisi provides):
             # https://github.com/Peter-matic/HM-Sec-MDIR_WMD/blob/main/README.md
 
-            if number < 4:  # seems to be capped, 3 is the lowest i have seen
-                return 0
-            elif number <= 10:  # measured 1 lx at 10%
-                return int(number / 10)
-            elif number <= 50:
-                return int(1.4 * number) - 10  # measured 60 lux at 50%
-            else:
-                return int(number * 6.8 - 280)  # scale the rest up to 100% = 400lx
+            # TODO: I measured (with a simple iphone app) 2000lx while the sensor gave
+            # 78% today, so this calculation is probably wrong and the sensor is _not_
+            # capped at 400lx some internet sources seemed to suggest.
+            # I'm not sure how to find out the correct factors here, because I don't have
+            # the ability to constantly measure with an accurate lux sensor for a full day
+            # with bright light...
+
+            # if number < 4:  # seems to be capped, 3 is the lowest i have seen
+            #    return 0
+            # elif number <= 10:  # measured 1 lx at 10%
+            #    return int(number / 10)
+            # elif number <= 50:
+            #    return int(1.4 * number) - 10  # measured 60 lux at 50%
+            # elif number <= 78: # measured 2000lx at 78%
+            #    return
+            # else:
+            #    return int(number * 6.8 - 280)  # scale the rest up to 100% = 4000lx
+            return number
         return number
 
     @callback
