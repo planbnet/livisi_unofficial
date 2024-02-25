@@ -100,10 +100,18 @@ CAPABILITY_SENSORS = {
     CAPABILITY_LUMINANCE_SENSOR: [
         SensorEntityDescription(
             key=LUMINANCE,
+            translation_key="lumi1",
             device_class=SensorDeviceClass.ILLUMINANCE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=LIGHT_LUX,
-        )
+        ),
+        SensorEntityDescription(
+            key=LUMINANCE,
+            translation_key="lumi2",
+            device_class=SensorDeviceClass.ILLUMINANCE,
+            state_class=SensorStateClass.MEASUREMENT,
+            native_unit_of_measurement=LIGHT_LUX,
+        ),
     ],
     CAPABILITY_TEMPERATURE_SENSOR: [
         SensorEntityDescription(
@@ -183,19 +191,22 @@ CAPABILITY_SENSORS = {
     ],
     CAPABILITY_METER_2WAY_ENERGY_IN: [
         SensorEntityDescription(
-            key=METER_ENERGY_PER_DAY + "In",
+            key=METER_ENERGY_PER_DAY,
+            translation_key=METER_ENERGY_PER_DAY + "In",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         ),
         SensorEntityDescription(
-            key=METER_ENERGY_PER_MONTH + "In",
+            key=METER_ENERGY_PER_MONTH,
+            translation_key=METER_ENERGY_PER_MONTH + "In",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         ),
         SensorEntityDescription(
-            key=METER_ENERGY_TOTAL + "In",
+            key=METER_ENERGY_TOTAL,
+            translation_key=METER_ENERGY_TOTAL + "In",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -203,19 +214,22 @@ CAPABILITY_SENSORS = {
     ],
     CAPABILITY_METER_2WAY_ENERGY_OUT: [
         SensorEntityDescription(
-            key=METER_ENERGY_PER_DAY + "Out",
+            key=METER_ENERGY_PER_DAY,
+            translation_key=METER_ENERGY_PER_DAY + "Out",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         ),
         SensorEntityDescription(
-            key=METER_ENERGY_PER_MONTH + "Out",
+            key=METER_ENERGY_PER_MONTH,
+            translation_key=METER_ENERGY_PER_MONTH + "Out",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         ),
         SensorEntityDescription(
-            key=METER_ENERGY_TOTAL + "Out",
+            key=METER_ENERGY_TOTAL,
+            translation_key=METER_ENERGY_TOTAL + "Out",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
@@ -262,6 +276,7 @@ async def async_setup_entry(
                                 device.type,
                                 capability_name,
                             )
+                            unique = len(properties) == 1
                             for prop in properties:
                                 LOGGER.debug(
                                     "Generate property %s as %s",
@@ -274,6 +289,7 @@ async def async_setup_entry(
                                     device,
                                     prop,
                                     capability_name=capability_name,
+                                    suffix=("" if unique else prop.key),
                                 )
                                 entities.append(sensor)
                             coordinator.devices.add(device.id)
