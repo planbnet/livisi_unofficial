@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from decimal import Decimal
-
+import math
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -335,33 +335,27 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         if number is None:
             return None
         if self.entity_description.native_unit_of_measurement == LIGHT_LUX:
-            # WRONG, see below
-            # brightness sensors report % values in livisi but hass does not support this
-            # so we just assume a max brighness (100%) of 400lx and scale accordingly
-            # unfortunately, this value does not scale lineary. So i measured a few
-            # data points and approximate with 3 linear functions.
-            # for more info on the sensor see (though this isn't too helpful for
-            # converting the percentage values livisi provides):
-            # https://github.com/Peter-matic/HM-Sec-MDIR_WMD/blob/main/README.md
+            # brightness sensors report % values in livisi but hass does not support this.
+            # Unfortunately, the percentage does not scale lineary but exponentially.
+            # So I measured with another sensor for a day and came up with a few data
+            # points (rounded):
+            # x = np.array([3,   8, 10, 50,  58,  65,  70,   75,   78,   80, 100])
+            # y = np.array([0, 0.5,  1, 60, 160, 300, 600, 1000, 2000, 3000, 20000])
+            # Between 0 and 50 percent, the sensor seems to be very sensitive, so
+            # this is best approximated with 3 linear functions.
+            # above that, the exact values don't matter that much and I searched for
+            # an exponental fit.
+            if number < 4:  # seems to be capped, 3 is the lowest i have seen
+                return 0
+            elif number <= 10:  # measured 1 lx at 10%
+                return int(number / 10)
+            elif number <= 50:  # measured 60 lux at 50%
+                return int(1.4 * number) - 10
+            else:
+                a = 0.1576567663834781
+                b = 0.11891850473620913
+                return int(a * math.exp(b * number))
 
-            # TODO: I measured (with a simple iphone app) 2000lx while the sensor gave
-            # 78% today, so this calculation is probably wrong and the sensor is _not_
-            # capped at 400lx some internet sources seemed to suggest.
-            # I'm not sure how to find out the correct factors here, because I don't have
-            # the ability to constantly measure with an accurate lux sensor for a full day
-            # with bright light...
-
-            # if number < 4:  # seems to be capped, 3 is the lowest i have seen
-            #    return 0
-            # elif number <= 10:  # measured 1 lx at 10%
-            #    return int(number / 10)
-            # elif number <= 50:
-            #    return int(1.4 * number) - 10  # measured 60 lux at 50%
-            # elif number <= 78: # measured 2000lx at 78%
-            #    return
-            # else:
-            #    return int(number * 6.8 - 280)  # scale the rest up to 100% = 4000lx
-            return number
         return number
 
     @callback
