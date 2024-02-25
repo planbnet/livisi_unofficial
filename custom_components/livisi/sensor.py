@@ -100,6 +100,7 @@ CAPABILITY_SENSORS = {
     CAPABILITY_LUMINANCE_SENSOR: [
         SensorEntityDescription(
             key=CAPABILITY_LUMINANCE_SENSOR + "_" + LUMINANCE,
+            translation_key=LUMINANCE,
             device_class=SensorDeviceClass.ILLUMINANCE,
             state_class=SensorStateClass.MEASUREMENT,
             native_unit_of_measurement=LIGHT_LUX,
