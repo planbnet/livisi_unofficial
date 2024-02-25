@@ -338,12 +338,10 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             # brightness sensors report % values in livisi but hass does not support this.
             # Unfortunately, the percentage does not scale lineary but exponentially.
             # So I measured with another sensor for a day and came up with a few data
-            # points (rounded):
-            # x = np.array([3,   8, 10, 50,  58,  65,  70,   75,   78,   80, 100])
-            # y = np.array([0, 0.5,  1, 60, 160, 300, 600, 1000, 2000, 3000, 20000])
+            # points (rounded)
             # Between 0 and 50 percent, the sensor seems to be very sensitive, so
             # this is best approximated with 3 linear functions.
-            # above that, the exact values don't matter that much and I searched for
+            # Above that, the exact values don't matter that much and I searched for
             # an exponental fit.
             if number < 4:  # seems to be capped, 3 is the lowest i have seen
                 return 0
@@ -351,7 +349,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
                 return int(number / 10)
             elif number <= 50:  # measured 60 lux at 50%
                 return int(1.4 * number) - 10
-            else:
+            else:  # exp function derived from the rest of the measurements
                 a = 0.1576567663834781
                 b = 0.11891850473620913
                 return int(a * math.exp(b * number))
