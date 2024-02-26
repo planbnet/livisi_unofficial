@@ -51,6 +51,39 @@
             },
             "disk_usage": {
                 "name": "Disk Nutzung"
+            },
+            "TwoWayMeterEnergyFeedSensor_energyPerDayInKWh": {
+                "name": "Einspeisung Tag"
+            },
+            "TwoWayMeterEnergyFeedSensor_energyPerMonthInKWh": {
+                "name": "Einspeisung Monat"
+            },
+            "TwoWayMeterEnergyFeedSensor_totalEnergy": {
+                "name": "Einspeisung Total"
+            },
+            "TwoWayMeterEnergyConsumptionSensor_energyPerDayInKWh": {
+                "name": "Bezug Tag"
+            },
+            "TwoWayMeterEnergyConsumptionSensor_energyPerMonthInKWh": {
+                "name": "Bezug Monat"
+            },
+            "TwoWayMeterEnergyConsumptionSensor_totalEnergy": {
+                "name": "Bezug Total"
+            },
+            "GenerationMeterEnergySensor_energyPerDayInKWh": {
+                "name": "Produktion Tag"
+            },
+            "GenerationMeterEnergySensor_energyPerMonthInKWh": {
+                "name": "Produktion Monat"
+            },
+            "GenerationMeterEnergySensor_totalEnergy": {
+                "name": "Produktion Total"
+            },
+            "TwoWayMeterPowerConsumptionSensor_powerInWatt": {
+                "name": "Aktuelle Leistung"
+            },
+            "GenerationMeterPowerConsumptionSensor_powerInWatt": {
+                "name": "Aktuelle Produktionsleistung"
             }
         }
     }
