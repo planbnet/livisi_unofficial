@@ -237,39 +237,56 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
             )
         )
 
-        response = await self.coordinator.aiolivisi.async_get_device_state(
-            self.capability_id, self.entity_description.key, "lastChanged"
+        response = await self.coordinator.aiolivisi.async_get_state(
+            self.capability_id, self.entity_description.key
         )
         if response is None:
             self.update_reachability(False)
-        else:
-            self.update_reachability(True)
+            return
 
-            off_delay = self.get_off_delay()
-            lastactive = datetime.fromisoformat(response)
-            now = datetime.now(timezone.utc)
-            delta = now - lastactive
+        self.update_reachability(True)
 
-            if delta.seconds < off_delay:
-                self._attr_is_on = True
+        off_delay = self.get_off_delay()
+        if off_delay is None:
+            self._attr_is_on = False
+            return
 
-                @callback
-                def off_delay_listener(now: Any) -> None:
-                    """Switch device off after a delay."""
-                    self._delay_listener = None
-                    self._attr_is_on = False
-                    self.async_write_ha_state()
+        lastChange = response.get("lastChanged")
+        if lastChange is None:
+            self._attr_is_on = False
+            return
 
-                remaining_detected_time = off_delay - delta.seconds
-                self._delay_listener = evt.async_call_later(
-                    self.hass, remaining_detected_time, off_delay_listener
-                )
-            else:
-                self._attr_is_on = False
+        try:
+            lastactive = datetime.fromisoformat(lastChange)
+        except ValueError:
+            # ignore invalid lastChange from SHC
+            self._attr_is_on = False
+            return
+
+        now = datetime.now(timezone.utc)
+        delta = now - lastactive
+
+        self._attr_is_on = delta.seconds < off_delay
+
+        @callback
+        def off_delay_listener(now: Any) -> None:
+            """Switch device off after a delay."""
+            self._delay_listener = None
+            self._attr_is_on = False
+            self.async_write_ha_state()
+
+        remaining_detected_time = off_delay - delta.seconds
+        self._delay_listener = evt.async_call_later(
+            self.hass, remaining_detected_time, off_delay_listener
+        )
 
     @callback
     def trigger_event(self, event_data: Any) -> None:
         """Update the state of the device."""
+        off_delay = self.get_off_delay()
+        if off_delay is None:
+            off_delay = 20.0
+
         self._attr_is_on = True
         self.async_write_ha_state()
 
@@ -279,7 +296,6 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
             self._delay_listener()
             self._delay_listener = None
 
-        off_delay = self.get_off_delay()
         if self.is_on:
 
             @callback
@@ -297,4 +313,6 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
         """Get the Delay."""
         id = self.off_delay_entity_id
         state = self.hass.states.get(id)
+        if state is None or state.state is None:
+            return None
         return float(state.state)
