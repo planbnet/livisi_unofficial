@@ -85,6 +85,11 @@
             "GenerationMeterPowerConsumptionSensor_powerInWatt": {
                 "name": "Aktuelle Produktionsleistung"
             }
+        },
+        "number": {
+            "duration": {
+                "name": "Auslösedauer"
+            }
         }
     }
 }

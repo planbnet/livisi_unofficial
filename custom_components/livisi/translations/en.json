@@ -85,6 +85,11 @@
             "GenerationMeterPowerConsumptionSensor_powerInWatt": {
                 "name": "Current Production Power"
             }
+        },
+        "number": {
+            "duration": {
+                "name": "Duration"
+            }
         }
     }
 }
