@@ -133,12 +133,14 @@ class LivisiConnection:
         }
 
         try:
+            LOGGER.debug("Updating access token")
             access_data = await self._async_send_request(
                 "post",
                 url=f"http://{self.host}:{WEBSERVICE_PORT}/auth/token",
                 payload=login_credentials,
                 headers=headers,
             )
+            LOGGER.debug("Updated access token")
             self.token = access_data["access_token"]
         except ClientError as error:
             if len(access_data) == 0:
