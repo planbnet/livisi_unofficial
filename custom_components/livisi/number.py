@@ -1,4 +1,5 @@
 """Code to handle a Livisi Number Sensor."""
+
 from __future__ import annotations
 
 
@@ -114,6 +115,8 @@ class NoopConfigNumber(RestoreNumber):
         ):
             if last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
                 self._attr_native_value = last_number_data.native_value
+
+        self.async_write_ha_state()
 
     async def async_set_native_value(self, value: float) -> None:
         """Set sensor config."""

@@ -62,6 +62,8 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await coordinator.async_config_entry_first_refresh()
 
+    LOGGER.debug(coordinator.data)
+
     # Remove devices that have no entities (because they were removed)
     for device_entry in dr.async_entries_for_config_entry(
         device_registry, entry.entry_id

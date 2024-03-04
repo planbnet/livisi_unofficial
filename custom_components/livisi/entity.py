@@ -29,6 +29,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         device: LivisiDevice,
         capability_name: str = None,
         *,
+        suffix: str = "",
         battery: bool = False,
         use_room_as_device_name: bool = False,
     ) -> None:
@@ -48,9 +49,9 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
             unique_id = self.device_id + "_battery"
         else:
             if self.capability_id is not None:
-                unique_id = self.capability_id
+                unique_id = self.capability_id + suffix
             else:
-                unique_id = self.device_id
+                unique_id = self.device_id + suffix
 
         self._attr_available = not device.unreachable
         self._attr_unique_id = unique_id
