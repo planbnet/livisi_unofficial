@@ -220,10 +220,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
         )
 
         self._delay_listener: CALLBACK_TYPE | None = None
-        # TODO: Use static variables
-        self.off_delay_entity_id: str = (
-            Platform.NUMBER + "." + device.name + "_duration"
-        )
+        self.off_delay_entity_id: str = Platform.NUMBER + "." + device.id + "_duration"
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""

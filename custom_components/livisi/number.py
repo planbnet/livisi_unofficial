@@ -86,7 +86,7 @@ class NoopConfigNumber(RestoreNumber):
         self.device_id = device.id
         self._attr_translation_key = entity_desc.key
         self.entity_id = str.lower(
-            Platform.NUMBER + "." + device.name + "_" + entity_desc.key
+            Platform.NUMBER + "." + device.id + "_" + entity_desc.key
         )
 
         self._attr_device_info = DeviceInfo(
