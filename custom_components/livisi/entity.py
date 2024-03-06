@@ -17,6 +17,24 @@ from .const import CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiDataUpdateCoordinator
 
 
+def create_device_info(self, config_entry, device, device_name=None):
+    """Create device info for the livisi device."""
+
+    if device_name is None:
+        device_name = device.name or "Unknown"
+
+    return DeviceInfo(
+        identifiers={(DOMAIN, self.device_id)},
+        manufacturer=device.manufacturer,
+        model=device.type,
+        sw_version=device.version,
+        name=device_name,
+        suggested_area=device.room,
+        configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device.id}",
+        via_device=(DOMAIN, config_entry.entry_id),
+    )
+
+
 class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
     """Represents a base livisi entity."""
 
@@ -39,8 +57,6 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self.capability_id = None
         self.device_id = device.id
 
-        device_name = device.name or "Unknown"
-
         if capability_name is not None:
             self.capability_id = self.capabilities.get(capability_name)
 
@@ -56,6 +72,8 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self._attr_available = not device.unreachable
         self._attr_unique_id = unique_id
 
+        device_name = device.name or "Unknown"
+
         room_name: str | None = device.room
         # For livisi climate entities, the device should have the room name from
         # the livisi setup, as each livisi room gets exactly one VRCC device. The livisi
@@ -69,16 +87,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
                 self._attr_name = device_name
             device_name = room_name
 
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self.device_id)},
-            manufacturer=device.manufacturer,
-            model=device.type,
-            sw_version=device.version,
-            name=device_name,
-            suggested_area=room_name,
-            configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device.id}",
-            via_device=(DOMAIN, config_entry.entry_id),
-        )
+        self._attr_device_info = create_device_info(config_entry, device, device_name)
         super().__init__(coordinator)
 
     async def async_added_to_hass(self) -> None:
