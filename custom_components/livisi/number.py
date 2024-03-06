@@ -15,12 +15,11 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
-from homeassistant.helpers.entity import DeviceInfo
 
-
+from .entity import create_device_info
 from .livisi_device import LivisiDevice
 
-from .const import CONF_HOST, DOMAIN, LOGGER, MOTION_DEVICE_TYPES
+from .const import DOMAIN, LOGGER, MOTION_DEVICE_TYPES
 from .coordinator import LivisiDataUpdateCoordinator
 
 
@@ -89,16 +88,7 @@ class NoopConfigNumber(RestoreNumber):
             Platform.NUMBER + "." + device.id + "_" + entity_desc.key
         )
 
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device.id)},
-            manufacturer=device.manufacturer,
-            model=device.type,
-            sw_version=device.version,
-            name=device.name,
-            suggested_area=device.room,
-            configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device.id}",
-            via_device=(DOMAIN, config_entry.entry_id),
-        )
+        self._attr_device_info = create_device_info(config_entry, device)
         super().__init__()
 
     async def async_added_to_hass(self) -> None:
