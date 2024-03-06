@@ -10,11 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.const import (
-    Platform,
-    STATE_UNAVAILABLE,
-    STATE_UNKNOWN,
-)
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 
 from .entity import create_device_info
 from .livisi_device import LivisiDevice
@@ -84,10 +80,6 @@ class NoopConfigNumber(RestoreNumber):
         self._attr_unique_id = unique_id
         self.device_id = device.id
         self._attr_translation_key = entity_desc.key
-        self.entity_id = str.lower(
-            Platform.NUMBER + "." + device.id + "_" + entity_desc.key
-        )
-
         self._attr_device_info = create_device_info(config_entry, device)
         super().__init__()
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
@@ -16,7 +15,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.core import CALLBACK_TYPE
-from homeassistant.helpers import event as evt
+from homeassistant.helpers import event as evt, entity_registry as er
+
 from homeassistant.const import (
     Platform,
 )
@@ -220,7 +220,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
         )
 
         self._delay_listener: CALLBACK_TYPE | None = None
-        self.off_delay_entity_id: str = Platform.NUMBER + "." + device.id + "_duration"
+        self.off_delay_unique_id: str = device.id + "_duration_number"
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
@@ -308,8 +308,17 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
 
     def get_off_delay(self) -> float:
         """Get the Delay."""
-        id = self.off_delay_entity_id
-        state = self.hass.states.get(id)
+        id = self.off_delay_unique_id
+
+        entity_registry = er.async_get(self.hass)
+        entity_id = entity_registry.entities.get_entity_id(
+            (Platform.NUMBER, DOMAIN, id)
+        )
+        if entity_id is None:
+            return None
+
+        state = self.hass.states.get(entity_id)
+
         if state is None or state.state is None:
             return None
         return float(state.state)
