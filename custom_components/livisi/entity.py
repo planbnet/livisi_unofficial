@@ -17,14 +17,14 @@ from .const import CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiDataUpdateCoordinator
 
 
-def create_device_info(self, config_entry, device, device_name=None):
+def create_device_info(config_entry, device, device_name=None):
     """Create device info for the livisi device."""
 
     if device_name is None:
         device_name = device.name or "Unknown"
 
     return DeviceInfo(
-        identifiers={(DOMAIN, self.device_id)},
+        identifiers={(DOMAIN, device.id)},
         manufacturer=device.manufacturer,
         model=device.type,
         sw_version=device.version,
