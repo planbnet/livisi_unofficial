@@ -52,43 +52,38 @@
             "disk_usage": {
                 "name": "Disk Nutzung"
             },
-            "TwoWayMeterEnergyFeedSensor_energyPerDayInKWh": {
+            "twowaymeterenergyfeedsensor_energyperdayinkwh": {
                 "name": "Einspeisung Tag"
             },
-            "TwoWayMeterEnergyFeedSensor_energyPerMonthInKWh": {
+            "twowaymeterenergyfeedsensor_energypermonthinkwh": {
                 "name": "Einspeisung Monat"
             },
-            "TwoWayMeterEnergyFeedSensor_totalEnergy": {
+            "twowaymeterenergyfeedsensor_totalenergy": {
                 "name": "Einspeisung Total"
             },
-            "TwoWayMeterEnergyConsumptionSensor_energyPerDayInKWh": {
+            "twowaymeterenergyconsumptionsensor_energyperdayinkwh": {
                 "name": "Bezug Tag"
             },
-            "TwoWayMeterEnergyConsumptionSensor_energyPerMonthInKWh": {
+            "twowaymeterenergyconsumptionsensor_energypermonthinkwh": {
                 "name": "Bezug Monat"
             },
-            "TwoWayMeterEnergyConsumptionSensor_totalEnergy": {
+            "twowaymeterenergyconsumptionsensor_totalenergy": {
                 "name": "Bezug Total"
             },
-            "GenerationMeterEnergySensor_energyPerDayInKWh": {
+            "generationmeterenergysensor_energyperdayinkwh": {
                 "name": "Produktion Tag"
             },
-            "GenerationMeterEnergySensor_energyPerMonthInKWh": {
+            "generationmeterenergysensor_energypermonthinkwh": {
                 "name": "Produktion Monat"
             },
-            "GenerationMeterEnergySensor_totalEnergy": {
+            "generationmeterenergysensor_totalenergy": {
                 "name": "Produktion Total"
             },
-            "TwoWayMeterPowerConsumptionSensor_powerInWatt": {
+            "twowaymeterpowerconsumptionsensor_powerinwatt": {
                 "name": "Aktuelle Leistung"
             },
-            "GenerationMeterPowerConsumptionSensor_powerInWatt": {
+            "generationmeterpowerconsumptionsensor_powerinwatt": {
                 "name": "Aktuelle Produktionsleistung"
-            }
-        },
-        "number": {
-            "duration": {
-                "name": "Auslösedauer"
             }
         },
         "number": {
