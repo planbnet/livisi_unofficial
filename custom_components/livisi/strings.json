@@ -52,37 +52,37 @@
       "disk_usage": {
         "name": "Disk usage"
       },
-      "TwoWayMeterEnergyFeedSensor_energyPerDayInKWh": {
+      "twowaymeterenergyfeedsensor_energyperdayinkwh": {
         "name": "Feed-in Day"
       },
-      "TwoWayMeterEnergyFeedSensor_energyPerMonthInKWh": {
+      "twowaymeterenergyfeedsensor_energypermonthinkwh": {
         "name": "Feed-in Month"
       },
-      "TwoWayMeterEnergyFeedSensor_totalEnergy": {
+      "twowaymeterenergyfeedsensor_totalenergy": {
         "name": "Total Feed-in"
       },
-      "TwoWayMeterEnergyConsumptionSensor_energyPerDayInKWh": {
+      "twowaymeterenergyconsumptionsensor_energyperdayinkwh": {
         "name": "Consumption Day"
       },
-      "TwoWayMeterEnergyConsumptionSensor_energyPerMonthInKWh": {
+      "twowaymeterenergyconsumptionsensor_energypermonthinkwh": {
         "name": "Consumption Month"
       },
-      "TwoWayMeterEnergyConsumptionSensor_totalEnergy": {
+      "twowaymeterenergyconsumptionsensor_totalenergy": {
         "name": "Consumption Total"
       },
-      "GenerationMeterEnergySensor_energyPerDayInKWh": {
+      "generationmeterenergysensor_energyperdayinkwh": {
         "name": "Production Day"
       },
-      "GenerationMeterEnergySensor_energyPerMonthInKWh": {
+      "generationmeterenergysensor_energypermonthinkwh": {
         "name": "Production Month"
       },
-      "GenerationMeterEnergySensor_totalEnergy": {
+      "generationmeterenergysensor_totalenergy": {
         "name": "Production Total"
       },
-      "TwoWayMeterPowerConsumptionSensor_powerInWatt": {
+      "twowaymeterpowerconsumptionsensor_powerinwatt": {
         "name": "Current Power"
       },
-      "GenerationMeterPowerConsumptionSensor_powerInWatt": {
+      "generationmeterpowerconsumptionsensor_powerinwatt": {
         "name": "Current Production Power"
       }
     }

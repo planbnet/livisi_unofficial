@@ -311,7 +311,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         )
         self.entity_description = entity_desc
         if entity_desc.translation_key is None:
-            self._attr_translation_key = entity_desc.key
+            self._attr_translation_key = entity_desc.key.lower()
 
         self.property_name = entity_desc.key.removeprefix(capability_name + "_")
 
