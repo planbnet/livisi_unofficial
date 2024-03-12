@@ -85,31 +85,11 @@
             "generationmeterpowerconsumptionsensor_powerinwatt": {
                 "name": "Current Production Power"
             }
+        },
+        "number": {
+            "duration": {
+                "name": "Duration"
+            }
         }
     }
-}
-},
-"TwoWayMeterEnergyConsumptionSensor_energyPerMonthInKWh": {
-"name": "Consumption Month"
-},
-"TwoWayMeterEnergyConsumptionSensor_totalEnergy": {
-"name": "Consumption Total"
-},
-"GenerationMeterEnergySensor_energyPerDayInKWh": {
-"name": "Production Day"
-},
-"GenerationMeterEnergySensor_energyPerMonthInKWh": {
-"name": "Production Month"
-},
-"GenerationMeterEnergySensor_totalEnergy": {
-"name": "Production Total"
-},
-"TwoWayMeterPowerConsumptionSensor_powerInWatt": {
-"name": "Current Power"
-},
-"GenerationMeterPowerConsumptionSensor_powerInWatt": {
-"name": "Current Production Power"
-}
-}
-}
 }
