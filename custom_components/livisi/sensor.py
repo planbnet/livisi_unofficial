@@ -365,6 +365,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
     @callback
     def update_states(self, state: Decimal) -> None:
         """Update the state of the device."""
+        self.update_reachability(True)
         self._attr_native_value = self.convert_to_hass(state)
         self.async_write_ha_state()
 
