@@ -242,18 +242,21 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
     def update_target_temperature(self, target_temperature: float) -> None:
         """Update the target temperature of the climate device."""
         self._attr_target_temperature = target_temperature
+        self.update_reachability(True)
         self.async_write_ha_state()
 
     @callback
     def update_temperature(self, current_temperature: float) -> None:
         """Update the current temperature of the climate device."""
         self._attr_current_temperature = current_temperature
+        self.update_reachability(True)
         self.async_write_ha_state()
 
     @callback
     def update_humidity(self, humidity: int) -> None:
         """Update the humidity of the climate device."""
         self._attr_current_humidity = humidity
+        self.update_reachability(True)
         self.async_write_ha_state()
 
     @callback

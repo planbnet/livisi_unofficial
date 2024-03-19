@@ -141,7 +141,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         """Update the state of the device."""
         if not isinstance(state, bool):
             return
-        self._attr_available = True
+        self.update_reachability(True)
         self._attr_is_on = state
         self.async_write_ha_state()
 
