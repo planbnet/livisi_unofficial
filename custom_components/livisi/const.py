@@ -60,6 +60,17 @@ HUMIDITY: Final = "humidity"
 CAPABILITY_POWER_SENSOR: Final = "PowerConsumptionSensor"
 POWER_CONSUMPTION: Final = "powerConsumptionWatt"
 
+CAPABILITY_METER_2WAY_ENERGY_OUT: Final = "TwoWayMeterEnergyFeedSensor"
+CAPABILITY_METER_2WAY_ENERGY_IN: Final = "TwoWayMeterEnergyConsumptionSensor"
+CAPABILITY_METER_2WAY_POWER: Final = "TwoWayMeterPowerConsumptionSensor"
+CAPABILITY_METER_GENERATION_POWER: Final = "GenerationMeterPowerConsumptionSensor"
+CAPABILITY_METER_GENERATION_ENERGY: Final = "GenerationMeterEnergySensor"
+
+METER_ENERGY_PER_DAY: Final = "energyPerDayInKWh"
+METER_ENERGY_PER_MONTH: Final = "energyPerMonthInKWh"
+METER_ENERGY_TOTAL: Final = "totalEnergy"
+METER_POWER: Final = "powerInWatt"
+
 ON_STATE: Final = "onState"
 SHUTTER_LEVEL: Final = "shutterLevel"
 DIM_LEVEL: Final = "dimLevel"
@@ -89,6 +100,10 @@ STATE_PROPERTIES = [
     SHUTTER_LEVEL,
     DIM_LEVEL,
     OPERATION_MODE,
+    METER_ENERGY_PER_DAY,
+    METER_ENERGY_PER_MONTH,
+    METER_ENERGY_TOTAL,
+    METER_POWER,
 ]
 
 EVENT_BUTTON_PRESSED = "button_pressed"
