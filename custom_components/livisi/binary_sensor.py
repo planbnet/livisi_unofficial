@@ -284,6 +284,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
         if off_delay is None:
             off_delay = 20.0
 
+        self.update_reachability(True)
         self._attr_is_on = True
         self.async_write_ha_state()
 
