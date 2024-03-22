@@ -86,6 +86,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         super().__init__(config_entry, coordinator, device, capability_id)
         self._attr_name = None
         self._attr_supported_color_modes = [ColorMode.ONOFF]
+        self._attr_color_mode = ColorMode.ONOFF
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
