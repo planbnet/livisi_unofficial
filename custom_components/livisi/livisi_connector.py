@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 import uuid
+from aiohttp import ClientConnectorError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
 
@@ -196,8 +197,10 @@ class LivisiConnection:
                         f"No data received from SHC, response code {res.status} ({res.reason})"
                     )
                 return data
-        except TimeoutError as error:
-            raise ShcUnreachableException from error
+        except TimeoutError as exc:
+            raise ShcUnreachableException("Timeout waiting for shc") from exc
+        except ClientConnectorError as exc:
+            raise ShcUnreachableException("Failed to connect to shc") from exc
 
     async def _async_get_controller(self) -> LivisiController:
         """Get Livisi Smart Home controller data."""
