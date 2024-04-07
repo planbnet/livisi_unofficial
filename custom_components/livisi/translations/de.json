@@ -85,6 +85,11 @@
             "generationmeterpowerconsumptionsensor_powerinwatt": {
                 "name": "Aktuelle Produktionsleistung"
             }
+        },
+        "number": {
+            "duration": {
+                "name": "Auslösedauer"
+            }
         }
     }
 }

@@ -5,12 +5,12 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from aiohttp import ClientConnectorError
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
+from .livisi_errors import LivisiException
 
 from .livisi_device import LivisiDevice
 from .livisi_connector import LivisiConnection, connect as livisi_connect
@@ -67,8 +67,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         """Get device configuration from LIVISI."""
         try:
             return await self.async_get_devices()
-        except ClientConnectorError as exc:
-            raise UpdateFailed("Failed to get livisi devices from controller") from exc
+        except LivisiException as exc:
+            raise UpdateFailed(exc.message) from exc
 
     def _async_dispatcher_send(
         self, event: str, source: str, data: Any, property_name=None

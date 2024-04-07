@@ -61,27 +61,64 @@ ERROR_CODES = {
 class LivisiException(Exception):
     """Base class for Livisi exceptions."""
 
+    def __init__(self, message: str = "", *args: object) -> None:
+        """Initialize the exception with a message."""
+        self.message = message
+        super().__init__(message, *args)
+
 
 class ShcUnreachableException(LivisiException):
     """Unable to connect to the Smart Home Controller."""
+
+    def __init__(
+        self,
+        message: str = "Unable to connect to the Smart Home Controller.",
+        *args: object,
+    ) -> None:
+        """Generate error with default message."""
+        super().__init__(message, *args)
 
 
 class WrongCredentialException(LivisiException):
     """The user credentials were wrong."""
 
+    def __init__(
+        self, message: str = "The user credentials are wrong.", *args: object
+    ) -> None:
+        """Generate error with default message."""
+        super().__init__(message, *args)
+
 
 class IncorrectIpAddressException(LivisiException):
     """The IP address provided by the user is incorrect."""
+
+    def __init__(
+        self,
+        message: str = "The IP address provided by the user is incorrect.",
+        *args: object,
+    ) -> None:
+        """Generate error with default message."""
+        super().__init__(message, *args)
 
 
 class TokenExpiredException(LivisiException):
     """The authentication token is expired."""
 
+    def __init__(
+        self, message: str = "The authentication token is expired.", *args: object
+    ) -> None:
+        """Generate error with default message."""
+        super().__init__(message, *args)
+
 
 class ErrorCodeException(LivisiException):
     """The request sent an errorcode (other than token expired) as response."""
 
-    def __init__(self, error_code: int, *args: object) -> None:
+    def __init__(self, error_code: int, message: str = None, *args: object) -> None:
         """Generate error with code."""
         self.error_code = error_code
-        super().__init__(*args)
+        if (message is None) and (error_code in ERROR_CODES):
+            message = ERROR_CODES[error_code]
+        elif message is None:
+            message = f"Unknown error code from shc: {error_code}"
+        super().__init__(message, *args)
