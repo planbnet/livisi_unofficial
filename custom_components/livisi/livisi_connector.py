@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
+
 from typing import Any
 import uuid
 from aiohttp import ClientConnectorError
@@ -90,11 +92,8 @@ class LivisiConnection:
         if self._web_session is None:
             raise LivisiException("Not authenticated to SHC")
         if self._websocket.is_connected():
-            try:
+            with suppress(Exception):
                 await self._websocket.disconnect()
-            except Exception:
-                # ignore disconnect errors
-                pass
         await self._websocket.connect(on_data, on_close)
 
     async def async_send_authorized_request(
