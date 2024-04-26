@@ -35,21 +35,16 @@ class LivisiWebsocket:
             token = self.aiolivisi.token
         ip_address = self.aiolivisi.host
         self.connection_url = f"ws://{ip_address}:{port}/events?token={token}"
-        try:
-            async with websockets.client.connect(
-                self.connection_url, ping_interval=10, ping_timeout=10
-            ) as websocket:
-                try:
-                    self._websocket = websocket
-                    await self.consumer_handler(websocket, on_data)
-                except Exception:
-                    if not self._disconnecting:
-                        await on_close()
-                    return
-        except Exception:
-            if not self._disconnecting:
-                await on_close()
-            return
+        async with websockets.client.connect(
+            self.connection_url, ping_interval=10, ping_timeout=10
+        ) as websocket:
+            try:
+                self._websocket = websocket
+                await self.consumer_handler(websocket, on_data)
+            except Exception:
+                if not self._disconnecting:
+                    await on_close()
+                return
 
     async def disconnect(self) -> None:
         """Close the websocket."""
