@@ -30,6 +30,7 @@ PLATFORMS: Final = [
     Platform.SWITCH,
     Platform.LIGHT,
     Platform.NUMBER,
+    Platform.BUTTON,
 ]
 
 
