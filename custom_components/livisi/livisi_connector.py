@@ -147,7 +147,12 @@ class LivisiConnection:
                 headers=headers,
             )
             LOGGER.debug("Updated access token")
-            self.token = access_data["access_token"]
+            self.token = access_data.get("access_token")
+            if self.token is None:
+                # log full response for debugging
+                LOGGER.error("SHC response does not contain access token")
+                LOGGER.error(access_data)
+                raise LivisiException("No token received from SHC")
         except ClientError as error:
             if len(access_data) == 0:
                 raise IncorrectIpAddressException from error
