@@ -41,6 +41,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
     """Class to manage fetching LIVISI data API."""
 
     config_entry: ConfigEntry
+    aiolivisi: LivisiConnection
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize my coordinator."""
@@ -52,7 +53,6 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         )
         self.config_entry = config_entry
         self.hass = hass
-        self.aiolivisi: LivisiConnection
         self.devices: set[str] = set()
         self._capability_to_device: dict[str, str] = {}
 

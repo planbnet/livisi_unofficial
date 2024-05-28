@@ -7,6 +7,7 @@ from contextlib import suppress
 
 from typing import Any
 import uuid
+import json
 from aiohttp import ServerDisconnectedError
 from aiohttp import ClientConnectorError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
@@ -127,6 +128,9 @@ class LivisiConnection:
         """Set the JWT from the LIVISI Smart Home Controller."""
         access_data: dict = {}
 
+        if self._password is None:
+            raise LivisiException("No password set")
+
         login_credentials = {
             "username": "admin",
             "password": self._password,
@@ -149,15 +153,17 @@ class LivisiConnection:
             LOGGER.debug("Updated access token")
             self.token = access_data.get("access_token")
             if self.token is None:
+                errorcode = access_data.get("errorcode")
+                errordesc = access_data.get("description", "Unknown Error")
+                if errorcode in (2003, 2009):
+                    raise WrongCredentialException
                 # log full response for debugging
                 LOGGER.error("SHC response does not contain access token")
                 LOGGER.error(access_data)
-                raise LivisiException("No token received from SHC")
+                raise LivisiException(f"No token received from SHC: {errordesc}")
         except ClientError as error:
             if len(access_data) == 0:
                 raise IncorrectIpAddressException from error
-            if access_data["errorcode"] == 2009:
-                raise WrongCredentialException from error
             raise ShcUnreachableException from error
 
     async def _async_request(
@@ -193,6 +199,15 @@ class LivisiConnection:
         self, method, url: str, payload=None, headers=None
     ) -> dict:
         try:
+            if payload is not None:
+                data = json.dumps(payload).encode("utf-8")
+                if headers is None:
+                    headers = {}
+                headers["Content-Type"] = "application/json"
+                headers["Content-Encoding"] = "utf-8"
+            else:
+                data = None
+
             async with self._web_session.request(
                 method,
                 url,

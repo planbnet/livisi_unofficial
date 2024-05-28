@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 from homeassistant import core
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady, ConfigEntryAuthFailed
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
@@ -39,11 +39,11 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     coordinator = LivisiDataUpdateCoordinator(hass, entry)
     try:
         await coordinator.async_setup()
+    except WrongCredentialException:
+        # If the credentials are wrong, trigger reconfiguration
+        raise ConfigEntryAuthFailed("Invalid credentials, please reconfigure.")
     except Exception as exception:
         LOGGER.error(exception, exc_info=True)
-        # no need to retry if the credentials are wrong
-        if isinstance(exception, WrongCredentialException):
-            return False
         raise ConfigEntryNotReady(exception) from exception
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
