@@ -12,6 +12,19 @@
                     "password": "Passwort"
                 },
                 "description": "Bitte IP Adresse und Passwort zur lokalen Verbindung zum SHC eingeben."
+            },
+            "init": {
+                "data": {
+                    "host": "IP Adresse",
+                    "password": "Passwort"
+                },
+                "description": "Bitte IP Adresse und Passwort zur lokalen Verbindung zum SHC eingeben."
+            },
+            "reauth": {
+                "description": "Bitte das korrekt SHC Passwort angeben.",
+                "data": {
+                    "password": "[%key:common::config_flow::data::password%]"
+                }
             }
         }
     },

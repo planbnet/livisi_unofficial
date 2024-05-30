@@ -7,6 +7,19 @@
           "host": "[%key:common::config_flow::data::ip%]",
           "password": "[%key:common::config_flow::data::password%]"
         }
+      },
+      "init": {
+        "description": "Enter the IP address and the (local) password of the SHC.",
+        "data": {
+          "host": "[%key:common::config_flow::data::ip%]",
+          "password": "[%key:common::config_flow::data::password%]"
+        }
+      },
+      "reauth": {
+        "description": "Please enter the correct SHC password.",
+        "data": {
+          "password": "[%key:common::config_flow::data::password%]"
+        }
       }
     },
     "error": {
