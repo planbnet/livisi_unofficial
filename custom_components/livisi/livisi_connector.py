@@ -8,8 +8,7 @@ from contextlib import suppress
 from typing import Any
 import uuid
 import json
-from aiohttp import ServerDisconnectedError
-from aiohttp import ClientConnectorError
+from aiohttp import ClientResponseError, ServerDisconnectedError, ClientConnectorError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
 
@@ -216,10 +215,15 @@ class LivisiConnection:
                 ssl=False,
                 timeout=REQUEST_TIMEOUT,
             ) as res:
-                data = await res.json()
-                if data is None and res.status != 200:
+                try:
+                    data = await res.json()
+                    if data is None and res.status != 200:
+                        raise LivisiException(
+                            f"No data received from SHC, response code {res.status} ({res.reason})"
+                        )
+                except ClientResponseError as exc:
                     raise LivisiException(
-                        f"No data received from SHC, response code {res.status} ({res.reason})"
+                        f"Invalid response from SHC, response code {res.status} ({res.reason})"
                     )
                 return data
         except TimeoutError as exc:
@@ -382,6 +386,10 @@ class LivisiConnection:
 
     async def async_get_state(self, capability: str, property: str) -> dict | None:
         """Get state of a capability."""
+
+        if capability is None:
+            return None
+
         requestUrl = f"capability/{capability}/state"
         try:
             response = await self.async_send_authorized_request("get", requestUrl)
