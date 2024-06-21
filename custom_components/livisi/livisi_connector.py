@@ -224,7 +224,7 @@ class LivisiConnection:
                 except ClientResponseError as exc:
                     raise LivisiException(
                         f"Invalid response from SHC, response code {res.status} ({res.reason})"
-                    )
+                    ) from exc
                 return data
         except TimeoutError as exc:
             raise ShcUnreachableException("Timeout waiting for shc") from exc
