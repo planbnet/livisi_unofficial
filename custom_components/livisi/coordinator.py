@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from typing import Any
 
@@ -146,18 +147,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 self.publish_state(event_data, prop)
 
     async def on_websocket_close(self) -> None:
-        """Define a handler to fire when the websocket is closed."""
-
-        try:
-            await self.aiolivisi.listen_for_events(
-                self.on_websocket_data, self.on_websocket_close
-            )
-        except Exception as reconnect_error:
-            for device_id in self.devices:
-                self._async_dispatcher_send(
-                    LIVISI_REACHABILITY_CHANGE, device_id, False
-                )
-            raise reconnect_error
+        """Define a handler to reconnect when the websocket is closed."""
+        self._reconnect_task = asyncio.create_task(self.ws_connect())
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
