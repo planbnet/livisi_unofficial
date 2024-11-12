@@ -41,7 +41,8 @@ class LivisiWebsocket:
             try:
                 self._websocket = websocket
                 await self.consumer_handler(websocket, on_data)
-            except Exception:
+            except Exception as e:
+                LOGGER.exception("Error handling websocket data", e)
                 if not self._disconnecting:
                     await on_close()
                 return
