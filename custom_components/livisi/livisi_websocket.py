@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 import urllib.parse
+import asyncio
 
 from json import JSONDecodeError
 import websockets.client
@@ -41,11 +42,13 @@ class LivisiWebsocket:
             try:
                 self._websocket = websocket
                 await self.consumer_handler(websocket, on_data)
-            except Exception as e:
-                LOGGER.exception("Error handling websocket data", e)
+            except BaseException as e:
+                LOGGER.critical("Critical failure: %s", e)
+                raise
+            except Exception:
+                LOGGER.exception("Error handling websocket data")
                 if not self._disconnecting:
                     await on_close()
-                return
 
     async def disconnect(self) -> None:
         """Close the websocket."""
@@ -57,20 +60,23 @@ class LivisiWebsocket:
 
     async def consumer_handler(self, websocket, on_data: Callable):
         """Parse data transmitted via the websocket."""
-        async for message in websocket:
-            LOGGER.debug(message)
+        try:
+            async for message in websocket:
+                LOGGER.debug(message)
 
-            try:
-                event_data = parse_dataclass(message, LivisiWebsocketEvent)
-            except JSONDecodeError:
-                LOGGER.warning("Cannot decode websocket message", exc_info=True)
-                continue
+                try:
+                    event_data = parse_dataclass(message, LivisiWebsocketEvent)
+                except JSONDecodeError:
+                    LOGGER.warning("Cannot decode websocket message", exc_info=True)
+                    continue
 
-            if event_data.properties is None:
-                continue
+                if event_data.properties is None or event_data.properties == {}:
+                    continue
 
-            # remove the url prefix and use just the id (which is unqiue)
-            event_data.source = event_data.source.removeprefix("/device/")
-            event_data.source = event_data.source.removeprefix("/capability/")
+                # remove the url prefix and use just the id (which is unqiue)
+                event_data.source = event_data.source.removeprefix("/device/")
+                event_data.source = event_data.source.removeprefix("/capability/")
 
-            on_data(event_data)
+                on_data(event_data)
+        except asyncio.CancelledError:
+            LOGGER.info("Consumer handler task was cancelled")
