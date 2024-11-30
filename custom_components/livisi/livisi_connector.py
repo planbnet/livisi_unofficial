@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
+
 from typing import Any
 import uuid
+import json
+from aiohttp import ClientResponseError, ServerDisconnectedError, ClientConnectorError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
 
@@ -25,6 +29,7 @@ from .livisi_errors import (
 from .livisi_websocket import LivisiWebsocket
 
 from .livisi_const import (
+    COMMAND_RESTART,
     CONTROLLER_DEVICE_TYPES,
     V1_NAME,
     V2_NAME,
@@ -89,7 +94,8 @@ class LivisiConnection:
         if self._web_session is None:
             raise LivisiException("Not authenticated to SHC")
         if self._websocket.is_connected():
-            await self._websocket.disconnect()
+            with suppress(Exception):
+                await self._websocket.disconnect()
         await self._websocket.connect(on_data, on_close)
 
     async def async_send_authorized_request(
@@ -121,6 +127,9 @@ class LivisiConnection:
         """Set the JWT from the LIVISI Smart Home Controller."""
         access_data: dict = {}
 
+        if self._password is None:
+            raise LivisiException("No password set")
+
         login_credentials = {
             "username": "admin",
             "password": self._password,
@@ -133,18 +142,27 @@ class LivisiConnection:
         }
 
         try:
+            LOGGER.debug("Updating access token")
             access_data = await self._async_send_request(
                 "post",
                 url=f"http://{self.host}:{WEBSERVICE_PORT}/auth/token",
                 payload=login_credentials,
                 headers=headers,
             )
-            self.token = access_data["access_token"]
+            LOGGER.debug("Updated access token")
+            self.token = access_data.get("access_token")
+            if self.token is None:
+                errorcode = access_data.get("errorcode")
+                errordesc = access_data.get("description", "Unknown Error")
+                if errorcode in (2003, 2009):
+                    raise WrongCredentialException
+                # log full response for debugging
+                LOGGER.error("SHC response does not contain access token")
+                LOGGER.error(access_data)
+                raise LivisiException(f"No token received from SHC: {errordesc}")
         except ClientError as error:
             if len(access_data) == 0:
                 raise IncorrectIpAddressException from error
-            if access_data["errorcode"] == 2009:
-                raise WrongCredentialException from error
             raise ShcUnreachableException from error
 
     async def _async_request(
@@ -180,6 +198,15 @@ class LivisiConnection:
         self, method, url: str, payload=None, headers=None
     ) -> dict:
         try:
+            if payload is not None:
+                data = json.dumps(payload).encode("utf-8")
+                if headers is None:
+                    headers = {}
+                headers["Content-Type"] = "application/json"
+                headers["Content-Encoding"] = "utf-8"
+            else:
+                data = None
+
             async with self._web_session.request(
                 method,
                 url,
@@ -188,14 +215,21 @@ class LivisiConnection:
                 ssl=False,
                 timeout=REQUEST_TIMEOUT,
             ) as res:
-                data = await res.json()
-                if data is None and res.status != 200:
+                try:
+                    data = await res.json()
+                    if data is None and res.status != 200:
+                        raise LivisiException(
+                            f"No data received from SHC, response code {res.status} ({res.reason})"
+                        )
+                except ClientResponseError as exc:
                     raise LivisiException(
-                        f"No data received from SHC, response code {res.status} ({res.reason})"
-                    )
+                        f"Invalid response from SHC, response code {res.status} ({res.reason})"
+                    ) from exc
                 return data
-        except TimeoutError as error:
-            raise ShcUnreachableException from error
+        except TimeoutError as exc:
+            raise ShcUnreachableException("Timeout waiting for shc") from exc
+        except ClientConnectorError as exc:
+            raise ShcUnreachableException("Failed to connect to shc") from exc
 
     async def _async_get_controller(self) -> LivisiController:
         """Get Livisi Smart Home controller data."""
@@ -352,6 +386,10 @@ class LivisiConnection:
 
     async def async_get_state(self, capability: str, property: str) -> dict | None:
         """Get state of a capability."""
+
+        if capability is None:
+            return None
+
         requestUrl = f"capability/{capability}/state"
         try:
             response = await self.async_send_authorized_request("get", requestUrl)
@@ -379,11 +417,62 @@ class LivisiConnection:
         if key is not None:
             params = {key: {"type": "Constant", "value": value}}
 
-        return await self.async_send_command(
+        return await self.async_send_capability_command(
             capability_id, "SetState", namespace=namespace, params=params
         )
 
-    async def async_send_command(
+    async def _async_send_command(
+        self,
+        target: str,
+        command_type: str,
+        *,
+        namespace: str = "core.RWE",
+        params: dict = None,
+    ) -> bool:
+        """Send a command to a target."""
+
+        if params is None:
+            params = {}
+
+        set_state_payload: dict[str, Any] = {
+            "id": uuid.uuid4().hex,
+            "type": command_type,
+            "namespace": namespace,
+            "target": target,
+            "params": params,
+        }
+        try:
+            response = await self.async_send_authorized_request(
+                "post", "action", payload=set_state_payload
+            )
+            if response is None:
+                return False
+            return response.get("resultCode") == "Success"
+        except ServerDisconnectedError:
+            # Funny thing: The SHC restarts immediatly upon processing the restart command, it doesn't even answer to the request
+            # In order to not throw an error we need to catch and assume the request was successfull.
+            if command_type == COMMAND_RESTART:
+                return True
+            raise
+
+    async def async_send_device_command(
+        self,
+        device_id: str,
+        command_type: str,
+        *,
+        namespace: str = "core.RWE",
+        params: dict = None,
+    ) -> bool:
+        """Send a command to a device."""
+
+        return await self._async_send_command(
+            target=f"/device/{device_id}",
+            command_type=command_type,
+            namespace=namespace,
+            params=params,
+        )
+
+    async def async_send_capability_command(
         self,
         capability_id: str,
         command_type: str,
@@ -393,22 +482,12 @@ class LivisiConnection:
     ) -> bool:
         """Send a command to a capability."""
 
-        if params is None:
-            params = {}
-
-        set_state_payload: dict[str, Any] = {
-            "id": uuid.uuid4().hex,
-            "type": command_type,
-            "namespace": namespace,
-            "target": f"/capability/{capability_id}",
-            "params": params,
-        }
-        response = await self.async_send_authorized_request(
-            "post", "action", payload=set_state_payload
+        return await self._async_send_command(
+            target=f"/capability/{capability_id}",
+            command_type=command_type,
+            namespace=namespace,
+            params=params,
         )
-        if response is None:
-            return False
-        return response.get("resultCode") == "Success"
 
     @property
     def livisi_connection_data(self):

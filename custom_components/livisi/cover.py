@@ -81,7 +81,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open the shutter."""
-        success = await self.aio_livisi.async_send_command(
+        success = await self.aio_livisi.async_send_capability_command(
             self.capability_id,
             "StartRamp",
             namespace="CosipDevices.RWE",
@@ -95,7 +95,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close the shutter."""
-        success = await self.aio_livisi.async_send_command(
+        success = await self.aio_livisi.async_send_capability_command(
             self.capability_id,
             "StartRamp",
             namespace="CosipDevices.RWE",
@@ -109,7 +109,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
 
     async def async_stop_cover(self, **kwargs: Any) -> None:
         """Stop the shutter."""
-        success = await self.aio_livisi.async_send_command(
+        success = await self.aio_livisi.async_send_capability_command(
             self.capability_id,
             "StopRamp",
             namespace="CosipDevices.RWE",

@@ -12,6 +12,19 @@
                     "password": "Passwort"
                 },
                 "description": "Bitte IP Adresse und Passwort zur lokalen Verbindung zum SHC eingeben."
+            },
+            "init": {
+                "data": {
+                    "host": "IP Adresse",
+                    "password": "Passwort"
+                },
+                "description": "Bitte IP Adresse und Passwort zur lokalen Verbindung zum SHC eingeben."
+            },
+            "reauth": {
+                "description": "Bitte das korrekt SHC Passwort angeben.",
+                "data": {
+                    "password": "[%key:common::config_flow::data::password%]"
+                }
             }
         }
     },
@@ -51,6 +64,44 @@
             },
             "disk_usage": {
                 "name": "Disk Nutzung"
+            },
+            "twowaymeterenergyfeedsensor_energyperdayinkwh": {
+                "name": "Einspeisung Tag"
+            },
+            "twowaymeterenergyfeedsensor_energypermonthinkwh": {
+                "name": "Einspeisung Monat"
+            },
+            "twowaymeterenergyfeedsensor_totalenergy": {
+                "name": "Einspeisung Total"
+            },
+            "twowaymeterenergyconsumptionsensor_energyperdayinkwh": {
+                "name": "Bezug Tag"
+            },
+            "twowaymeterenergyconsumptionsensor_energypermonthinkwh": {
+                "name": "Bezug Monat"
+            },
+            "twowaymeterenergyconsumptionsensor_totalenergy": {
+                "name": "Bezug Total"
+            },
+            "generationmeterenergysensor_energyperdayinkwh": {
+                "name": "Produktion Tag"
+            },
+            "generationmeterenergysensor_energypermonthinkwh": {
+                "name": "Produktion Monat"
+            },
+            "generationmeterenergysensor_totalenergy": {
+                "name": "Produktion Total"
+            },
+            "twowaymeterpowerconsumptionsensor_powerinwatt": {
+                "name": "Aktuelle Leistung"
+            },
+            "generationmeterpowerconsumptionsensor_powerinwatt": {
+                "name": "Aktuelle Produktionsleistung"
+            }
+        },
+        "number": {
+            "duration": {
+                "name": "Auslösedauer"
             }
         }
     }

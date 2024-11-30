@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from typing import Any
-
-from aiohttp import ClientConnectorError
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
+from .livisi_errors import LivisiException
 
 from .livisi_device import LivisiDevice
 from .livisi_connector import LivisiConnection, connect as livisi_connect
@@ -41,6 +42,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
     """Class to manage fetching LIVISI data API."""
 
     config_entry: ConfigEntry
+    aiolivisi: LivisiConnection
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize my coordinator."""
@@ -52,7 +54,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         )
         self.config_entry = config_entry
         self.hass = hass
-        self.aiolivisi: LivisiConnection
+        self._retry_delay = 5
+        self._reconnect_task = None
         self.devices: set[str] = set()
         self._capability_to_device: dict[str, str] = {}
 
@@ -67,8 +70,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         """Get device configuration from LIVISI."""
         try:
             return await self.async_get_devices()
-        except ClientConnectorError as exc:
-            raise UpdateFailed("Failed to get livisi devices from controller") from exc
+        except LivisiException as exc:
+            raise UpdateFailed(exc.message) from exc
 
     def _async_dispatcher_send(
         self, event: str, source: str, data: Any, property_name=None
@@ -146,21 +149,21 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 self.publish_state(event_data, prop)
 
     async def on_websocket_close(self) -> None:
-        """Define a handler to fire when the websocket is closed."""
+        """Handle reconnection after an exponential backoff time."""
+        # maximum delay of 1 hour
+        self._retry_delay = min(self._retry_delay * 2, 3600)
+        await asyncio.sleep(self._retry_delay)
+        if self._reconnect_task is None or self._reconnect_task.done():
+            self._reconnect_task = asyncio.create_task(self.ws_connect())
 
+    async def ws_connect(self) -> None:
+        """Connect the websocket."""
         try:
             await self.aiolivisi.listen_for_events(
                 self.on_websocket_data, self.on_websocket_close
             )
-        except Exception as reconnect_error:
-            for device_id in self.devices:
-                self._async_dispatcher_send(
-                    LIVISI_REACHABILITY_CHANGE, device_id, False
-                )
-            raise reconnect_error
-
-    async def ws_connect(self) -> None:
-        """Connect the websocket."""
-        await self.aiolivisi.listen_for_events(
-            self.on_websocket_data, self.on_websocket_close
-        )
+            self._retry_delay = 5  # Reset delay after successful connection
+        except Exception as e:
+            LOGGER.error("Error connecting to websocket: %s", e)
+            # this will trigger a reconnect
+            await self.on_websocket_close()

@@ -35,6 +35,12 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             }
         )
 
+    async def async_step_reauth(
+        self, user_input: dict[str, str] | None = None
+    ) -> FlowResult:
+        """Handle configuration by re-authentication."""
+        return self.async_show_form(step_id="user", data_schema=self.data_schema)
+
     async def async_step_user(
         self, user_input: dict[str, str] | None = None
     ) -> FlowResult:
