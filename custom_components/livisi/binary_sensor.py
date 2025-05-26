@@ -51,7 +51,9 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add Window Sensor."""
-        shc_devices: list[LivisiDevice] = coordinator.data
+        shc_devices: list[LivisiDevice] | None = coordinator.data
+        if shc_devices is None:
+            return
         entities: list[BinarySensorEntity] = []
         for device in shc_devices:
             if device.id not in known_devices:
@@ -186,14 +188,17 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        device = next(
-            (
-                device
-                for device in self.coordinator.data
-                if device.id + "_battery" == self.unique_id
-            ),
-            None,
-        )
+        devices = self.coordinator.data
+        device = None
+        if devices is not None:
+            device = next(
+                (
+                    dev
+                    for dev in devices
+                    if dev.id + "_battery" == self.unique_id
+                ),
+                None,
+            )
 
         if device is not None:
             self._attr_is_on = device.battery_low

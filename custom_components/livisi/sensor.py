@@ -237,7 +237,9 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add Sensors."""
-        shc_devices: list[LivisiDevice] = coordinator.data
+        shc_devices: list[LivisiDevice] | None = coordinator.data
+        if shc_devices is None:
+            return
         entities: list[SensorEntity] = []
         for device in shc_devices:
             if device.id not in known_devices:
@@ -397,7 +399,9 @@ class LivisiControllerSensor(LivisiEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        shc_devices: list[LivisiDevice] = self.coordinator.data
+        shc_devices: list[LivisiDevice] | None = self.coordinator.data
+        if shc_devices is None:
+            return None
         for device in shc_devices:
             if device.is_shc:
                 return device.state.get(self.entity_description.key, {}).get(

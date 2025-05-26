@@ -49,7 +49,9 @@ async def async_setup_entry(
     @callback
     def handle_coordinator_update() -> None:
         """Add climate device."""
-        shc_devices: list[LivisiDevice] = coordinator.data
+        shc_devices: list[LivisiDevice] | None = coordinator.data
+        if shc_devices is None:
+            return
         entities: list[ClimateEntity] = []
         for device in shc_devices:
             if device.type in VRCC_DEVICE_TYPES and device.id not in known_devices:
