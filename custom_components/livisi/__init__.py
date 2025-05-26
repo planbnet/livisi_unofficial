@@ -61,7 +61,11 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception as exception:
+        LOGGER.error("Initial data refresh failed: %s", exception, exc_info=True)
+        raise ConfigEntryNotReady(exception) from exception
 
     LOGGER.debug(coordinator.data)
 
