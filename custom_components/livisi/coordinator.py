@@ -160,9 +160,12 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         """Connect the websocket."""
         try:
             await self.aiolivisi.listen_for_events(
-                self.on_websocket_data, self.on_websocket_close
+                self.on_websocket_data,
+                self.on_websocket_close,
             )
             self._retry_delay = 5  # Reset delay after successful connection
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
             LOGGER.error("Error connecting to websocket: %s", e)
             # this will trigger a reconnect

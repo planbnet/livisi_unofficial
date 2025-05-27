@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 import urllib.parse
+import asyncio
 
 from json import JSONDecodeError
 import websockets.client
@@ -39,15 +40,31 @@ class LivisiWebsocket:
         while not self._disconnecting:
             try:
                 async with websockets.client.connect(
-                    self.connection_url, ping_interval=10, ping_timeout=10
+                    self.connection_url,
+                    ping_interval=10,
+                    ping_timeout=10,
                 ) as websocket:
                     LOGGER.info("WebSocket connection established.")
                     self._websocket = websocket
                     await self.consumer_handler(websocket, on_data)
-            except Exception as e:
-                LOGGER.exception("Error handling websocket connection", exc_info=e)
+            except asyncio.CancelledError:
                 if not self._disconnecting:
-                    LOGGER.warning("WebSocket disconnected unexpectedly, retrying...")
+                    LOGGER.warning(
+                        "WebSocket cancelled unexpectedly, retrying..."
+                    )
+                    await on_close()
+                else:
+                    # Propagate cancellation if we initiated disconnect
+                    raise
+            except Exception as e:
+                LOGGER.exception(
+                    "Error handling websocket connection",
+                    exc_info=e,
+                )
+                if not self._disconnecting:
+                    LOGGER.warning(
+                        "WebSocket disconnected unexpectedly, retrying..."
+                    )
                     await on_close()
             finally:
                 self._websocket = None
@@ -82,5 +99,12 @@ class LivisiWebsocket:
                 event_data.source = event_data.source.removeprefix("/capability/")
 
                 on_data(event_data)
+        except asyncio.CancelledError:
+            # Propagate task cancellation to the caller
+            raise
         except Exception as e:
-            LOGGER.error("Unhandled error in WebSocket consumer handler", exc_info=e)
+            LOGGER.error(
+                "Unhandled error in WebSocket consumer handler",
+                exc_info=e,
+            )
+
