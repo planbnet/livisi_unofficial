@@ -61,7 +61,11 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception as exception:
+        LOGGER.error("Initial data refresh failed: %s", exception, exc_info=True)
+        raise ConfigEntryNotReady(exception) from exception
 
     LOGGER.debug(coordinator.data)
 
@@ -157,7 +161,7 @@ async def async_migrate_entry(hass, config_entry):
                 return None
 
         await er.async_migrate_entries(hass, config_entry.entry_id, update_unique_id)
-        config_entry.version = 2
+        await hass.config_entries.async_update_entry(config_entry, version=2)
 
     if config_entry.version == 2:
         # delete switches that are lights, because they are now integrated as light devices
@@ -173,7 +177,7 @@ async def async_migrate_entry(hass, config_entry):
         await er.async_migrate_entries(hass, config_entry.entry_id, find_light_switches)
         for switch in switch_entries:
             entity_registry.async_remove(switch.entity_id)
-        config_entry.version = 3
+        await hass.config_entries.async_update_entry(config_entry, version=3)
 
     if config_entry.version == 3:
         # update unique ids to just the capability id without the "/capability/" prefix
@@ -190,7 +194,7 @@ async def async_migrate_entry(hass, config_entry):
                 return None
 
         await er.async_migrate_entries(hass, config_entry.entry_id, simplify_unique_id)
-        config_entry.version = 4
+        await hass.config_entries.async_update_entry(config_entry, version=4)
 
     LOGGER.info("Migration to version %s successful", config_entry.version)
 

@@ -36,21 +36,20 @@ class LivisiWebsocket:
         ip_address = self.aiolivisi.host
         self.connection_url = f"ws://{ip_address}:{port}/events?token={token}"
 
-        while not self._disconnecting:
-            try:
-                async with websockets.client.connect(
-                    self.connection_url, ping_interval=10, ping_timeout=10
-                ) as websocket:
-                    LOGGER.info("WebSocket connection established.")
-                    self._websocket = websocket
-                    await self.consumer_handler(websocket, on_data)
-            except Exception as e:
-                LOGGER.exception("Error handling websocket connection", exc_info=e)
-                if not self._disconnecting:
-                    LOGGER.warning("WebSocket disconnected unexpectedly, retrying...")
-                    await on_close()
-            finally:
+        try:
+            async with websockets.client.connect(
+                self.connection_url, ping_interval=10, ping_timeout=10
+            ) as websocket:
+                LOGGER.info("WebSocket connection established.")
+                self._websocket = websocket
+                await self.consumer_handler(websocket, on_data)
                 self._websocket = None
+        except Exception as e:
+            self._websocket = None
+            LOGGER.exception("Error handling websocket connection", exc_info=e)
+            if not self._disconnecting:
+                LOGGER.warning("WebSocket disconnected unexpectedly.")
+        await on_close()
 
     async def disconnect(self) -> None:
         """Close the websocket."""
@@ -81,6 +80,9 @@ class LivisiWebsocket:
                 event_data.source = event_data.source.removeprefix("/device/")
                 event_data.source = event_data.source.removeprefix("/capability/")
 
-                on_data(event_data)
+                try:
+                    on_data(event_data)
+                except Exception as e:
+                    LOGGER.error("Unhandled error in on_data", exc_info=e)
         except Exception as e:
             LOGGER.error("Unhandled error in WebSocket consumer handler", exc_info=e)
