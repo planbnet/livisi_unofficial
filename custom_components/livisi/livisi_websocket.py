@@ -80,6 +80,9 @@ class LivisiWebsocket:
                 event_data.source = event_data.source.removeprefix("/device/")
                 event_data.source = event_data.source.removeprefix("/capability/")
 
-                on_data(event_data)
+                try:
+                    on_data(event_data)
+                except Exception as e:
+                    LOGGER.error("Unhandled error in on_data", exc_info=e)
         except Exception as e:
             LOGGER.error("Unhandled error in WebSocket consumer handler", exc_info=e)
