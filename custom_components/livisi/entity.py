@@ -13,7 +13,7 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 
 from .livisi_device import LivisiDevice
 
-from .const import CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
+from .const import CONF_HOST, DOMAIN, LOGGER, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiDataUpdateCoordinator
 
 
@@ -104,6 +104,11 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
     @callback
     def update_reachability(self, is_reachable: bool) -> None:
         """Update the reachability of the device."""
+        if is_reachable and not self._attr_available:
+            LOGGER.debug("Device %s is reachable again, updating state", self.device_id)
+            # if self has a func "async def async_update_value(self)" call it
+            if hasattr(self, "async_update_value"):
+                self.hass.async_create_task(self.async_update_value())
         self._attr_available = is_reachable
         self.async_write_ha_state()
 

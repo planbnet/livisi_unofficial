@@ -102,10 +102,9 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         for device in devices:
             for capability_id in device.capabilities.values():
                 capability_mapping[capability_id] = device.id
-            if device.unreachable:
-                self._async_dispatcher_send(
-                    LIVISI_REACHABILITY_CHANGE, device.id, False
-                )
+            self._async_dispatcher_send(
+                LIVISI_REACHABILITY_CHANGE, device.id, not device.unreachable
+            )
 
         self._capability_to_device = capability_mapping
         if not self.websocket_connected:
@@ -163,5 +162,10 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             )
         except Exception as e:
             LOGGER.error("Error in Livisi websocket connection: %s", e)
+            #  call update_reachability(False) for all devices
+            for device_id in self.devices:
+                self._async_dispatcher_send(
+                    LIVISI_REACHABILITY_CHANGE, device_id, False
+                )
         finally:
             self.websocket_connected = False
