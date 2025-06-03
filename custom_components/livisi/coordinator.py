@@ -165,5 +165,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             self._retry_delay = 5  # Reset delay after successful connection
         except Exception as e:
             LOGGER.error("Error connecting to websocket: %s", e)
+            # reset reconnect task to allow new task creation
+            self._reconnect_task = None
             # this will trigger a reconnect
             await self.on_websocket_close()
