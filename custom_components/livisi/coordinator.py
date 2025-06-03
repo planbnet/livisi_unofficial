@@ -69,6 +69,12 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         try:
             return await self.async_get_devices()
         except LivisiException as exc:
+            LOGGER.error("Error fetching devices from Livisi API: %s", exc)
+            #  call update_reachability(False) for all devices
+            for device_id in self.devices:
+                self._async_dispatcher_send(
+                    LIVISI_REACHABILITY_CHANGE, device_id, False
+                )
             raise UpdateFailed(exc.message) from exc
 
     def _async_dispatcher_send(
@@ -96,6 +102,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
     async def async_get_devices(self) -> list[LivisiDevice]:
         """Set the discovered devices list."""
+        LOGGER.debug("Fetching devices from Livisi API")
         devices = await self.aiolivisi.async_get_devices()
         capability_mapping = {}
 
@@ -162,10 +169,5 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             )
         except Exception as e:
             LOGGER.error("Error in Livisi websocket connection: %s", e)
-            #  call update_reachability(False) for all devices
-            for device_id in self.devices:
-                self._async_dispatcher_send(
-                    LIVISI_REACHABILITY_CHANGE, device_id, False
-                )
         finally:
             self.websocket_connected = False
