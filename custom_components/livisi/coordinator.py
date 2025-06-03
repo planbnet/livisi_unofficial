@@ -68,8 +68,11 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         """Get device configuration from LIVISI."""
         try:
             return await self.async_get_devices()
-        except LivisiException as exc:
-            LOGGER.error("Error fetching devices from Livisi API: %s", exc)
+        except Exception as exc:
+            LOGGER.error(
+                "Error fetching devices from Livisi API: %s, setting all to unreachable",
+                exc,
+            )
             #  call update_reachability(False) for all devices
             for device_id in self.devices:
                 self._async_dispatcher_send(
