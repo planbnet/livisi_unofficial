@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import timedelta
 from typing import Any
 
@@ -54,9 +53,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         )
         self.config_entry = config_entry
         self.hass = hass
-        self._retry_delay = 5
-        self._reconnect_task = None
         self.devices: set[str] = set()
+        self.websocket_connected = False
         self._capability_to_device: dict[str, str] = {}
 
     async def async_setup(self) -> None:
@@ -110,6 +108,9 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 )
 
         self._capability_to_device = capability_mapping
+        if not self.websocket_connected:
+            LOGGER.info("Scheduling livisi websocket connection")
+            self.hass.async_create_task(self.ws_connect())
         return devices
 
     def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
@@ -149,21 +150,18 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 self.publish_state(event_data, prop)
 
     async def on_websocket_close(self) -> None:
-        """Handle reconnection after an exponential backoff time."""
-        # maximum delay of 1 hour
-        self._retry_delay = min(self._retry_delay * 2, 3600)
-        await asyncio.sleep(self._retry_delay)
-        if self._reconnect_task is None or self._reconnect_task.done():
-            self._reconnect_task = asyncio.create_task(self.ws_connect())
+        """On close handler is not really needed because listen_for_events blocks."""
+        LOGGER.info("Livisi websocket closed")
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
+        LOGGER.info("Connecting to Livisi websocket")
+        self.websocket_connected = True
         try:
             await self.aiolivisi.listen_for_events(
                 self.on_websocket_data, self.on_websocket_close
             )
-            self._retry_delay = 5  # Reset delay after successful connection
         except Exception as e:
-            LOGGER.error("Error connecting to websocket: %s", e)
-            # this will trigger a reconnect
-            await self.on_websocket_close()
+            LOGGER.error("Error in Livisi websocket connection: %s", e)
+        finally:
+            self.websocket_connected = False

@@ -67,6 +67,12 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
         LOGGER.error("Initial data refresh failed: %s", exception, exc_info=True)
         raise ConfigEntryNotReady(exception) from exception
 
+    LOGGER.info(
+        "Livisi Smart Home Controller %s %s (%s) connected successfully",
+        controller.controller_type,
+        controller.os_version,
+        entry.data[CONF_HOST],
+    )
     LOGGER.debug(coordinator.data)
 
     # Remove devices that have no entities (because they were removed)
@@ -81,10 +87,6 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
             )
             if len(entities) == 0:
                 device_registry.async_remove_device(device_entry.id)
-
-    entry.async_create_background_task(
-        hass, coordinator.ws_connect(), "livisi-ws_connect"
-    )
 
     return True
 
