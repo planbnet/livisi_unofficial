@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import timedelta
 from typing import Any
 
@@ -54,8 +53,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         )
         self.config_entry = config_entry
         self.hass = hass
-        self._retry_delay = 5
-        self._reconnect_task = None
+        self.websocket_connected = False
         self.devices: set[str] = set()
         self._capability_to_device: dict[str, str] = {}
 
@@ -110,6 +108,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 )
 
         self._capability_to_device = capability_mapping
+        if not self.websocket_connected:
+            self.hass.async_create_task(self.ws_connect())
         return devices
 
     def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
@@ -149,21 +149,12 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 self.publish_state(event_data, prop)
 
     async def on_websocket_close(self) -> None:
-        """Handle reconnection after an exponential backoff time."""
-        # maximum delay of 1 hour
-        self._retry_delay = min(self._retry_delay * 2, 3600)
-        await asyncio.sleep(self._retry_delay)
-        if self._reconnect_task is None or self._reconnect_task.done():
-            self._reconnect_task = asyncio.create_task(self.ws_connect())
+        """Update connection state when the websocket closes."""
+        self.websocket_connected = False
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
-        try:
-            await self.aiolivisi.listen_for_events(
-                self.on_websocket_data, self.on_websocket_close
-            )
-            self._retry_delay = 5  # Reset delay after successful connection
-        except Exception as e:
-            LOGGER.error("Error connecting to websocket: %s", e)
-            # this will trigger a reconnect
-            await self.on_websocket_close()
+        self.websocket_connected = True
+        await self.aiolivisi.listen_for_events(
+            self.on_websocket_data, self.on_websocket_close
+        )
