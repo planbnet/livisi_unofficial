@@ -55,6 +55,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self.hass = hass
         self.devices: set[str] = set()
         self.websocket_connected = False
+        self.websocket_reconnecting = False
         self._capability_to_device: dict[str, str] = {}
 
     async def async_setup(self) -> None:
@@ -69,15 +70,6 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         try:
             return await self.async_get_devices()
         except Exception as exc:
-            LOGGER.error(
-                "Error fetching devices from Livisi API: %s, setting all to unreachable",
-                exc,
-            )
-            #  call update_reachability(False) for all devices
-            for device_id in self.devices:
-                self._async_dispatcher_send(
-                    LIVISI_REACHABILITY_CHANGE, device_id, False
-                )
             raise UpdateFailed(exc.message) from exc
 
     def _async_dispatcher_send(
@@ -124,6 +116,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
     def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
         """Define a handler to fire when the data is received."""
+        self.websocket_reconnecting = False
         if event_data.type == LIVISI_EVENT_BUTTON_PRESSED:
             device_id = self._capability_to_device.get(event_data.source)
             if device_id is not None:
@@ -159,8 +152,19 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 self.publish_state(event_data, prop)
 
     async def on_websocket_close(self) -> None:
-        """On close handler is not really needed because listen_for_events blocks."""
-        LOGGER.info("Livisi websocket closed")
+        """Handles websocket reconnection."""
+        LOGGER.info("Livisi websocket closed)
+
+        if not self.websocket_reconnecting:
+            LOGGER.info("Scheduling reconnect")
+            self.websocket_reconnecting = True
+            self.hass.async_create_task(self.ws_connect())
+        else:
+            LOGGER.warning("Livisi websocket failed during reconnect attempt, make devices unreachable")
+            for device_id in self.devices:
+                self._async_dispatcher_send(
+                    LIVISI_REACHABILITY_CHANGE, device_id, False
+                )
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
@@ -174,3 +178,5 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             LOGGER.error("Error in Livisi websocket connection: %s", e)
         finally:
             self.websocket_connected = False
+            self.websocket_reconnecting = False
+
