@@ -147,9 +147,13 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
-
         await super().async_added_to_hass()
 
+        target_temp_property = (
+            SETPOINT_TEMPERATURE
+            if self.coordinator.aiolivisi.controller.is_v2
+            else POINT_TEMPERATURE
+        )
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -171,7 +175,6 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
                 self.update_humidity,
             )
         )
-
         for thermostat_capability in self._thermostat_actuator_ids:
             self.async_on_remove(
                 async_dispatcher_connect(
@@ -180,8 +183,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
                     self.update_mode,
                 )
             )
-
-        target_temp_property = await self.async_update_value()
+        await self.async_update_value()
 
     async def async_update_value(self):
         target_temp_property = (
@@ -213,7 +215,6 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
                 self._thermostat_actuator_ids[0], OPERATION_MODE
             )
             self.update_mode(mode)
-        return target_temp_property
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Find a matching thermostat and use it to set the hvac mode."""
