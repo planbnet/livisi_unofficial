@@ -150,37 +150,6 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
 
         await super().async_added_to_hass()
 
-        target_temp_property = (
-            SETPOINT_TEMPERATURE
-            if self.coordinator.aiolivisi.controller.is_v2
-            else POINT_TEMPERATURE
-        )
-
-        target_temperature = await self.coordinator.aiolivisi.async_get_value(
-            self._target_temperature_capability,
-            target_temp_property,
-        )
-        temperature = await self.coordinator.aiolivisi.async_get_value(
-            self._temperature_capability, TEMPERATURE
-        )
-        humidity = await self.coordinator.aiolivisi.async_get_value(
-            self._humidity_capability, HUMIDITY
-        )
-        if temperature is None:
-            self._attr_current_temperature = None
-            self.update_reachability(False)
-        else:
-            self._attr_target_temperature = target_temperature
-            self._attr_current_temperature = temperature
-            self._attr_current_humidity = humidity
-            self.update_reachability(True)
-
-        if len(self._thermostat_actuator_ids) > 0:
-            mode = await self.coordinator.aiolivisi.async_get_value(
-                self._thermostat_actuator_ids[0], OPERATION_MODE
-            )
-            self.update_mode(mode)
-
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -211,6 +180,40 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
                     self.update_mode,
                 )
             )
+
+        target_temp_property = await self.async_update_value()
+
+    async def async_update_value(self):
+        target_temp_property = (
+            SETPOINT_TEMPERATURE
+            if self.coordinator.aiolivisi.controller.is_v2
+            else POINT_TEMPERATURE
+        )
+        target_temperature = await self.coordinator.aiolivisi.async_get_value(
+            self._target_temperature_capability,
+            target_temp_property,
+        )
+        temperature = await self.coordinator.aiolivisi.async_get_value(
+            self._temperature_capability, TEMPERATURE
+        )
+        humidity = await self.coordinator.aiolivisi.async_get_value(
+            self._humidity_capability, HUMIDITY
+        )
+        if temperature is None:
+            self._attr_current_temperature = None
+            self.update_reachability(False)
+        else:
+            self._attr_target_temperature = target_temperature
+            self._attr_current_temperature = temperature
+            self._attr_current_humidity = humidity
+            self.update_reachability(True)
+
+        if len(self._thermostat_actuator_ids) > 0:
+            mode = await self.coordinator.aiolivisi.async_get_value(
+                self._thermostat_actuator_ids[0], OPERATION_MODE
+            )
+            self.update_mode(mode)
+        return target_temp_property
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Find a matching thermostat and use it to set the hvac mode."""

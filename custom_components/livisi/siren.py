@@ -114,7 +114,16 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
+                self.update_states,
+            )
+        )
+        await self.async_update_value()
 
+    async def async_update_value(self):
         response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, ON_STATE
         )
@@ -123,13 +132,6 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
         else:
             self._attr_is_on = response
             self.update_reachability(True)
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
-                self.update_states,
-            )
-        )
 
     @callback
     def update_states(self, state: bool) -> None:
@@ -182,18 +184,6 @@ class LivisiSiren(LivisiEntity, SirenEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
-
-        response = await self.coordinator.aiolivisi.async_get_value(
-            self.capability_id, ACTIVE_CHANNEL
-        )
-        if response is None:
-            self.update_reachability(False)
-        if response == "Alarm":
-            self._attr_is_on = True
-            self.update_reachability(True)
-        else:
-            self._attr_is_on = False
-            self.update_reachability(True)
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -208,6 +198,20 @@ class LivisiSiren(LivisiEntity, SirenEntity):
                 self.update_active_channel,
             )
         )
+        await self.async_update_value()
+
+    async def async_update_value(self):
+        response = await self.coordinator.aiolivisi.async_get_value(
+            self.capability_id, ACTIVE_CHANNEL
+        )
+        if response is None:
+            self.update_reachability(False)
+        if response == "Alarm":
+            self._attr_is_on = True
+            self.update_reachability(True)
+        else:
+            self._attr_is_on = False
+            self.update_reachability(True)
 
     @callback
     def update_state(self, state: bool) -> None:

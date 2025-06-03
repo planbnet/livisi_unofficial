@@ -152,6 +152,17 @@ class LivisiShutter(LivisiEntity, CoverEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{SHUTTER_LEVEL}",
+                self.update_states,
+            )
+        )
+
+        await self.async_update_value()
+
+    async def async_update_value(self):
         response = await self.aio_livisi.async_get_value(
             self.capability_id, SHUTTER_LEVEL
         )
@@ -160,14 +171,6 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             self._attr_available = False
         else:
             self._attr_current_cover_position = response
-
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{SHUTTER_LEVEL}",
-                self.update_states,
-            )
-        )
 
     @callback
     def update_states(self, shutter_level: Decimal) -> None:

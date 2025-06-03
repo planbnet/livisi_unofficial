@@ -93,7 +93,16 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
+                self.update_states,
+            )
+        )
+        await self.async_update_value()
 
+    async def async_update_value(self):
         response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, ON_STATE
         )
@@ -102,14 +111,6 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         else:
             self.update_reachability(True)
             self.update_states(response)
-
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
-                self.update_states,
-            )
-        )
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
@@ -165,13 +166,6 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
-
-        response = await self.coordinator.aiolivisi.async_get_value(
-            self.capability_id, DIM_LEVEL
-        )
-        if response is not None:
-            self.update_brightness(response)
-
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -179,6 +173,14 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
                 self.update_brightness,
             )
         )
+        await self.async_update_value()
+
+    async def async_update_value(self):
+        response = await self.coordinator.aiolivisi.async_get_value(
+            self.capability_id, DIM_LEVEL
+        )
+        if response is not None:
+            self.update_brightness(response)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on. With Brightness."""

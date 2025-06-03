@@ -107,7 +107,16 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
+                self.update_states,
+            )
+        )
+        await self.async_update_value()
 
+    async def async_update_value(self):
         response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, ON_STATE
         )
@@ -117,13 +126,6 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
         else:
             self._attr_is_on = response
             self.update_reachability(True)
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
-                self.update_states,
-            )
-        )
 
     @callback
     def update_states(self, state: bool) -> None:
@@ -176,7 +178,16 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{VALUE}",
+                self.update_states,
+            )
+        )
+        await self.async_update_value()
 
+    async def async_update_value(self):
         response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, VALUE
         )
@@ -185,14 +196,6 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
         else:
             self.update_reachability(True)
             self.update_states(response)
-
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{VALUE}",
-                self.update_states,
-            )
-        )
 
     @callback
     def update_states(self, state: bool) -> None:
