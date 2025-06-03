@@ -153,7 +153,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
     async def on_websocket_close(self) -> None:
         """Handles websocket reconnection."""
-        LOGGER.info("Livisi websocket closed)
+        LOGGER.info("Livisi websocket closed")
 
         if not self.websocket_reconnecting:
             LOGGER.info("Scheduling reconnect")
