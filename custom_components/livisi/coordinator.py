@@ -68,11 +68,6 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         """Get device configuration from LIVISI."""
         try:
             LOGGER.debug("Fetching Livisi data")
-
-            if not self.aiolivisi.is_connected:
-                LOGGER.error("Livisi connection is not established")
-                raise LivisiException("Livisi connection is not established")
-
             return await self.async_get_devices()
         except Exception as exc:
             LOGGER.error("Error fetching Livisi data: %s", exc)
