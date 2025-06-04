@@ -113,9 +113,15 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         for device in devices:
             for capability_id in device.capabilities.values():
                 capability_mapping[capability_id] = device.id
-            self._async_dispatcher_send(
-                LIVISI_REACHABILITY_CHANGE, device.id, not device.unreachable
-            )
+
+            # Mark devices as unreachable if indicated by the API
+            # Re-reachability is normally handled by webservice updates
+            # (as some devices like WDS incorrectly report as reachable
+            # which leads to flapping state when trying to get the current value)
+            if device.unreachable or self.websocket_connected is False:
+                self._async_dispatcher_send(
+                    LIVISI_REACHABILITY_CHANGE, device.id, not device.unreachable
+                )
 
         self._capability_to_device = capability_mapping
         if not self.websocket_connected:
