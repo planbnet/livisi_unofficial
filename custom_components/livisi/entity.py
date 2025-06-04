@@ -110,10 +110,13 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
             if hasattr(self, "async_update_value"):
                 LOGGER.debug("Updating value for device %s", self.device_id)
                 self.hass.async_create_task(self.async_update_value())
+            else:
+                self._attr_available = True
+                self.async_write_ha_state()
         elif not is_reachable and self._attr_available:
             LOGGER.debug("Device %s became unreachable", self.device_id)
-        self._attr_available = is_reachable
-        self.async_write_ha_state()
+            self._attr_available = False
+            self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
