@@ -73,7 +73,8 @@ class LivisiWebsocket:
                     continue
 
                 if event_data.properties is None or event_data.properties == {}:
-                    LOGGER.warning("Received event with no properties, skipping.")
+                    LOGGER.debug("Received event with no properties, skipping.")
+                    LOGGER.debug("Event data: %s", event_data)
                     continue
 
                 # Remove the URL prefix and use just the ID (which is unique)
