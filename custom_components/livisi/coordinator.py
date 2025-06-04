@@ -38,13 +38,13 @@ from .livisi_const import (
 
 
 class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
-    """Class to manage fetching LIVISI data API."""
+    """Class to manage fetching Livisi data API."""
 
     config_entry: ConfigEntry
     aiolivisi: LivisiConnection
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
-        """Initialize my coordinator."""
+        """Initialize the coordinator."""
         super().__init__(
             hass,
             LOGGER,
@@ -55,7 +55,6 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self.hass = hass
         self.devices: set[str] = set()
         self.websocket_connected = False
-        self.websocket_reconnecting = False
         self._capability_to_device: dict[str, str] = {}
 
     async def async_setup(self) -> None:
@@ -68,9 +67,21 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
     async def _async_update_data(self) -> list[LivisiDevice]:
         """Get device configuration from LIVISI."""
         try:
+            LOGGER.debug("Fetching Livisi data")
+
+            if not self.aiolivisi.is_connected:
+                LOGGER.error("Livisi connection is not established")
+                raise LivisiException("Livisi connection is not established")
+
             return await self.async_get_devices()
         except Exception as exc:
-            raise UpdateFailed(exc.message) from exc
+            LOGGER.error("Error fetching Livisi data: %s", exc)
+            LOGGER.debug("Make all devices unreachable due to error")
+            for device_id in self.devices:
+                self._async_dispatcher_send(
+                    LIVISI_REACHABILITY_CHANGE, device_id, False
+                )
+            raise UpdateFailed(exc) from exc
 
     def _async_dispatcher_send(
         self, event: str, source: str, data: Any, property_name=None
@@ -110,13 +121,13 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
         self._capability_to_device = capability_mapping
         if not self.websocket_connected:
-            LOGGER.info("Scheduling livisi websocket connection")
+            LOGGER.info("Not connected, scheduling Livisi websocket connection")
             self.hass.async_create_task(self.ws_connect())
+
         return devices
 
     def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
         """Define a handler to fire when the data is received."""
-        self.websocket_reconnecting = False
         if event_data.type == LIVISI_EVENT_BUTTON_PRESSED:
             device_id = self._capability_to_device.get(event_data.source)
             if device_id is not None:
@@ -152,31 +163,26 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 self.publish_state(event_data, prop)
 
     async def on_websocket_close(self) -> None:
-        """Handles websocket reconnection."""
+        """Handles instant websocket reconnection."""
         LOGGER.info("Livisi websocket closed")
-
-        if not self.websocket_reconnecting:
-            LOGGER.info("Scheduling reconnect")
-            self.websocket_reconnecting = True
+        if not self.websocket_connected:
+            LOGGER.info("Reconnecing to Livisi websocket")
             self.hass.async_create_task(self.ws_connect())
         else:
-            LOGGER.warning("Livisi websocket failed during reconnect attempt, make devices unreachable")
-            for device_id in self.devices:
-                self._async_dispatcher_send(
-                    LIVISI_REACHABILITY_CHANGE, device_id, False
-                )
+            LOGGER.info("Livisi websocket is still connected, no action taken")
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
         LOGGER.info("Connecting to Livisi websocket")
         self.websocket_connected = True
         try:
+            LOGGER.debug("Listen for livisi events")
             await self.aiolivisi.listen_for_events(
                 self.on_websocket_data, self.on_websocket_close
             )
+            LOGGER.info("Listen for livisi events done")
         except Exception as e:
             LOGGER.error("Error in Livisi websocket connection: %s", e)
         finally:
+            LOGGER.info("Set livisi connected to false")
             self.websocket_connected = False
-            self.websocket_reconnecting = False
-
