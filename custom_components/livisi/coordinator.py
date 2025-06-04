@@ -126,7 +126,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self._capability_to_device = capability_mapping
         if not self.websocket_connected:
             LOGGER.info("Not connected, scheduling Livisi websocket connection")
-            self.hass.async_create_task(self.ws_connect())
+            await self.ws_connect()
 
         return devices
 
