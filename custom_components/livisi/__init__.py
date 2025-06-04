@@ -96,6 +96,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     unload_success = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    coordinator.shutdown = True
     await coordinator.aiolivisi.close()
 
     if unload_success:

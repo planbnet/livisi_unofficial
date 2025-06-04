@@ -55,6 +55,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self.hass = hass
         self.devices: set[str] = set()
         self.websocket_connected = False
+        self.shutdown = False
         self._capability_to_device: dict[str, str] = {}
 
     async def async_setup(self) -> None:
@@ -63,6 +64,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             self.config_entry.data[CONF_HOST],
             self.config_entry.data[CONF_PASSWORD],
         )
+        self.shutdown = False
 
     async def _async_update_data(self) -> list[LivisiDevice]:
         """Get device configuration from LIVISI."""
@@ -159,12 +161,14 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
     async def on_websocket_close(self) -> None:
         """Handles instant websocket reconnection."""
-        LOGGER.info("Livisi websocket closed")
-        if not self.websocket_connected:
-            LOGGER.info("Reconnecing to Livisi websocket")
+        self.websocket_connected = False
+        if not self.shutdown:
+            LOGGER.info("Livisi websocket closed, scheduling reconnect")
             self.hass.async_create_task(self.ws_connect())
         else:
-            LOGGER.info("Livisi websocket is still connected, no action taken")
+            LOGGER.info(
+                "Livisi websocket closed, skipping reconnection to Livisi websocket, shutdown in progress"
+            )
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
@@ -175,9 +179,6 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             await self.aiolivisi.listen_for_events(
                 self.on_websocket_data, self.on_websocket_close
             )
-            LOGGER.info("Listen for livisi events done")
+            LOGGER.debug("Listen for livisi events done")
         except Exception as e:
             LOGGER.error("Error in Livisi websocket connection: %s", e)
-        finally:
-            LOGGER.info("Set livisi connected to false")
-            self.websocket_connected = False
