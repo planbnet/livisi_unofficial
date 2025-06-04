@@ -87,7 +87,7 @@ class LivisiButton(LivisiEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press."""
         success = await self.aio_livisi.async_send_device_command(
-            self.capability_id,
+            self.device_id,
             COMMAND_RESTART,
             namespace="core.RWE",
             params={
