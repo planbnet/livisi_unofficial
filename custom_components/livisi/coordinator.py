@@ -56,6 +56,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self.devices: set[str] = set()
         self.websocket_connected = False
         self.shutdown = False
+        self._reconnecting = False
         self._capability_to_device: dict[str, str] = {}
 
     async def async_setup(self) -> None:
@@ -125,6 +126,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
     def on_websocket_data(self, event_data: LivisiWebsocketEvent) -> None:
         """Define a handler to fire when the data is received."""
+        self.websocket_reconnecting = False
+
         if event_data.type == LIVISI_EVENT_BUTTON_PRESSED:
             device_id = self._capability_to_device.get(event_data.source)
             if device_id is not None:
@@ -161,14 +164,19 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
     async def on_websocket_close(self) -> None:
         """Handles instant websocket reconnection."""
+        LOGGER.info("Livisi websocket closed")
         self.websocket_connected = False
-        if not self.shutdown:
-            LOGGER.info("Livisi websocket closed, scheduling reconnect")
-            self.hass.async_create_task(self.ws_connect())
-        else:
+
+        if self.shutdown:
             LOGGER.info(
                 "Livisi websocket closed, skipping reconnection to Livisi websocket, shutdown in progress"
             )
+            return
+
+        if not self.websocket_reconnecting:
+            LOGGER.info("Scheduling reconnect")
+            self.websocket_reconnecting = True
+            self.hass.async_create_task(self.ws_connect())
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
