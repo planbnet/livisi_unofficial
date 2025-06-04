@@ -176,17 +176,15 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         if not self.websocket_reconnecting:
             LOGGER.info("Scheduling reconnect")
             self.websocket_reconnecting = True
-            self.hass.async_create_task(self.ws_connect())
+            await self.ws_connect()
 
     async def ws_connect(self) -> None:
         """Connect the websocket."""
         LOGGER.info("Connecting to Livisi websocket")
         self.websocket_connected = True
-        try:
-            LOGGER.debug("Listen for livisi events")
-            await self.aiolivisi.listen_for_events(
+        self.hass.async_create_task(
+            self.aiolivisi.listen_for_events(
                 self.on_websocket_data, self.on_websocket_close
             )
-            LOGGER.debug("Listen for livisi events done")
-        except Exception as e:
-            LOGGER.error("Error in Livisi websocket connection: %s", e)
+        )
+        LOGGER.debug("Livisi websocket listener task started")
