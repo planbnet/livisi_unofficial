@@ -1,5 +1,6 @@
 """Code for communication with the Livisi application websocket."""
 
+import asyncio
 from collections.abc import Callable
 import urllib.parse
 
@@ -54,8 +55,8 @@ class LivisiWebsocket:
         except Exception as e:
             self._websocket = None
             LOGGER.exception("Error handling websocket connection", exc_info=e)
-            if not self._disconnecting:
-                LOGGER.warning("WebSocket disconnected unexpectedly.")
+        if not self._disconnecting:
+            LOGGER.warning("WebSocket disconnected unexpectedly.")
         await on_close()
 
     async def disconnect(self) -> None:
@@ -100,5 +101,8 @@ class LivisiWebsocket:
                     on_data(event_data)
                 except Exception as e:
                     LOGGER.error("Unhandled error in on_data", exc_info=e)
+
+        except asyncio.exceptions.CancelledError:
+            LOGGER.warning("Livisi WebSocket consumer handler stopped")
         except Exception as e:
             LOGGER.error("Unhandled error in WebSocket consumer handler", exc_info=e)
