@@ -155,15 +155,32 @@ class LivisiConnection:
                 errorcode = access_data.get("errorcode")
                 errordesc = access_data.get("description", "Unknown Error")
                 if errorcode in (2003, 2009):
+                    LOGGER.debug("Invalid credentials for SHC")
                     raise WrongCredentialException
                 # log full response for debugging
                 LOGGER.error("SHC response does not contain access token")
                 LOGGER.error(access_data)
                 raise LivisiException(f"No token received from SHC: {errordesc}")
         except ClientError as error:
+            LOGGER.debug("Error connecting to SHC: %s", error)
             if len(access_data) == 0:
                 raise IncorrectIpAddressException from error
             raise ShcUnreachableException from error
+        except TimeoutError as error:
+            LOGGER.debug("Timeout waiting for SHC")
+            raise ShcUnreachableException("Timeout waiting for shc") from error
+        except ClientResponseError as error:
+            LOGGER.debug("SHC response: %s", error.message)
+            if error.status == 401:
+                raise WrongCredentialException from error
+            raise LivisiException(
+                f"Invalid response from SHC, response code {error.status} ({error.message})"
+            ) from error
+        except Exception as error:
+            LOGGER.debug("Error retrieving token from SHC: %s", error)
+            raise LivisiException("Error retrieving token from SHC") from error
+        finally:
+            LOGGER.debug("Token retrieval finished, token: %s", self.token)
 
     async def _async_request(
         self, method, url: str, payload=None, headers=None
@@ -175,6 +192,7 @@ class LivisiConnection:
             errorcode = response.get("errorcode")
             # reconnect on expired token
             if errorcode == 2007:
+                LOGGER.debug("Token expired, requesting new token")
                 await self._async_retrieve_token()
                 response = await self._async_send_request(method, url, payload, headers)
                 if response is not None and "errorcode" in response:
