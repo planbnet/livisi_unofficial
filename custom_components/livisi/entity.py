@@ -105,15 +105,28 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
     def update_reachability(self, is_reachable: bool) -> None:
         """Update the reachability of the device."""
         if is_reachable and not self._attr_available:
-            self._attr_available = True
-            self.async_write_ha_state()
-            # if self has a func "async def async_update_value(self)" call it
+            # if self has a func "async def async_update_value(self)" call it to update the value
             if hasattr(self, "async_update_value"):
                 LOGGER.debug(
                     "Device %s is reachable again, request value update", self.device_id
                 )
-                self.hass.async_create_task(self.async_update_value())
+
+                async def _try_update_value():
+                    try:
+                        # async_update_value will also set _attr_available to True
+                        # if the update was successful
+                        await self.async_update_value()
+                    except Exception as err:
+                        LOGGER.warning(
+                            "Device %s: async_update_value failed after becoming reachable: %s",
+                            self.device_id,
+                            err,
+                        )
+                        return
+
+                self.hass.async_create_task(_try_update_value())
             else:
+                self.async_write_ha_state()
                 LOGGER.debug("Device %s is reachable again", self.device_id)
         elif not is_reachable and self._attr_available:
             LOGGER.debug("Device %s became unreachable", self.device_id)

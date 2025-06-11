@@ -107,9 +107,9 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
             self.capability_id, ON_STATE
         )
         if response is None:
-            self.update_reachability(False)
+            self._attr_available = False
         else:
-            self.update_reachability(True)
+            self._attr_available = True
             self.update_states(response)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -119,11 +119,11 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         )
 
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
         self._attr_is_on = True
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -132,7 +132,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
             self.capability_id, key=ON_STATE, value=False
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
 
         self._attr_is_on = False
@@ -191,24 +191,24 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
                 self.capability_id, key=DIM_LEVEL, value=level
             )
             if not success:
-                self.update_reachability(False)
+                self._attr_available = False
                 raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
             self._attr_is_on = True
             self._attr_brightness = brightness
-            self.update_reachability(True)
+            self._attr_available = True
             self.async_write_ha_state()
         else:
             success = await self.aio_livisi.async_set_state(
                 self.capability_id, key=DIM_LEVEL, value=100
             )
             if not success:
-                self.update_reachability(False)
+                self._attr_available = False
                 raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
             self._attr_is_on = True
             self._attr_brightness = 255
-            self.update_reachability(True)
+            self._attr_available = True
             self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -217,10 +217,24 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
             self.capability_id, key=DIM_LEVEL, value=0
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
 
         self._attr_is_on = False
+        self.async_write_ha_state()
+
+    async def async_set_brightness(self, brightness: int) -> None:
+        """Set the brightness of the dimmer."""
+        level = int(round((float(brightness) * 100) / 255))
+        success = await self.aio_livisi.async_set_state(
+            self.capability_id, key=DIM_LEVEL, value=level
+        )
+        if not success:
+            self._attr_available = False
+            raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
+        self._attr_is_on = True
+        self._attr_brightness = brightness
+        self._attr_available = True
         self.async_write_ha_state()
 
     @callback
@@ -229,13 +243,13 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
         level = int(round((float(dim_level) / 100) * 255))
         if level is None:
             self._attr_is_on = False
-            self.update_reachability(False)
-        if level == 0:
+            self._attr_available = False
+        elif level == 0:
             self._attr_is_on = False
-            self.update_reachability(True)
+            self._attr_available = True
             self._attr_brightness = 0
         else:
-            self.update_reachability(True)
+            self._attr_available = True
             self._attr_is_on = True
             self._attr_brightness = level
         self.async_write_ha_state()

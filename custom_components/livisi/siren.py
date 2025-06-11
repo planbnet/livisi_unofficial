@@ -91,11 +91,11 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
             self.capability_id, key=ON_STATE, value=True
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
         self._attr_is_on = True
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -104,9 +104,9 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
             self.capability_id, key=ON_STATE, value=False
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
-        self.update_reachability(True)
+        self._attr_available = True
 
         self._attr_is_on = False
         self.async_write_ha_state()
@@ -128,10 +128,10 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
             self.capability_id, ON_STATE
         )
         if response is None:
-            self.update_reachability(False)
+            self._attr_available = False
         else:
             self._attr_is_on = response
-            self.update_reachability(True)
+            self._attr_available = True
 
     @callback
     def update_states(self, state: bool) -> None:
@@ -161,11 +161,11 @@ class LivisiSiren(LivisiEntity, SirenEntity):
             self.capability_id, key="activeChannel", value="Alarm"
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
 
         self._attr_is_on = True
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
@@ -174,9 +174,9 @@ class LivisiSiren(LivisiEntity, SirenEntity):
             self.capability_id, key="activeChannel", value="None"
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
-        self.update_reachability(True)
+        self._attr_available = True
 
         self._attr_is_on = False
         self.async_write_ha_state()
@@ -205,13 +205,13 @@ class LivisiSiren(LivisiEntity, SirenEntity):
             self.capability_id, ACTIVE_CHANNEL
         )
         if response is None:
-            self.update_reachability(False)
-        if response == "Alarm":
+            self._attr_available = False
+        elif response == "Alarm":
             self._attr_is_on = True
-            self.update_reachability(True)
+            self._attr_available = True
         else:
             self._attr_is_on = False
-            self.update_reachability(True)
+            self._attr_available = True
 
     @callback
     def update_state(self, state: bool) -> None:
