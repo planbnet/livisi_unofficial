@@ -290,20 +290,10 @@ class LivisiConnection:
         async with self._token_refresh_lock:
             # Check if token is still the same expired one
             if self.token != None and self.token == expired_token:
-                token_payload = self._decode_jwt_payload(self.token)
-                if token_payload:
-                    token_age = time.time() - token_payload.get("iat", 0)
-                    formatted_token_age = time.strftime(
-                        "%Hh %Mm %Ss", time.gmtime(token_age)
-                    )
-                    LOGGER.info(
-                        "Livisi token expired after %s, requesting new token from SHC",
-                        formatted_token_age,
-                    )
-                else:
-                    LOGGER.info(
-                        "Livisi token is expired or invalid, requesting new token from SHC"
-                    )
+                LOGGER.info(
+                    "Livisi token %s expired, requesting new token from SHC",
+                    self._format_token_info(self.token)
+                )
                 try:
                     await self._async_retrieve_token()
                 except Exception as e:
@@ -311,8 +301,7 @@ class LivisiConnection:
                     raise
             else:
                 # Token was already refreshed by another request during the lock
-                new_preview = self._format_token_info(self.token)
-                LOGGER.debug("Token already refreshed by another request, using new token %s", new_preview)
+                LOGGER.debug("Token already refreshed by another request, using new token %s", self._format_token_info(self.token))
 
     async def _async_request(
         self, method, url: str, payload=None, headers=None
@@ -322,22 +311,9 @@ class LivisiConnection:
         # Check if the token is expired (not sure if this works on V1 SHC, so keep the old 2007 refresh code below too)
         token_payload = self._decode_jwt_payload(self.token)
         if token_payload:
-            preview = self._format_token_info(self.token)
-            LOGGER.debug("Livisi token %s", preview)
-
             expires = token_payload.get("exp", 0)
-            age = time.time() - token_payload.get("iat", 0)
-            # fordebug purposes, request if age > 2 minutes 
-            
-            if age > 120:
-                LOGGER.debug(
-                    "Livisi token %s is %s old, requesting new token from SHC",
-                    self.token,
-                    time.strftime("%Hh %Mm %Ss", time.gmtime(age)),
-                )
-
-            if age > 123 or (expires > 0 and time.time() >= expires):
-                LOGGER.debug("Livisi token %s detected as expired", self.token)
+            if expires > 0 and time.time() >= expires:
+                LOGGER.debug("Livisi token %s detected as expired", self._format_token_info(self.token))
                 # Token is expired, we need to refresh it
                 try:
                     await self._async_refresh_token()
