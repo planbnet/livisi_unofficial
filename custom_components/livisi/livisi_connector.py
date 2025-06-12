@@ -322,8 +322,21 @@ class LivisiConnection:
         # Check if the token is expired (not sure if this works on V1 SHC, so keep the old 2007 refresh code below too)
         token_payload = self._decode_jwt_payload(self.token)
         if token_payload:
+            preview = self._format_token_info(self.token)
+            LOGGER.debug("Livisi token %s", preview)
+
             expires = token_payload.get("exp", 0)
-            if expires > 0 and time.time() >= expires:
+            age = time.time() - token_payload.get("iat", 0)
+            # fordebug purposes, request if age > 2 minutes 
+            
+            if age > 120:
+                LOGGER.debug(
+                    "Livisi token %s is %s old, requesting new token from SHC",
+                    self.token,
+                    time.strftime("%Hh %Mm %Ss", time.gmtime(age)),
+                )
+
+            if age > 123 or (expires > 0 and time.time() >= expires):
                 LOGGER.debug("Livisi token %s detected as expired", self.token)
                 # Token is expired, we need to refresh it
                 try:
