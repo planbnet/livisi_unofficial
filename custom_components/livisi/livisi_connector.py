@@ -176,6 +176,7 @@ class LivisiConnection:
                 LOGGER.error("SHC response does not contain access token")
                 LOGGER.error(access_data)
                 raise LivisiException(f"No token received from SHC: {errordesc}")
+            self._connect_time = time.time()
         except ClientError as error:
             LOGGER.debug("Error connecting to SHC: %s", error)
             if len(access_data) == 0:
@@ -224,17 +225,23 @@ class LivisiConnection:
                     # Check if token is still the same expired one
                     if self.token == expired_token:
                         # This request will refresh the token
-                        LOGGER.info("Requesting new token from Livisi SHC")
-                        old_token_preview = self.token[:5] + "..." if self.token else "None"
-                        LOGGER.debug("Old token before refresh: %s", old_token_preview)
+
+                        token_age = time.time() - self._connect_time
+                        formatted_token_age = time.strftime(
+                            "%Hh %Mm %Ss", time.gmtime(token_age)
+                        )
+                        LOGGER.info(
+                            "Livisi token expired after %s, requesting new token from SHC",
+                            formatted_token_age,
+                        )
                         try:
+                            LOGGER.debug("Old token before refresh: %s", self.token)
                             await self._async_retrieve_token()
-                            await asyncio.sleep(0.1)  # Give SHC time to process new token
                             self._token_expired_simulation = False
-                            new_token_preview = self.token[:5] + "..." if self.token else "None"
-                            LOGGER.debug("New token after refresh: %s", new_token_preview)
+                            LOGGER.debug("New token after refresh: %s", self.token)
                             if self.token == expired_token:
                                 LOGGER.warning("Livisi SHC returned the same token after refresh - this may indicate an SHC issue")
+                            await asyncio.sleep(0.1)  # Give SHC time to process new token
                         except Exception as e:
                             LOGGER.error("Unhandled error requesting token", exc_info=e)
                             raise
