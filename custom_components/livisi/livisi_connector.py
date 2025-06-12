@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import time
+
 from contextlib import suppress
 
 from typing import Any
 import uuid
 import json
+
 from aiohttp import ClientResponseError, ServerDisconnectedError, ClientConnectorError
 from aiohttp.client import ClientSession, ClientError, TCPConnector
 from dateutil.parser import parse as parse_timestamp
@@ -61,6 +64,8 @@ class LivisiConnection:
         self._web_session = None
         self._websocket = LivisiWebsocket(self)
         self._token_refresh_lock = asyncio.Lock()
+        self._connect_time = None
+        self._token_expired_simulation = True
 
     async def connect(self, host: str, password: str):
         """Connect to the livisi SHC and retrieve controller information."""
@@ -75,6 +80,8 @@ class LivisiConnection:
         except:
             await self.close()
             raise
+
+        self._connect_time = time.time()
 
         self.controller = await self._async_get_controller()
         if self.controller.is_v2:
@@ -194,6 +201,13 @@ class LivisiConnection:
         """Send a request to the Livisi Smart Home controller and handle requesting new token."""
         response = await self._async_send_request(method, url, payload, headers)
 
+        # if we are connected for more than 3 minutes, fake a token expiration
+        if self._token_expired_simulation and self._connect_time is not None:
+            elapsed_time = time.time() - self._connect_time
+            if elapsed_time > 180:  # 3 minutes
+                LOGGER.debug("Simulating token expiration")
+                response = {"errorcode": 2007}  # Simulate expired token
+
         if response is not None and "errorcode" in response:
             errorcode = response.get("errorcode")
             # Handle expired token (2007)
@@ -211,6 +225,7 @@ class LivisiConnection:
                         try:
                             await self._async_retrieve_token()
                             await asyncio.sleep(0.1)  # Give SHC time to process new token
+                            self._token_expired_simulation = False
                         except Exception as e:
                             LOGGER.error("Unhandled error requesting token", exc_info=e)
                             raise
