@@ -352,7 +352,7 @@ class LivisiConnection:
             errorcode = response.get("errorcode")
             # Handle expired token (2007)
             if errorcode == 2007:
-                LOGGER.debug("Livisi token %s expired (error 2007)", self.token)
+                LOGGER.debug("Livisi token %s expired (error 2007)", self._format_token_info(self.token))
                 await self._async_refresh_token()
                 
                 # Retry the original request with the (possibly new) token
