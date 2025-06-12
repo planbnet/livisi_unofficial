@@ -162,7 +162,10 @@ class LivisiConnection:
                 headers=headers,
             )
             LOGGER.debug("Updated access token")
-            self.token = access_data.get("access_token")
+            new_token = access_data.get("access_token")
+            new_token_preview = new_token[:5] + "..." if new_token else "None"
+            LOGGER.debug("Received token from SHC: %s", new_token_preview)
+            self.token = new_token
             if self.token is None:
                 errorcode = access_data.get("errorcode")
                 errordesc = access_data.get("description", "Unknown Error")
@@ -222,10 +225,16 @@ class LivisiConnection:
                     if self.token == expired_token:
                         # This request will refresh the token
                         LOGGER.info("Requesting new token from Livisi SHC")
+                        old_token_preview = self.token[:5] + "..." if self.token else "None"
+                        LOGGER.debug("Old token before refresh: %s", old_token_preview)
                         try:
                             await self._async_retrieve_token()
                             await asyncio.sleep(0.1)  # Give SHC time to process new token
                             self._token_expired_simulation = False
+                            new_token_preview = self.token[:5] + "..." if self.token else "None"
+                            LOGGER.debug("New token after refresh: %s", new_token_preview)
+                            if self.token == expired_token:
+                                LOGGER.warning("Livisi SHC returned the same token after refresh - this may indicate an SHC issue")
                         except Exception as e:
                             LOGGER.error("Unhandled error requesting token", exc_info=e)
                             raise
