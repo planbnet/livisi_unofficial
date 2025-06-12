@@ -175,7 +175,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
     async def on_websocket_close(self) -> None:
         """Log WebSocket close."""
-        LOGGER.warning("Livisi WebSocket connection closed by server.")
+        LOGGER.debug("Livisi WebSocket on close handler called.")
 
     # ---------------------------------------------------------------------
     # WebSocket management
@@ -218,8 +218,14 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
             # At this point the connection is gone
             self.websocket_connected = False
-            self._reconnect_attempts += 1
 
+            # if homeassistant is shutting down, we don't want to reconnect
+            if self.shutdown or self.hass.is_stopping:
+                self._reconnect_attempts = 0
+                LOGGER.info("Livisi WebSocket loop stopped due to shutdown.")
+                return
+
+            self._reconnect_attempts += 1
             if self._reconnect_attempts >= 2:
                 LOGGER.warning(
                     "Two consecutive WebSocket failures – will wait for next "
