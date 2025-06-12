@@ -196,46 +196,52 @@ class LivisiConnection:
 
         if response is not None and "errorcode" in response:
             errorcode = response.get("errorcode")
-            # On expired token, only one request should refresh the token, all others must wait for completion
+            # Handle expired token (2007)
             if errorcode == 2007:
                 expired_token = self.token
-                LOGGER.debug("Livisi token %s expired", expired_token[:5] + "..." if expired_token else "None")
-                # Only one request should refresh the token, all others must wait for completion
+                expired_preview = expired_token[:5] + "..." if expired_token else "None"
+                LOGGER.debug("Livisi token %s expired", expired_preview)
+                
+                # Use lock to ensure only one request refreshes the token
                 async with self._token_refresh_lock:
-                    # Only refresh if token is still the same expired one
+                    # Check if token is still the same expired one
                     if self.token == expired_token:
+                        # This request will refresh the token
                         LOGGER.info("Requesting new token from Livisi SHC")
                         try:
                             await self._async_retrieve_token()
-                            await asyncio.sleep(0.1) # ensure the SHC has really stored the new token
+                            await asyncio.sleep(0.1)  # Give SHC time to process new token
                         except Exception as e:
                             LOGGER.error("Unhandled error requesting token", exc_info=e)
                             raise
                     else:
-                        LOGGER.debug(
-                            "Token already refreshed by another request, using new token %s", self.token[:5] + "..." if self.token else "None"
-                        )
+                        # Token was already refreshed by another request
+                        new_preview = self.token[:5] + "..." if self.token else "None"
+                        LOGGER.debug("Token already refreshed by another request, using new token %s", new_preview)
+                
+                # Retry the original request with the (possibly new) token
                 try:
-                    response2 = await self._async_send_request(method, url, payload, headers)
+                    response = await self._async_send_request(method, url, payload, headers)
                 except Exception as e:
                     LOGGER.error("Unhandled error re-sending request after token update", exc_info=e)
                     raise
 
-                if response2 is not None and "errorcode" in response2:
-                    LOGGER.error(
-                        "Livisi sent error code %d after token request",
-                        response2.get("errorcode"),
-                    )
-                    raise ErrorCodeException(response2["errorcode"])
-                return response2
+                # Check if the retry also failed
+                if response is not None and "errorcode" in response:
+                    retry_errorcode = response.get("errorcode")
+                    LOGGER.error("Livisi sent error code %d after token refresh", retry_errorcode)
+                    raise ErrorCodeException(retry_errorcode)
+                
+                return response
             else:
+                # Handle other error codes
                 LOGGER.error(
                     "Error code %d (%s) on url %s",
                     errorcode,
                     ERROR_CODES.get(errorcode, "unknown"),
                     url,
                 )
-                raise ErrorCodeException(response["errorcode"])
+                raise ErrorCodeException(errorcode)
 
         return response
 
