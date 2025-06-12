@@ -127,6 +127,10 @@ class LivisiConnection:
         """Set the JWT from the LIVISI Smart Home Controller."""
         access_data: dict = {}
 
+        # Ensure token is cleared before attempting to fetch a new one
+        # so that future requests will reauthenticate on failure
+        self.token = None
+
         if self._password is None:
             raise LivisiException("No password set")
 
@@ -193,13 +197,20 @@ class LivisiConnection:
             # reconnect on expired token
             if errorcode == 2007:
                 LOGGER.debug("Token expired, requesting new token")
-                await self._async_retrieve_token()
-                response = await self._async_send_request(method, url, payload, headers)
+                try:
+                    await self._async_retrieve_token()
+                    response = await self._async_send_request(method, url, payload, headers)
+                except Exception:
+                    # Reset token to trigger reauthentication on next request
+                    self.token = None
+                    raise
                 if response is not None and "errorcode" in response:
                     LOGGER.error(
                         "Livisi sent error code %d after token request",
                         response.get("errorcode"),
                     )
+                    # Reset token so the next refresh can retry with a new one
+                    self.token = None
                     raise ErrorCodeException(response["errorcode"])
             else:
                 LOGGER.error(
