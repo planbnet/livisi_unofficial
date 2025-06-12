@@ -199,6 +199,8 @@ class LivisiConnection:
                 LOGGER.debug("Token expired, requesting new token")
                 try:
                     await self._async_retrieve_token()
+                    # Wait a bit before retrying to avoid SHC being overwhelmed
+                    await asyncio.sleep(0.5)
                     response = await self._async_send_request(method, url, payload, headers)
                 except Exception:
                     # Reset token to trigger reauthentication on next request
