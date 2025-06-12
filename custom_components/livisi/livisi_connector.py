@@ -60,6 +60,7 @@ class LivisiConnection:
 
         self._web_session = None
         self._websocket = LivisiWebsocket(self)
+        self._token_refresh_lock = asyncio.Lock()
 
     async def connect(self, host: str, password: str):
         """Connect to the livisi SHC and retrieve controller information."""
@@ -122,6 +123,13 @@ class LivisiConnection:
         )
         web_session = ClientSession(connector=connector)
         return web_session
+
+    async def _async_refresh_token(self) -> None:
+        """Refresh the JWT while preventing concurrent updates."""
+        async with self._token_refresh_lock:
+            if self.token is None:
+                await self._async_retrieve_token()
+                await asyncio.sleep(0.5)
 
     async def _async_retrieve_token(self) -> None:
         """Set the JWT from the LIVISI Smart Home Controller."""
@@ -197,10 +205,10 @@ class LivisiConnection:
             # reconnect on expired token
             if errorcode == 2007:
                 LOGGER.debug("Token expired, requesting new token")
+                # Clear the token so other requests know a refresh is needed
+                self.token = None
                 try:
-                    await self._async_retrieve_token()
-                    # Wait a bit before retrying to avoid SHC being overwhelmed
-                    await asyncio.sleep(0.5)
+                    await self._async_refresh_token()
                     response = await self._async_send_request(method, url, payload, headers)
                 except Exception:
                     # Reset token to trigger reauthentication on next request
