@@ -245,8 +245,7 @@ class LivisiConnection:
             )
             LOGGER.debug("Updated access token")
             new_token = access_data.get("access_token")
-            new_token_preview = self._format_token_info(new_token)
-            LOGGER.debug("Received token from SHC: %s", new_token_preview)
+            LOGGER.info("Received token from SHC: %s", self._format_token_info(new_token))
             self.token = new_token
             if self.token is None:
                 errorcode = access_data.get("errorcode")
@@ -277,8 +276,6 @@ class LivisiConnection:
         except Exception as error:
             LOGGER.debug("Error retrieving token from SHC: %s", error)
             raise LivisiException("Error retrieving token from SHC") from error
-        finally:
-            LOGGER.info("Livisi token retrieval finished, token: %s", self._format_token_info(self.token))
 
     async def _async_refresh_token(self) -> None:
         """Refresh the token if needed, using a lock to prevent concurrent refreshes."""
@@ -287,11 +284,10 @@ class LivisiConnection:
         expired_token = self.token
 
         async with self._token_refresh_lock:
-            # Check if token is still the same expired one
-            if self.token != None and self.token == expired_token:
+            # Check if token needs to be refreshed
+            if self.token is None or self.token == expired_token:
                 LOGGER.info(
-                    "Livisi token %s expired, requesting new token from SHC",
-                    self._format_token_info(self.token)
+                    "Livisi token %s is missing or expired, requesting new token from SHC" , self._format_token_info(self.token)
                 )
                 try:
                     await self._async_retrieve_token()
