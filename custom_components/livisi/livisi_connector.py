@@ -124,13 +124,6 @@ class LivisiConnection:
         web_session = ClientSession(connector=connector)
         return web_session
 
-    async def _async_refresh_token(self) -> None:
-        """Refresh the token while preventing concurrent updates."""
-        async with self._token_refresh_lock:
-            if self.token is None:
-                await self._async_retrieve_token()
-                await asyncio.sleep(0.5)
-
     async def _async_retrieve_token(self) -> None:
         """Set the token from the LIVISI Smart Home Controller."""
         access_data: dict = {}
@@ -192,7 +185,8 @@ class LivisiConnection:
             LOGGER.debug("Error retrieving token from SHC: %s", error)
             raise LivisiException("Error retrieving token from SHC") from error
         finally:
-            LOGGER.debug("Token retrieval finished, token: %s", self.token)
+            token_preview = self.token[:5] + "..." if self.token else "None"
+            LOGGER.debug("Token retrieval finished, token: %s", token_preview)
 
     async def _async_request(
         self, method, url: str, payload=None, headers=None
@@ -202,29 +196,38 @@ class LivisiConnection:
 
         if response is not None and "errorcode" in response:
             errorcode = response.get("errorcode")
-            # reconnect on expired token
+            # On expired token, only one request should refresh the token, all others must wait for completion
             if errorcode == 2007:
-                LOGGER.info("Livisi token expired, requesting new token")
-                self.token = None
-
-                try:
-                    await self._async_refresh_token()
-                except Exception as e:
-                    LOGGER.error("Unhandled error requesting token", exc_info=e)  
-                    raise
-
+                expired_token = self.token
+                LOGGER.debug("Livisi token %s expired", expired_token[:5] + "..." if expired_token else "None")
+                # Only one request should refresh the token, all others must wait for completion
+                async with self._token_refresh_lock:
+                    # Only refresh if token is still the same expired one
+                    if self.token == expired_token:
+                        LOGGER.info("Requesting new token from Livisi SHC")
+                        try:
+                            await self._async_retrieve_token()
+                            await asyncio.sleep(0.1) # ensure the SHC has really stored the new token
+                        except Exception as e:
+                            LOGGER.error("Unhandled error requesting token", exc_info=e)
+                            raise
+                    else:
+                        LOGGER.debug(
+                            "Token already refreshed by another request, using new token %s", self.token[:5] + "..." if self.token else "None"
+                        )
                 try:
                     response2 = await self._async_send_request(method, url, payload, headers)
                 except Exception as e:
-                    LOGGER.error("Unhandled error re-sending request after token update", exc_info=e)  
+                    LOGGER.error("Unhandled error re-sending request after token update", exc_info=e)
                     raise
 
                 if response2 is not None and "errorcode" in response2:
                     LOGGER.error(
                         "Livisi sent error code %d after token request",
-                        response.get("errorcode"),
+                        response2.get("errorcode"),
                     )
                     raise ErrorCodeException(response2["errorcode"])
+                return response2
             else:
                 LOGGER.error(
                     "Error code %d (%s) on url %s",
