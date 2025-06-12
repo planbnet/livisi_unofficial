@@ -278,8 +278,7 @@ class LivisiConnection:
             LOGGER.debug("Error retrieving token from SHC: %s", error)
             raise LivisiException("Error retrieving token from SHC") from error
         finally:
-            token_preview = self._decode_jwt_payload(self.token)
-            LOGGER.debug("Token retrieval finished, token: %s", token_preview)
+            LOGGER.info("Livisi token retrieval finished, token: %s", self._format_token_info(self.token))
 
     async def _async_refresh_token(self) -> None:
         """Refresh the token if needed, using a lock to prevent concurrent refreshes."""
