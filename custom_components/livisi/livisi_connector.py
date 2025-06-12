@@ -125,14 +125,14 @@ class LivisiConnection:
         return web_session
 
     async def _async_refresh_token(self) -> None:
-        """Refresh the JWT while preventing concurrent updates."""
+        """Refresh the token while preventing concurrent updates."""
         async with self._token_refresh_lock:
             if self.token is None:
                 await self._async_retrieve_token()
                 await asyncio.sleep(0.5)
 
     async def _async_retrieve_token(self) -> None:
-        """Set the JWT from the LIVISI Smart Home Controller."""
+        """Set the token from the LIVISI Smart Home Controller."""
         access_data: dict = {}
 
         # Ensure token is cleared before attempting to fetch a new one
@@ -204,24 +204,27 @@ class LivisiConnection:
             errorcode = response.get("errorcode")
             # reconnect on expired token
             if errorcode == 2007:
-                LOGGER.debug("Token expired, requesting new token")
-                # Clear the token so other requests know a refresh is needed
+                LOGGER.info("Livisi token expired, requesting new token")
                 self.token = None
+
                 try:
                     await self._async_refresh_token()
-                    response = await self._async_send_request(method, url, payload, headers)
                 except Exception:
-                    # Reset token to trigger reauthentication on next request
-                    self.token = None
+                    LOGGER.error("Unhandled error requesting token", exc_info=e)  
                     raise
-                if response is not None and "errorcode" in response:
+
+                try:
+                    response2 = await self._async_send_request(method, url, payload, headers)
+                except Exception as e:
+                    LOGGER.error("Unhandled error re-sending request after token update", exc_info=e)  
+                    raise
+
+                if response2 is not None and "errorcode" in response2:
                     LOGGER.error(
                         "Livisi sent error code %d after token request",
                         response.get("errorcode"),
                     )
-                    # Reset token so the next refresh can retry with a new one
-                    self.token = None
-                    raise ErrorCodeException(response["errorcode"])
+                    raise ErrorCodeException(response2["errorcode"])
             else:
                 LOGGER.error(
                     "Error code %d (%s) on url %s",
