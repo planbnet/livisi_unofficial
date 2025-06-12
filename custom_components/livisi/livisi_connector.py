@@ -209,7 +209,7 @@ class LivisiConnection:
 
                 try:
                     await self._async_refresh_token()
-                except Exception:
+                except Exception as e:
                     LOGGER.error("Unhandled error requesting token", exc_info=e)  
                     raise
 
