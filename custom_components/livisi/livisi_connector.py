@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+import base64
 
 from contextlib import suppress
 
@@ -66,6 +67,84 @@ class LivisiConnection:
         self._token_refresh_lock = asyncio.Lock()
         self._connect_time = None
         self._token_expired_simulation = True
+
+    def _decode_jwt_payload(self, token: str) -> str:
+        """Decode JWT payload and return formatted info for logging."""
+        if not token:
+            return "None"
+        
+        try:
+            # JWT tokens have 3 parts separated by dots: header.payload.signature
+            parts = token.split('.')
+            if len(parts) != 3:
+                return f"Invalid JWT format (token length: {len(token)})"
+            
+            # Decode the payload (second part)
+            payload = parts[1]
+            
+            # Add padding if needed (JWT base64 encoding might not have padding)
+            padding = 4 - (len(payload) % 4)
+            if padding != 4:
+                payload += '=' * padding
+                
+            try:
+                decoded_bytes = base64.urlsafe_b64decode(payload)
+                payload_json = json.loads(decoded_bytes.decode('utf-8'))
+                
+                # Extract useful information for logging
+                info_parts = []
+                
+                # User/subject
+                if 'sub' in payload_json:
+                    info_parts.append(f"user: {payload_json['sub']}")
+                elif 'username' in payload_json:
+                    info_parts.append(f"user: {payload_json['username']}")
+                
+                # Expiration time
+                if 'exp' in payload_json:
+                    exp_time = payload_json['exp']
+                    current_time = time.time()
+                    if exp_time > current_time:
+                        time_left = exp_time - current_time
+                        if time_left > 3600:
+                            info_parts.append(f"expires in: {time_left/3600:.1f}h")
+                        elif time_left > 60:
+                            info_parts.append(f"expires in: {time_left/60:.1f}m")
+                        else:
+                            info_parts.append(f"expires in: {time_left:.0f}s")
+                    else:
+                        info_parts.append("expired")
+                
+                # Issue time
+                if 'iat' in payload_json:
+                    iat_time = payload_json['iat']
+                    age = time.time() - iat_time
+                    if age > 3600:
+                        info_parts.append(f"age: {age/3600:.1f}h")
+                    elif age > 60:
+                        info_parts.append(f"age: {age/60:.1f}m")
+                    else:
+                        info_parts.append(f"age: {age:.0f}s")
+                
+                # Token ID if available
+                if 'jti' in payload_json:
+                    jti = payload_json['jti']
+                    if len(jti) > 8:
+                        info_parts.append(f"id: {jti[:8]}...")
+                    else:
+                        info_parts.append(f"id: {jti}")
+                
+                if info_parts:
+                    return f"JWT({', '.join(info_parts)})"
+                else:
+                    return f"JWT(payload decoded, {len(payload_json)} claims)"
+                    
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return f"JWT(payload decode failed, length: {len(token)})"
+                
+        except Exception:
+            # Fallback to original behavior if decoding fails
+            return token[:5] + "..." if len(token) > 5 else token
 
     async def connect(self, host: str, password: str):
         """Connect to the livisi SHC and retrieve controller information."""
@@ -163,7 +242,7 @@ class LivisiConnection:
             )
             LOGGER.debug("Updated access token")
             new_token = access_data.get("access_token")
-            new_token_preview = new_token[:5] + "..." if new_token else "None"
+            new_token_preview = self._decode_jwt_payload(new_token)
             LOGGER.debug("Received token from SHC: %s", new_token_preview)
             self.token = new_token
             if self.token is None:
@@ -196,7 +275,7 @@ class LivisiConnection:
             LOGGER.debug("Error retrieving token from SHC: %s", error)
             raise LivisiException("Error retrieving token from SHC") from error
         finally:
-            token_preview = self.token[:5] + "..." if self.token else "None"
+            token_preview = self._decode_jwt_payload(self.token)
             LOGGER.debug("Token retrieval finished, token: %s", token_preview)
 
     async def _async_request(
@@ -217,7 +296,7 @@ class LivisiConnection:
             # Handle expired token (2007)
             if errorcode == 2007:
                 expired_token = self.token
-                expired_preview = expired_token[:5] + "..." if expired_token else "None"
+                expired_preview = self._decode_jwt_payload(expired_token)
                 LOGGER.debug("Livisi token %s expired", expired_preview)
                 
                 # Use lock to ensure only one request refreshes the token
@@ -235,10 +314,10 @@ class LivisiConnection:
                             formatted_token_age,
                         )
                         try:
-                            LOGGER.debug("Old token before refresh: %s", self.token)
+                            LOGGER.debug("Old token before refresh: %s", self._decode_jwt_payload(self.token))
                             await self._async_retrieve_token()
                             self._token_expired_simulation = False
-                            LOGGER.debug("New token after refresh: %s", self.token)
+                            LOGGER.debug("New token after refresh: %s", self._decode_jwt_payload(self.token))
                             if self.token == expired_token:
                                 LOGGER.warning("Livisi SHC returned the same token after refresh - this may indicate an SHC issue")
                             await asyncio.sleep(0.1)  # Give SHC time to process new token
@@ -247,7 +326,7 @@ class LivisiConnection:
                             raise
                     else:
                         # Token was already refreshed by another request
-                        new_preview = self.token[:5] + "..." if self.token else "None"
+                        new_preview = self._decode_jwt_payload(self.token)
                         LOGGER.debug("Token already refreshed by another request, using new token %s", new_preview)
                 
                 # Retry the original request with the (possibly new) token
