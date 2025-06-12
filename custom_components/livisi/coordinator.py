@@ -220,7 +220,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             self.websocket_connected = False
 
             # if homeassistant is shutting down, we don't want to reconnect
-            if self.shutdown:
+            if self.shutdown or self.hass.is_stopping:
+                self._reconnect_attempts = 0
                 LOGGER.info("Livisi WebSocket loop stopped due to shutdown.")
                 return
 
