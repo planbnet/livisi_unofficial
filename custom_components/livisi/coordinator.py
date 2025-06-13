@@ -55,6 +55,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self.shutdown = False
         self._capability_to_device: dict[str, str] = {}
         self._reconnect_attempts = 0  # consecutive WS failures without data
+        self._recover_from_error = False
 
     # ---------------------------------------------------------------------
     # HA lifecycle
@@ -79,6 +80,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 self._async_dispatcher_send(
                     LIVISI_REACHABILITY_CHANGE, device_id, False
                 )
+            self._recover_from_error = True
             raise UpdateFailed(exc) from exc
 
     # ---------------------------------------------------------------------
@@ -122,12 +124,14 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             # Re-reachability is normally handled by webservice updates
             # (as some devices like WDS incorrectly report as reachable
             # which leads to flapping state when trying to get the current value)
-            if device.unreachable or not self.websocket_connected:
+            if device.unreachable or self._recover_from_error:
                 self._async_dispatcher_send(
                     LIVISI_REACHABILITY_CHANGE, device.id, not device.unreachable
                 )
 
         self._capability_to_device = capability_mapping
+
+        self._recover_from_error = False
 
         # (Re-)establish WS if needed
         if not self.websocket_connected:
