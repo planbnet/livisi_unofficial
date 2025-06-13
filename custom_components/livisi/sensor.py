@@ -336,10 +336,12 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             self.capability_id, self.property_name
         )
         if response is None:
-            self.update_reachability(False)
+            self._attr_available = False
+            self.async_write_ha_state()
         else:
             self._attr_native_value = self.convert_to_hass(response)
-            self.update_reachability(True)
+            self._attr_available = True
+            self.async_write_ha_state()
 
     def convert_to_hass(self, number: Decimal):
         """Convert livisi value to hass value."""
@@ -370,7 +372,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
     @callback
     def update_states(self, state: Decimal) -> None:
         """Update the state of the device."""
-        self.update_reachability(True)
+        self._attr_available = True
         self._attr_native_value = self.convert_to_hass(state)
         self.async_write_ha_state()
 

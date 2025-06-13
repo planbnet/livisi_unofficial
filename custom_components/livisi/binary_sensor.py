@@ -155,17 +155,18 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
             self.capability_id, self.entity_description.key
         )
         if response is None:
-            self.update_reachability(False)
+            self._attr_available = False
         else:
-            self.update_reachability(True)
+            self._attr_available = True
             self._attr_is_on = response
+        self.async_write_ha_state()
 
     @callback
     def update_states(self, state: bool) -> None:
         """Update the state of the device."""
         if not isinstance(state, bool):
             return
-        self.update_reachability(True)
+        self._attr_available = True
         self._attr_is_on = state
         self.async_write_ha_state()
 
@@ -240,10 +241,10 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
             self.capability_id, self.entity_description.key
         )
         if response is None:
-            self.update_reachability(False)
+            self._attr_available = False
             return
 
-        self.update_reachability(True)
+        self._attr_available = True
 
         off_delay = self.get_off_delay()
         if off_delay is None:
@@ -286,7 +287,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
         if off_delay is None:
             off_delay = 20.0
 
-        self.update_reachability(True)
+        self._attr_available = True
         self._attr_is_on = True
         self.async_write_ha_state()
 

@@ -118,9 +118,9 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             value=target_temp,
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to set temperature on {self._attr_name}")
-        self.update_reachability(True)
+        self._attr_available = True
         return success
 
     async def async_set_mode(self, auto: bool) -> bool:
@@ -139,9 +139,9 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             value=("Auto" if auto else "Manu"),
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
             raise HomeAssistantError(f"Failed to set mode on {self._attr_name}")
-        self.update_reachability(True)
+        self._attr_available = True
 
         return success
 
@@ -203,12 +203,12 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         )
         if temperature is None:
             self._attr_current_temperature = None
-            self.update_reachability(False)
+            self._attr_available = False
         else:
             self._attr_target_temperature = target_temperature
             self._attr_current_temperature = temperature
             self._attr_current_humidity = humidity
-            self.update_reachability(True)
+            self._attr_available = True
 
         if len(self._thermostat_actuator_ids) > 0:
             mode = await self.coordinator.aiolivisi.async_get_value(
@@ -248,21 +248,21 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
     def update_target_temperature(self, target_temperature: float) -> None:
         """Update the target temperature of the climate device."""
         self._attr_target_temperature = target_temperature
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     @callback
     def update_temperature(self, current_temperature: float) -> None:
         """Update the current temperature of the climate device."""
         self._attr_current_temperature = current_temperature
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     @callback
     def update_humidity(self, humidity: int) -> None:
         """Update the humidity of the climate device."""
         self._attr_current_humidity = humidity
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     @callback
