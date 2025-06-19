@@ -332,6 +332,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         await self.async_update_value()
 
     async def async_update_value(self):
+        """Read the latest sensor value from the controller."""
         response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, self.property_name
         )

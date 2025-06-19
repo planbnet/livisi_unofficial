@@ -186,6 +186,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
         await self.async_update_value()
 
     async def async_update_value(self):
+        """Refresh the device state from the controller."""
         target_temp_property = (
             SETPOINT_TEMPERATURE
             if self.coordinator.aiolivisi.controller.is_v2

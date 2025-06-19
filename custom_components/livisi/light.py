@@ -103,6 +103,7 @@ class LivisiSwitchLight(LivisiEntity, LightEntity):
         await self.async_update_value()
 
     async def async_update_value(self):
+        """Update the on/off state from the controller."""
         response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, ON_STATE
         )
@@ -176,6 +177,7 @@ class LivisiDimmerLight(LivisiEntity, LightEntity):
         await self.async_update_value()
 
     async def async_update_value(self):
+        """Refresh the brightness level from the controller."""
         response = await self.coordinator.aiolivisi.async_get_value(
             self.capability_id, DIM_LEVEL
         )
