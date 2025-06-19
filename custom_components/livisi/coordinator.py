@@ -11,7 +11,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .livisi_errors import LivisiException
 from .livisi_device import LivisiDevice
 from .livisi_connector import LivisiConnection, connect as livisi_connect
 from .livisi_websocket import LivisiWebsocketEvent
@@ -42,6 +41,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
     aiolivisi: LivisiConnection
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+        """Initialize the coordinator."""
         super().__init__(
             hass,
             LOGGER,
@@ -56,6 +56,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self._capability_to_device: dict[str, str] = {}
         self._reconnect_attempts = 0  # consecutive WS failures without data
         self._recover_from_error = False
+        self._controller_device_id: str | None = None
 
     # ---------------------------------------------------------------------
     # HA lifecycle
@@ -75,10 +76,25 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
             return await self.async_get_devices()
         except Exception as exc:
             LOGGER.error("Error fetching Livisi data: %s", exc)
-            LOGGER.debug("Marking all devices unreachable due to error")
-            for device_id in self.devices:
+            controller_id = self._controller_device_id
+            if controller_id is None and self.data is not None:
+                for device in self.data:
+                    if device.is_shc:
+                        controller_id = device.id
+                        break
+            if controller_id is not None:
+                LOGGER.debug(
+                    "Marking controller %s unreachable due to error",
+                    controller_id,
+                )
                 self._async_dispatcher_send(
-                    LIVISI_REACHABILITY_CHANGE, device_id, False
+                    LIVISI_REACHABILITY_CHANGE,
+                    controller_id,
+                    False,
+                )
+            else:
+                LOGGER.debug(
+                    "Controller device id unknown, cannot mark unreachable"
                 )
             self._recover_from_error = True
             raise UpdateFailed(exc) from exc
@@ -118,6 +134,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         capability_mapping: dict[str, str] = {}
 
         for device in devices:
+            if device.is_shc:
+                self._controller_device_id = device.id
             for cap_id in device.capabilities.values():
                 capability_mapping[cap_id] = device.id
             # Mark devices as unreachable if indicated by the API
@@ -191,8 +209,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         )
 
     async def ws_loop(self) -> None:
-        """
-        Run the WebSocket listener.
+        """Run the WebSocket listener.
 
         * Tries one immediate reconnect after a failure.
         * Stops after two consecutive failures without receiving any data.
