@@ -152,11 +152,19 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
 
     async def async_update_value(self):
         """Retrieve the latest value from the controller."""
-        response = await self.coordinator.aiolivisi.async_get_value(
-            self.capability_id, self.entity_description.key
-        )
-        if response is None:
+        try:
+            response = await self.coordinator.aiolivisi.async_get_value(
+                self.capability_id, self.entity_description.key
+            )
+        except Exception:
             self._attr_available = False
+            return
+        if response is None:
+            if self.capability_name == "WindowDoorSensor":
+                self._attr_available = True
+                self._attr_is_on = None
+            else:
+                self._attr_available = False
         else:
             self._attr_available = True
             self._attr_is_on = response
@@ -239,9 +247,13 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
             )
         )
 
-        response = await self.coordinator.aiolivisi.async_get_state(
-            self.capability_id, self.entity_description.key
-        )
+        try:
+            response = await self.coordinator.aiolivisi.async_get_state(
+                self.capability_id, self.entity_description.key
+            )
+        except Exception:
+            self._attr_available = False
+            return
         if response is None:
             self._attr_available = False
             return

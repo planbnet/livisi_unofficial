@@ -55,6 +55,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self.aio_livisi = coordinator.aiolivisi
         self.capabilities = device.capabilities
         self.capability_id = None
+        self.capability_name = capability_name
         self.device_id = device.id
 
         if capability_name is not None:

@@ -70,29 +70,29 @@ class LivisiConnection:
         """Decode JWT payload and return payload dict or None on error."""
         if not token:
             return None
-        
+
         try:
             # JWT tokens have 3 parts separated by dots: header.payload.signature
-            parts = token.split('.')
+            parts = token.split(".")
             if len(parts) != 3:
                 return None
-            
+
             # Decode the payload (second part)
             payload = parts[1]
-            
+
             # Add padding if needed (JWT base64 encoding might not have padding)
             padding = 4 - (len(payload) % 4)
             if padding != 4:
-                payload += '=' * padding
-                
+                payload += "=" * padding
+
             try:
                 decoded_bytes = base64.urlsafe_b64decode(payload)
-                payload_json = json.loads(decoded_bytes.decode('utf-8'))
+                payload_json = json.loads(decoded_bytes.decode("utf-8"))
                 return payload_json
-                    
+
             except (json.JSONDecodeError, UnicodeDecodeError):
                 return None
-                
+
         except Exception:
             return None
 
@@ -101,18 +101,18 @@ class LivisiConnection:
         payload = self._decode_jwt_payload(token)
         if not payload:
             return "None" if not token else f"Invalid JWT (length: {len(token)})"
-        
+
         info_parts = []
-        
+
         # User/subject
-        if 'sub' in payload:
+        if "sub" in payload:
             info_parts.append(f"user: {payload['sub']}")
-        elif 'username' in payload:
+        elif "username" in payload:
             info_parts.append(f"user: {payload['username']}")
-        
+
         # Expiration time
-        if 'exp' in payload:
-            exp_time = payload['exp']
+        if "exp" in payload:
+            exp_time = payload["exp"]
             current_time = time.time()
             if exp_time > current_time:
                 time_left = exp_time - current_time
@@ -124,10 +124,10 @@ class LivisiConnection:
                     info_parts.append(f"expires in: {time_left:.0f}s")
             else:
                 info_parts.append("expired")
-        
+
         # Issue time (age)
-        if 'iat' in payload:
-            iat_time = payload['iat']
+        if "iat" in payload:
+            iat_time = payload["iat"]
             age = time.time() - iat_time
             if age > 3600:
                 info_parts.append(f"age: {age/3600:.1f}h")
@@ -135,15 +135,15 @@ class LivisiConnection:
                 info_parts.append(f"age: {age/60:.1f}m")
             else:
                 info_parts.append(f"age: {age:.0f}s")
-        
+
         # Token ID if available
-        if 'jti' in payload:
-            jti = payload['jti']
+        if "jti" in payload:
+            jti = payload["jti"]
             if len(jti) > 8:
                 info_parts.append(f"id: {jti[:8]}...")
             else:
                 info_parts.append(f"id: {jti}")
-        
+
         if info_parts:
             return f"JWT({', '.join(info_parts)})"
         else:
@@ -245,7 +245,9 @@ class LivisiConnection:
             )
             LOGGER.debug("Updated access token")
             new_token = access_data.get("access_token")
-            LOGGER.info("Received token from SHC: %s", self._format_token_info(new_token))
+            LOGGER.info(
+                "Received token from SHC: %s", self._format_token_info(new_token)
+            )
             self.token = new_token
             if self.token is None:
                 errorcode = access_data.get("errorcode")
@@ -287,7 +289,8 @@ class LivisiConnection:
             # Check if token needs to be refreshed
             if self.token is None or self.token == expired_token:
                 LOGGER.info(
-                    "Livisi token %s is missing or expired, requesting new token from SHC" , self._format_token_info(self.token)
+                    "Livisi token %s is missing or expired, requesting new token from SHC",
+                    self._format_token_info(self.token),
                 )
                 try:
                     await self._async_retrieve_token()
@@ -296,7 +299,10 @@ class LivisiConnection:
                     raise
             else:
                 # Token was already refreshed by another request during the lock
-                LOGGER.debug("Token already refreshed by another request, using new token %s", self._format_token_info(self.token))
+                LOGGER.debug(
+                    "Token already refreshed by another request, using new token %s",
+                    self._format_token_info(self.token),
+                )
 
     async def _async_request(
         self, method, url: str, payload=None, headers=None
@@ -308,7 +314,10 @@ class LivisiConnection:
         if token_payload:
             expires = token_payload.get("exp", 0)
             if expires > 0 and time.time() >= expires:
-                LOGGER.debug("Livisi token %s detected as expired", self._format_token_info(self.token))
+                LOGGER.debug(
+                    "Livisi token %s detected as expired",
+                    self._format_token_info(self.token),
+                )
                 # Token is expired, we need to refresh it
                 try:
                     await self._async_refresh_token()
@@ -316,29 +325,39 @@ class LivisiConnection:
                     LOGGER.error("Unhandled error refreshing token", exc_info=e)
                     raise
 
-        # now send the request 
+        # now send the request
         response = await self._async_send_request(method, url, payload, headers)
 
         if response is not None and "errorcode" in response:
             errorcode = response.get("errorcode")
             # Handle expired token (2007)
             if errorcode == 2007:
-                LOGGER.debug("Livisi token %s expired (error 2007)", self._format_token_info(self.token))
+                LOGGER.debug(
+                    "Livisi token %s expired (error 2007)",
+                    self._format_token_info(self.token),
+                )
                 await self._async_refresh_token()
-                
+
                 # Retry the original request with the (possibly new) token
                 try:
-                    response = await self._async_send_request(method, url, payload, headers)
+                    response = await self._async_send_request(
+                        method, url, payload, headers
+                    )
                 except Exception as e:
-                    LOGGER.error("Unhandled error re-sending request after token update", exc_info=e)
+                    LOGGER.error(
+                        "Unhandled error re-sending request after token update",
+                        exc_info=e,
+                    )
                     raise
 
                 # Check if the retry also failed
                 if response is not None and "errorcode" in response:
                     retry_errorcode = response.get("errorcode")
-                    LOGGER.error("Livisi sent error code %d after token refresh", retry_errorcode)
+                    LOGGER.error(
+                        "Livisi sent error code %d after token refresh", retry_errorcode
+                    )
                     raise ErrorCodeException(retry_errorcode)
-                
+
                 return response
             else:
                 # Handle other error codes
@@ -425,7 +444,7 @@ class LivisiConnection:
             ("device", "capability", "location"),
         ):
             if isinstance(result, Exception):
-                LOGGER.warn(f"Error loading {path}")
+                LOGGER.warning(f"Error loading {path}")
                 raise result  # Re-raise the exception immediately
 
         controller_id = next(
@@ -549,18 +568,22 @@ class LivisiConnection:
             return None
 
         requestUrl = f"capability/{capability}/state"
+
         try:
             response = await self.async_send_authorized_request("get", requestUrl)
-            if response is None:
-                return None
-            if not isinstance(response, dict):
-                return None
-            return response.get(property, None)
-        except Exception:
-            LOGGER.warning(
-                f"Error getting device state (url: {requestUrl})", exc_info=True
+        except Exception as e:
+            # just debug log the exception but let the caller handle it
+            LOGGER.debug(
+                "Unhandled error requesting device value",
+                exc_info=e,
             )
+            raise
+
+        if response is None:
             return None
+        if not isinstance(response, dict):
+            return None
+        return response.get(property, None)
 
     async def async_set_state(
         self,

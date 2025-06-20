@@ -167,9 +167,13 @@ class LivisiShutter(LivisiEntity, CoverEntity):
 
     async def async_update_value(self):
         """Fetch the current cover position from the controller."""
-        response = await self.aio_livisi.async_get_value(
-            self.capability_id, SHUTTER_LEVEL
-        )
+        try:
+            response = await self.aio_livisi.async_get_value(
+                self.capability_id, SHUTTER_LEVEL
+            )
+        except Exception:
+            self._attr_available = False
+            return
         if response is None:
             self._attr_current_cover_position = -1
             self._attr_available = False

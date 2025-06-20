@@ -192,16 +192,20 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             if self.coordinator.aiolivisi.controller.is_v2
             else POINT_TEMPERATURE
         )
-        target_temperature = await self.coordinator.aiolivisi.async_get_value(
-            self._target_temperature_capability,
-            target_temp_property,
-        )
-        temperature = await self.coordinator.aiolivisi.async_get_value(
-            self._temperature_capability, TEMPERATURE
-        )
-        humidity = await self.coordinator.aiolivisi.async_get_value(
-            self._humidity_capability, HUMIDITY
-        )
+        try:
+            target_temperature = await self.coordinator.aiolivisi.async_get_value(
+                self._target_temperature_capability,
+                target_temp_property,
+            )
+            temperature = await self.coordinator.aiolivisi.async_get_value(
+                self._temperature_capability, TEMPERATURE
+            )
+            humidity = await self.coordinator.aiolivisi.async_get_value(
+                self._humidity_capability, HUMIDITY
+            )
+        except Exception:
+            self._attr_available = False
+            return
         if temperature is None:
             self._attr_current_temperature = None
             self._attr_available = False
@@ -212,10 +216,13 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             self._attr_available = True
 
         if len(self._thermostat_actuator_ids) > 0:
-            mode = await self.coordinator.aiolivisi.async_get_value(
-                self._thermostat_actuator_ids[0], OPERATION_MODE
-            )
-            self.update_mode(mode)
+            try:
+                mode = await self.coordinator.aiolivisi.async_get_value(
+                    self._thermostat_actuator_ids[0], OPERATION_MODE
+                )
+                self.update_mode(mode)
+            except Exception:
+                self._attr_available = False
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Find a matching thermostat and use it to set the hvac mode."""
