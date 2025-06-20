@@ -118,9 +118,13 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
 
     async def async_update_value(self):
         """Update the on/off state from the controller."""
-        response = await self.coordinator.aiolivisi.async_get_value(
-            self.capability_id, ON_STATE
-        )
+        try:
+            response = await self.coordinator.aiolivisi.async_get_value(
+                self.capability_id, ON_STATE
+            )
+        except Exception:
+            self._attr_available = False
+            return
         if response is None:
             self._attr_is_on = False
             self._attr_available = False
@@ -191,9 +195,13 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
 
     async def async_update_value(self):
         """Refresh the numeric value from the controller."""
-        response = await self.coordinator.aiolivisi.async_get_value(
-            self.capability_id, VALUE
-        )
+        try:
+            response = await self.coordinator.aiolivisi.async_get_value(
+                self.capability_id, VALUE
+            )
+        except Exception:
+            self._attr_available = False
+            return
         if response is None:
             self._attr_available = False
         else:

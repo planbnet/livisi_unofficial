@@ -70,29 +70,29 @@ class LivisiConnection:
         """Decode JWT payload and return payload dict or None on error."""
         if not token:
             return None
-        
+
         try:
             # JWT tokens have 3 parts separated by dots: header.payload.signature
             parts = token.split('.')
             if len(parts) != 3:
                 return None
-            
+
             # Decode the payload (second part)
             payload = parts[1]
-            
+
             # Add padding if needed (JWT base64 encoding might not have padding)
             padding = 4 - (len(payload) % 4)
             if padding != 4:
                 payload += '=' * padding
-                
+
             try:
                 decoded_bytes = base64.urlsafe_b64decode(payload)
                 payload_json = json.loads(decoded_bytes.decode('utf-8'))
                 return payload_json
-                    
+
             except (json.JSONDecodeError, UnicodeDecodeError):
                 return None
-                
+
         except Exception:
             return None
 
@@ -101,15 +101,15 @@ class LivisiConnection:
         payload = self._decode_jwt_payload(token)
         if not payload:
             return "None" if not token else f"Invalid JWT (length: {len(token)})"
-        
+
         info_parts = []
-        
+
         # User/subject
         if 'sub' in payload:
             info_parts.append(f"user: {payload['sub']}")
         elif 'username' in payload:
             info_parts.append(f"user: {payload['username']}")
-        
+
         # Expiration time
         if 'exp' in payload:
             exp_time = payload['exp']
@@ -124,7 +124,7 @@ class LivisiConnection:
                     info_parts.append(f"expires in: {time_left:.0f}s")
             else:
                 info_parts.append("expired")
-        
+
         # Issue time (age)
         if 'iat' in payload:
             iat_time = payload['iat']
@@ -135,7 +135,7 @@ class LivisiConnection:
                 info_parts.append(f"age: {age/60:.1f}m")
             else:
                 info_parts.append(f"age: {age:.0f}s")
-        
+
         # Token ID if available
         if 'jti' in payload:
             jti = payload['jti']
@@ -143,7 +143,7 @@ class LivisiConnection:
                 info_parts.append(f"id: {jti[:8]}...")
             else:
                 info_parts.append(f"id: {jti}")
-        
+
         if info_parts:
             return f"JWT({', '.join(info_parts)})"
         else:
@@ -316,7 +316,7 @@ class LivisiConnection:
                     LOGGER.error("Unhandled error refreshing token", exc_info=e)
                     raise
 
-        # now send the request 
+        # now send the request
         response = await self._async_send_request(method, url, payload, headers)
 
         if response is not None and "errorcode" in response:
@@ -325,7 +325,7 @@ class LivisiConnection:
             if errorcode == 2007:
                 LOGGER.debug("Livisi token %s expired (error 2007)", self._format_token_info(self.token))
                 await self._async_refresh_token()
-                
+
                 # Retry the original request with the (possibly new) token
                 try:
                     response = await self._async_send_request(method, url, payload, headers)
@@ -338,7 +338,7 @@ class LivisiConnection:
                     retry_errorcode = response.get("errorcode")
                     LOGGER.error("Livisi sent error code %d after token refresh", retry_errorcode)
                     raise ErrorCodeException(retry_errorcode)
-                
+
                 return response
             else:
                 # Handle other error codes
@@ -549,18 +549,12 @@ class LivisiConnection:
             return None
 
         requestUrl = f"capability/{capability}/state"
-        try:
-            response = await self.async_send_authorized_request("get", requestUrl)
-            if response is None:
-                return None
-            if not isinstance(response, dict):
-                return None
-            return response.get(property, None)
-        except Exception:
-            LOGGER.warning(
-                f"Error getting device state (url: {requestUrl})", exc_info=True
-            )
+        response = await self.async_send_authorized_request("get", requestUrl)
+        if response is None:
             return None
+        if not isinstance(response, dict):
+            return None
+        return response.get(property, None)
 
     async def async_set_state(
         self,
