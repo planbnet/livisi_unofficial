@@ -6,7 +6,6 @@ from typing import Any
 
 from homeassistant.components.siren import SirenEntity
 from homeassistant.components.siren.const import SirenEntityFeature
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -16,24 +15,23 @@ from .livisi_device import LivisiDevice
 
 from .const import (
     ACTIVE_CHANNEL,
-    DOMAIN,
     LIVISI_STATE_CHANGE,
     LOGGER,
     ON_STATE,
     SMOKE_DETECTOR_DEVICE_TYPES,
     SIREN_DEVICE_TYPES,
 )
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up a smoke detecor device."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
@@ -77,7 +75,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
     ) -> None:
@@ -152,7 +150,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
     ) -> None:

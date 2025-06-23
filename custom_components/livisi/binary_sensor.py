@@ -9,7 +9,6 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -35,17 +34,17 @@ from .const import (
     WDS_DEVICE_TYPES,
     SMOKE_DETECTOR_DEVICE_TYPES,
 )
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up binary_sensor device."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
@@ -127,7 +126,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: BinarySensorEntityDescription,
@@ -185,7 +184,7 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
     ) -> None:
@@ -219,7 +218,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: BinarySensorEntityDescription,

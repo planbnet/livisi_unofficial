@@ -9,7 +9,6 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.components.sensor.const import SensorDeviceClass, SensorStateClass
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     LIGHT_LUX,
@@ -50,7 +49,7 @@ from .const import (
     VRCC_DEVICE_TYPES,
     POWER_CONSUMPTION,
 )
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 CONTROLLER_SENSORS = {
@@ -227,11 +226,11 @@ CAPABILITY_SENSORS = {
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up binary_sensor device."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
@@ -294,7 +293,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: SensorEntityDescription,
@@ -388,7 +387,7 @@ class LivisiControllerSensor(LivisiEntity, SensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: SensorEntityDescription,

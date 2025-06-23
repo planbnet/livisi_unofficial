@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
@@ -14,7 +13,7 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from .livisi_device import LivisiDevice
 
 from .const import CONF_HOST, DOMAIN, LOGGER, LIVISI_REACHABILITY_CHANGE
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 
 
 def create_device_info(config_entry, device, device_name=None):
@@ -42,7 +41,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         capability_name: str = None,

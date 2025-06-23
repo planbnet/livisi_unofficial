@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -14,7 +13,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .livisi_device import LivisiDevice
 
 from .const import (
-    DOMAIN,
     LIVISI_STATE_CHANGE,
     LOGGER,
     ON_STATE,
@@ -22,17 +20,17 @@ from .const import (
     VALUE,
     VARIABLE_DEVICE_TYPES,
 )
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up switch device."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
@@ -70,7 +68,7 @@ class LivisiSwitch(LivisiEntity, SwitchEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
     ) -> None:
@@ -145,7 +143,7 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
     ) -> None:

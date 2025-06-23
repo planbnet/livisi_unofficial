@@ -7,7 +7,6 @@ from homeassistant.components.event import (
     EventEntityDescription,
     EventDeviceClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -15,7 +14,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .livisi_device import LivisiDevice
 
 from .const import (
-    DOMAIN,
     LOGGER,
     BUTTON_DEVICE_TYPES,
     MOTION_DEVICE_TYPES,
@@ -23,17 +21,17 @@ from .const import (
     EVENT_MOTION_DETECTED,
     EVENT_BUTTON_PRESSED,
 )
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up event device."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
@@ -89,7 +87,7 @@ class LivisiEvent(LivisiEntity, EventEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: EventEntityDescription,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import timedelta
-from typing import Any
+from typing import Any, TypeAlias
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -256,3 +256,6 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
 
             LOGGER.info("Retrying Livisi WebSocket connection shortly…")
             await asyncio.sleep(0.2)
+
+
+LivisiConfigEntry: TypeAlias = ConfigEntry[LivisiDataUpdateCoordinator]

@@ -6,7 +6,6 @@ from __future__ import annotations
 from homeassistant.components.number import NumberEntity, NumberEntityDescription
 from homeassistant.components.number import RestoreNumber
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -15,17 +14,17 @@ from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from .entity import create_device_info
 from .livisi_device import LivisiDevice
 
-from .const import DOMAIN, LOGGER, MOTION_DEVICE_TYPES
-from .coordinator import LivisiDataUpdateCoordinator
+from .const import LOGGER, MOTION_DEVICE_TYPES
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up number entities."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
@@ -72,7 +71,7 @@ class NoopConfigNumber(RestoreNumber):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         device: LivisiDevice,
         entity_desc: NumberEntityDescription,
     ) -> None:
