@@ -6,7 +6,6 @@ from typing import Final
 
 from homeassistant import core
 from homeassistant.exceptions import ConfigEntryNotReady, ConfigEntryAuthFailed
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 
@@ -17,7 +16,7 @@ from .livisi_errors import WrongCredentialException
 
 
 from .const import CONF_HOST, DOMAIN, LOGGER, SWITCH_DEVICE_TYPES
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 
 
 PLATFORMS: Final = [
@@ -34,7 +33,7 @@ PLATFORMS: Final = [
 ]
 
 
-async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: core.HomeAssistant, entry: LivisiConfigEntry) -> bool:
     """Set up Livisi Smart Home from a config entry."""
     coordinator = LivisiDataUpdateCoordinator(hass, entry)
     try:
@@ -46,7 +45,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
         LOGGER.error(exception, exc_info=True)
         raise ConfigEntryNotReady(exception) from exception
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     controller = coordinator.aiolivisi.controller
@@ -88,21 +87,17 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
             if len(entities) == 0:
                 device_registry.async_remove_device(device_entry.id)
 
+    async def close_coordinator() -> None:
+        coordinator.shutdown = True
+        await coordinator.aiolivisi.close()
+
+    entry.async_on_unload(close_coordinator)
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: LivisiConfigEntry) -> bool:
     """Unload a config entry."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-
-    unload_success = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    coordinator.shutdown = True
-    await coordinator.aiolivisi.close()
-
-    if unload_success:
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_success
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def async_migrate_entry(hass, config_entry):
