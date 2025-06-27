@@ -7,7 +7,6 @@ from homeassistant.components.button import (
     ButtonDeviceClass,
     ButtonEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -21,23 +20,25 @@ from custom_components.livisi.livisi_const import (
 from .livisi_device import LivisiDevice
 
 from .const import DOMAIN, LOGGER
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up button devices."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
     def handle_coordinator_update() -> None:
         """Add button."""
-        shc_devices: list[LivisiDevice] = coordinator.data
+        shc_devices: list[LivisiDevice] | None = coordinator.data
+        if shc_devices is None:
+            return
         entities: list[ButtonEntity] = []
         for device in shc_devices:
             if device.id not in known_devices:
@@ -68,7 +69,7 @@ class LivisiButton(LivisiEntity, ButtonEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: ButtonEntityDescription,
@@ -85,7 +86,7 @@ class LivisiButton(LivisiEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press."""
         success = await self.aio_livisi.async_send_device_command(
-            self.capability_id,
+            self.device_id,
             COMMAND_RESTART,
             namespace="core.RWE",
             params={

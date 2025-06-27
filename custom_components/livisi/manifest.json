@@ -1,10 +1,12 @@
 {
   "domain": "livisi",
   "name": "Livisi Unofficial",
+  "after_dependencies": [],
   "codeowners": [
     "@planbnet"
   ],
   "config_flow": true,
+  "dependencies": [],
   "documentation": "https://github.com/planbnet/livisi_unofficial",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/planbnet/livisi_unofficial/issues",
@@ -12,5 +14,5 @@
     "aiohttp",
     "websockets"
   ],
-  "version": "1.9.0"
+  "version": "1.13.1"
 }

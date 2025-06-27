@@ -9,7 +9,6 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 from homeassistant.components.sensor.const import SensorDeviceClass, SensorStateClass
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
     LIGHT_LUX,
@@ -50,7 +49,7 @@ from .const import (
     VRCC_DEVICE_TYPES,
     POWER_CONSUMPTION,
 )
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 CONTROLLER_SENSORS = {
@@ -227,17 +226,19 @@ CAPABILITY_SENSORS = {
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up binary_sensor device."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
     def handle_coordinator_update() -> None:
         """Add Sensors."""
-        shc_devices: list[LivisiDevice] = coordinator.data
+        shc_devices: list[LivisiDevice] | None = coordinator.data
+        if shc_devices is None:
+            return
         entities: list[SensorEntity] = []
         for device in shc_devices:
             if device.id not in known_devices:
@@ -292,7 +293,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: SensorEntityDescription,
@@ -327,14 +328,25 @@ class LivisiSensor(LivisiEntity, SensorEntity):
             )
         )
 
-        response = await self.coordinator.aiolivisi.async_get_value(
-            self.capability_id, self.property_name
-        )
+        await self.async_update_value()
+
+    async def async_update_value(self):
+        """Read the latest sensor value from the controller."""
+        try:
+            response = await self.coordinator.aiolivisi.async_get_value(
+                self.capability_id, self.property_name
+            )
+        except Exception:
+            self._attr_available = False
+            self.async_write_ha_state()
+            return
         if response is None:
-            self.update_reachability(False)
+            self._attr_available = False
+            self.async_write_ha_state()
         else:
             self._attr_native_value = self.convert_to_hass(response)
-            self.update_reachability(True)
+            self._attr_available = True
+            self.async_write_ha_state()
 
     def convert_to_hass(self, number: Decimal):
         """Convert livisi value to hass value."""
@@ -365,7 +377,7 @@ class LivisiSensor(LivisiEntity, SensorEntity):
     @callback
     def update_states(self, state: Decimal) -> None:
         """Update the state of the device."""
-        self.update_reachability(True)
+        self._attr_available = True
         self._attr_native_value = self.convert_to_hass(state)
         self.async_write_ha_state()
 
@@ -375,7 +387,7 @@ class LivisiControllerSensor(LivisiEntity, SensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: SensorEntityDescription,
@@ -397,7 +409,9 @@ class LivisiControllerSensor(LivisiEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        shc_devices: list[LivisiDevice] = self.coordinator.data
+        shc_devices: list[LivisiDevice] | None = self.coordinator.data
+        if shc_devices is None:
+            return None
         for device in shc_devices:
             if device.is_shc:
                 return device.state.get(self.entity_description.key, {}).get(

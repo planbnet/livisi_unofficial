@@ -10,7 +10,6 @@ from homeassistant.components.cover import (
     CoverEntity,
     CoverEntityFeature,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -19,29 +18,30 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .livisi_device import LivisiDevice
 
 from .const import (
-    DOMAIN,
     LOGGER,
     LIVISI_STATE_CHANGE,
     SHUTTER_DEVICE_TYPES,
     SHUTTER_LEVEL,
 )
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up switch device."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
     def handle_coordinator_update() -> None:
         """Add cover."""
-        shc_devices: list[LivisiDevice] = coordinator.data
+        shc_devices: list[LivisiDevice] | None = coordinator.data
+        if shc_devices is None:
+            return
         entities: list[CoverEntity] = []
         for device in shc_devices:
             if device.type in SHUTTER_DEVICE_TYPES and device.id not in known_devices:
@@ -65,7 +65,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: dict[str, Any],
     ) -> None:
@@ -88,9 +88,10 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             params={"rampDirection": {"type": "Constant", "value": "RampUp"}},
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
+            self.async_write_ha_state()
             raise HomeAssistantError(f"Failed to open cover {self._attr_name}")
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_close_cover(self, **kwargs: Any) -> None:
@@ -102,9 +103,10 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             params={"rampDirection": {"type": "Constant", "value": "RampDown"}},
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
+            self.async_write_ha_state()
             raise HomeAssistantError(f"Failed to close cover {self._attr_name}")
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_stop_cover(self, **kwargs: Any) -> None:
@@ -115,9 +117,10 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             namespace="CosipDevices.RWE",
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
+            self.async_write_ha_state()
             raise HomeAssistantError(f"Failed to stop cover {self._attr_name}")
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
@@ -131,12 +134,12 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             value=pos,
         )
         if not success:
-            self.update_reachability(False)
+            self._attr_available = False
+            self.async_write_ha_state()
             raise HomeAssistantError(
                 f"Failed to set position of shutter {self._attr_name}"
             )
-
-        self.update_reachability(True)
+        self._attr_available = True
         self.async_write_ha_state()
 
     @property
@@ -150,15 +153,6 @@ class LivisiShutter(LivisiEntity, CoverEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
-        response = await self.aio_livisi.async_get_value(
-            self.capability_id, SHUTTER_LEVEL
-        )
-        if response is None:
-            self._attr_current_cover_position = -1
-            self._attr_available = False
-        else:
-            self._attr_current_cover_position = response
-
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -166,6 +160,26 @@ class LivisiShutter(LivisiEntity, CoverEntity):
                 self.update_states,
             )
         )
+
+        await self.async_update_value()
+
+    async def async_update_value(self):
+        """Fetch the current cover position from the controller."""
+        try:
+            response = await self.aio_livisi.async_get_value(
+                self.capability_id, SHUTTER_LEVEL
+            )
+        except Exception:
+            self._attr_available = False
+            return
+        if response is None:
+            self._attr_current_cover_position = -1
+            self._attr_available = False
+            self.async_write_ha_state()
+        else:
+            self._attr_current_cover_position = response
+            self._attr_available = True
+            self.async_write_ha_state()
 
     @callback
     def update_states(self, shutter_level: Decimal) -> None:

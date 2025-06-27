@@ -6,7 +6,6 @@ from typing import Final
 
 from homeassistant import core
 from homeassistant.exceptions import ConfigEntryNotReady, ConfigEntryAuthFailed
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 
@@ -17,7 +16,7 @@ from .livisi_errors import WrongCredentialException
 
 
 from .const import CONF_HOST, DOMAIN, LOGGER, SWITCH_DEVICE_TYPES
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 
 
 PLATFORMS: Final = [
@@ -34,7 +33,7 @@ PLATFORMS: Final = [
 ]
 
 
-async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: core.HomeAssistant, entry: LivisiConfigEntry) -> bool:
     """Set up Livisi Smart Home from a config entry."""
     coordinator = LivisiDataUpdateCoordinator(hass, entry)
     try:
@@ -46,7 +45,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
         LOGGER.error(exception, exc_info=True)
         raise ConfigEntryNotReady(exception) from exception
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     controller = coordinator.aiolivisi.controller
@@ -61,8 +60,18 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception as exception:
+        LOGGER.error("Initial data refresh failed: %s", exception, exc_info=True)
+        raise ConfigEntryNotReady(exception) from exception
 
+    LOGGER.info(
+        "Livisi Smart Home Controller %s %s (%s) connected successfully",
+        controller.controller_type,
+        controller.os_version,
+        entry.data[CONF_HOST],
+    )
     LOGGER.debug(coordinator.data)
 
     # Remove devices that have no entities (because they were removed)
@@ -78,24 +87,17 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: ConfigEntry) -> boo
             if len(entities) == 0:
                 device_registry.async_remove_device(device_entry.id)
 
-    entry.async_create_background_task(
-        hass, coordinator.ws_connect(), "livisi-ws_connect"
-    )
+    async def close_coordinator() -> None:
+        coordinator.shutdown = True
+        await coordinator.aiolivisi.close()
 
+    entry.async_on_unload(close_coordinator)
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: LivisiConfigEntry) -> bool:
     """Unload a config entry."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-
-    unload_success = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    await coordinator.aiolivisi.close()
-
-    if unload_success:
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unload_success
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def async_migrate_entry(hass, config_entry):
@@ -157,7 +159,7 @@ async def async_migrate_entry(hass, config_entry):
                 return None
 
         await er.async_migrate_entries(hass, config_entry.entry_id, update_unique_id)
-        config_entry.version = 2
+        await hass.config_entries.async_update_entry(config_entry, version=2)
 
     if config_entry.version == 2:
         # delete switches that are lights, because they are now integrated as light devices
@@ -173,7 +175,7 @@ async def async_migrate_entry(hass, config_entry):
         await er.async_migrate_entries(hass, config_entry.entry_id, find_light_switches)
         for switch in switch_entries:
             entity_registry.async_remove(switch.entity_id)
-        config_entry.version = 3
+        await hass.config_entries.async_update_entry(config_entry, version=3)
 
     if config_entry.version == 3:
         # update unique ids to just the capability id without the "/capability/" prefix
@@ -190,7 +192,7 @@ async def async_migrate_entry(hass, config_entry):
                 return None
 
         await er.async_migrate_entries(hass, config_entry.entry_id, simplify_unique_id)
-        config_entry.version = 4
+        await hass.config_entries.async_update_entry(config_entry, version=4)
 
     LOGGER.info("Migration to version %s successful", config_entry.version)
 

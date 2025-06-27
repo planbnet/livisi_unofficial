@@ -9,7 +9,6 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -35,23 +34,25 @@ from .const import (
     WDS_DEVICE_TYPES,
     SMOKE_DETECTOR_DEVICE_TYPES,
 )
-from .coordinator import LivisiDataUpdateCoordinator
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: LivisiConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up binary_sensor device."""
-    coordinator: LivisiDataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]
+    coordinator: LivisiDataUpdateCoordinator = config_entry.runtime_data
     known_devices = set()
 
     @callback
     def handle_coordinator_update() -> None:
         """Add Window Sensor."""
-        shc_devices: list[LivisiDevice] = coordinator.data
+        shc_devices: list[LivisiDevice] | None = coordinator.data
+        if shc_devices is None:
+            return
         entities: list[BinarySensorEntity] = []
         for device in shc_devices:
             if device.id not in known_devices:
@@ -125,7 +126,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: BinarySensorEntityDescription,
@@ -138,9 +139,7 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
-
         property_name: str = self.entity_description.key
-
         self.async_on_remove(
             async_dispatcher_connect(
                 self.hass,
@@ -148,22 +147,34 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
                 self.update_states,
             )
         )
+        await self.async_update_value()
 
-        response = await self.coordinator.aiolivisi.async_get_value(
-            self.capability_id, self.entity_description.key
-        )
+    async def async_update_value(self):
+        """Retrieve the latest value from the controller."""
+        try:
+            response = await self.coordinator.aiolivisi.async_get_value(
+                self.capability_id, self.entity_description.key
+            )
+        except Exception:
+            self._attr_available = False
+            return
         if response is None:
-            self.update_reachability(False)
+            if self.capability_name == "WindowDoorSensor":
+                self._attr_available = True
+                self._attr_is_on = None
+            else:
+                self._attr_available = False
         else:
-            self.update_reachability(True)
+            self._attr_available = True
             self._attr_is_on = response
+        self.async_write_ha_state()
 
     @callback
     def update_states(self, state: bool) -> None:
         """Update the state of the device."""
         if not isinstance(state, bool):
             return
-        self.update_reachability(True)
+        self._attr_available = True
         self._attr_is_on = state
         self.async_write_ha_state()
 
@@ -173,7 +184,7 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
     ) -> None:
@@ -186,17 +197,17 @@ class LivisiBatteryLowSensor(LivisiEntity, BinarySensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        device = next(
-            (
-                device
-                for device in self.coordinator.data
-                if device.id + "_battery" == self.unique_id
-            ),
-            None,
-        )
+        devices = self.coordinator.data
+        device = None
+        if devices is not None:
+            device = next(
+                (dev for dev in devices if dev.id + "_battery" == self.unique_id),
+                None,
+            )
 
         if device is not None:
             self._attr_is_on = device.battery_low
+            self._attr_available = True
             # hass is not yet set during first initialization
             if self.hass is not None:
                 self.async_write_ha_state()
@@ -207,7 +218,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: BinarySensorEntityDescription,
@@ -235,14 +246,18 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
             )
         )
 
-        response = await self.coordinator.aiolivisi.async_get_state(
-            self.capability_id, self.entity_description.key
-        )
+        try:
+            response = await self.coordinator.aiolivisi.async_get_state(
+                self.capability_id, self.entity_description.key
+            )
+        except Exception:
+            self._attr_available = False
+            return
         if response is None:
-            self.update_reachability(False)
+            self._attr_available = False
             return
 
-        self.update_reachability(True)
+        self._attr_available = True
 
         off_delay = self.get_off_delay()
         if off_delay is None:
@@ -285,7 +300,7 @@ class LivisiMotionSensor(LivisiEntity, BinarySensorEntity):
         if off_delay is None:
             off_delay = 20.0
 
-        self.update_reachability(True)
+        self._attr_available = True
         self._attr_is_on = True
         self.async_write_ha_state()
 

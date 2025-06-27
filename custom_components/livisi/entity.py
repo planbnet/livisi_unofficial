@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
@@ -13,8 +12,8 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 
 from .livisi_device import LivisiDevice
 
-from .const import CONF_HOST, DOMAIN, LIVISI_REACHABILITY_CHANGE
-from .coordinator import LivisiDataUpdateCoordinator
+from .const import CONF_HOST, DOMAIN, LOGGER, LIVISI_REACHABILITY_CHANGE
+from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 
 
 def create_device_info(config_entry, device, device_name=None):
@@ -42,7 +41,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: LivisiConfigEntry,
         coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         capability_name: str = None,
@@ -55,6 +54,7 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
         self.aio_livisi = coordinator.aiolivisi
         self.capabilities = device.capabilities
         self.capability_id = None
+        self.capability_name = capability_name
         self.device_id = device.id
 
         if capability_name is not None:
@@ -104,8 +104,34 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
     @callback
     def update_reachability(self, is_reachable: bool) -> None:
         """Update the reachability of the device."""
-        self._attr_available = is_reachable
-        self.async_write_ha_state()
+        if is_reachable and not self._attr_available:
+            # if self has a func "async def async_update_value(self)" call it to update the value
+            if hasattr(self, "async_update_value"):
+                LOGGER.debug(
+                    "Device %s is reachable again, request value update", self.device_id
+                )
+
+                async def _try_update_value():
+                    try:
+                        # async_update_value will also set _attr_available to True
+                        # if the update was successful
+                        await self.async_update_value()
+                    except Exception as err:
+                        LOGGER.warning(
+                            "Device %s: async_update_value failed after becoming reachable: %s",
+                            self.device_id,
+                            err,
+                        )
+                        return
+
+                self.hass.async_create_task(_try_update_value())
+            else:
+                self.async_write_ha_state()
+                LOGGER.debug("Device %s is reachable again", self.device_id)
+        elif not is_reachable and self._attr_available:
+            LOGGER.debug("Device %s became unreachable", self.device_id)
+            self._attr_available = False
+            self.async_write_ha_state()
 
     @property
     def available(self) -> bool:
