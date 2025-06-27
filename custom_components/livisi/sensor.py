@@ -22,7 +22,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .livisi_device import LivisiDevice
+from livisi import LivisiDevice
 
 from .const import (
     CAPABILITY_HUMIDITY_SENSOR,

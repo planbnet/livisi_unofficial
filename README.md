@@ -15,7 +15,7 @@ It can be added as a custom repo to HACS and then installed as an integration. T
 * Battery level indicators
 * Devices with buttons are supported as basic event entities and device triggers
 * Fixed availability state
-* Dropped the dependencies on the aiolivisi lib, which seems to be abandoned. The neccessary connection code is simply included in this integration (see note below)
+* The communication layer now lives in the standalone [livisi](https://github.com/planbnet/livisi) library
 * Dropped the pydantic dependency
 * Rewritten rest/webservice communication code
 * Many, many more bug fixes
@@ -48,7 +48,7 @@ All configuration in done in the UI. See the [official documentation](https://ww
 
 ## Notes
 
-* Home Assistant requires all communication to the service backend to be handled by a library (as it was done with the original, unmaintained aiolivisi lib). This prevents the merge of this library to the official core code base currently. However, I don't feel it makes sense to move the code to a seperately maintained library as it is only used here and additions often need to happen along the whole code path. Semantically such a split makes sense though, so to make a later separation possible, I added the `livisi_` prefix to all the "library" code.
+* The low level connection code is now provided by the [`livisi`](https://github.com/planbnet/livisi) package
 
 
 ## Development

@@ -11,9 +11,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .livisi_device import LivisiDevice
-from .livisi_connector import LivisiConnection, connect as livisi_connect
-from .livisi_websocket import LivisiWebsocketEvent
+from livisi import LivisiDevice
+from livisi import LivisiConnection, connect as livisi_connect
+from livisi import LivisiWebsocketEvent
 from .const import (
     CONF_HOST,
     CONF_PASSWORD,
@@ -26,7 +26,7 @@ from .const import (
     DEVICE_POLLING_DELAY,
     STATE_PROPERTIES,
 )
-from .livisi_const import (
+from livisi import (
     LIVISI_EVENT_BUTTON_PRESSED,
     LIVISI_EVENT_MOTION_DETECTED,
     LIVISI_EVENT_STATE_CHANGED,

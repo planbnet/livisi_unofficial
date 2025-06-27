@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .livisi_errors import WrongCredentialException
+from livisi import WrongCredentialException
 
 
 from .const import CONF_HOST, DOMAIN, LOGGER, SWITCH_DEVICE_TYPES

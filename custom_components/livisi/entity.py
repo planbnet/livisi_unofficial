@@ -10,7 +10,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.components.binary_sensor import BinarySensorEntity
 
-from .livisi_device import LivisiDevice
+from livisi import LivisiDevice
 
 from .const import CONF_HOST, DOMAIN, LOGGER, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator

@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .livisi_device import LivisiDevice
+from livisi import LivisiDevice
 
 from .const import (
     DIM_LEVEL,
