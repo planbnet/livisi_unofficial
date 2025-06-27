@@ -12,12 +12,12 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
 
-from custom_components.livisi.livisi_const import (
+from livisi import (
     COMMAND_RESTART,
     CONTROLLER_DEVICE_TYPES,
 )
 
-from .livisi_device import LivisiDevice
+from livisi import LivisiDevice
 
 from .const import DOMAIN, LOGGER
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator

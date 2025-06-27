@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 
 from .entity import create_device_info
-from .livisi_device import LivisiDevice
+from livisi import LivisiDevice
 
 from .const import LOGGER, MOTION_DEVICE_TYPES
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator

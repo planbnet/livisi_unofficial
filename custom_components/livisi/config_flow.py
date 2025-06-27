@@ -7,10 +7,10 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 
-from .livisi_controller import LivisiController
+from livisi import LivisiController
 
-from .livisi_connector import LivisiConnection, connect as livisi_connect
-from .livisi_errors import (
+from livisi import LivisiConnection, connect as livisi_connect
+from livisi import (
     ErrorCodeException,
     WrongCredentialException,
     IncorrectIpAddressException,

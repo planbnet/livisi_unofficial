@@ -19,7 +19,7 @@ from homeassistant.helpers import event as evt, entity_registry as er
 from homeassistant.const import (
     Platform,
 )
-from .livisi_device import LivisiDevice
+from livisi import LivisiDevice
 from datetime import datetime, timezone
 
 from .const import (
