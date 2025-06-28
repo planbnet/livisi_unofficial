@@ -11,6 +11,7 @@ It can be added as a custom repo to HACS and then installed as an integration. T
 * Support temperature sensors for both the room climate devices and the individual thermostats
 * Support dimmers (thx @acidburn78)
 * Support covers
+* Support energy meters
 * Diagnostics data (CPU, ram, disk) from controller
 * Battery level indicators
 * Devices with buttons are supported as basic event entities and device triggers
