@@ -45,7 +45,7 @@ This way you will get automatic updates
 
 ## Configuration
 
-All configuration in done in the UI. See the [official documentation](https://www.home-assistant.io/integrations/livisi/)
+All configuration is done in the UI. See the [official documentation](https://www.home-assistant.io/integrations/livisi/)
 
 ## Notes
 
