@@ -38,6 +38,59 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             }
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, str] | None = None
+    ) -> FlowResult:
+        """Handle reconfiguration of an existing entry (e.g. to add a secondary host)."""
+        entry = self._get_reconfigure_entry()
+
+        if user_input is None:
+            schema = self._reconfigure_schema(entry.data)
+            return self.async_show_form(
+                step_id="reconfigure", data_schema=schema
+            )
+
+        errors = {}
+        host_secondary = user_input.get(CONF_HOST_SECONDARY) or None
+        try:
+            self.aio_livisi = await self._try_connect(
+                user_input[CONF_HOST], host_secondary, user_input[CONF_PASSWORD]
+            )
+        except WrongCredentialException:
+            errors["base"] = "wrong_password"
+        except IncorrectIpAddressException:
+            errors["base"] = "wrong_ip_address"
+        except (ShcUnreachableException, ErrorCodeException):
+            errors["base"] = "cannot_connect"
+        else:
+            await self.aio_livisi.close()
+            data = {
+                CONF_HOST: user_input[CONF_HOST],
+                CONF_PASSWORD: user_input[CONF_PASSWORD],
+            }
+            if host_secondary:
+                data[CONF_HOST_SECONDARY] = host_secondary
+            return self.async_update_reload_and_abort(entry, data=data)
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self._reconfigure_schema(user_input),
+            errors=errors,
+        )
+
+    def _reconfigure_schema(self, current: dict) -> vol.Schema:
+        """Build the reconfigure form schema pre-filled with current values."""
+        return vol.Schema(
+            {
+                vol.Required(CONF_HOST, default=current.get(CONF_HOST, "")): str,
+                vol.Required(CONF_PASSWORD, default=current.get(CONF_PASSWORD, "")): str,
+                vol.Optional(
+                    CONF_HOST_SECONDARY,
+                    default=current.get(CONF_HOST_SECONDARY, ""),
+                ): str,
+            }
+        )
+
     async def async_step_reauth(
         self, user_input: dict[str, str] | None = None
     ) -> FlowResult:

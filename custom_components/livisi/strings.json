@@ -17,6 +17,14 @@
           "host_secondary": "Secondary IP Address (optional fallback)"
         }
       },
+      "reconfigure": {
+        "description": "Update the IP address(es) and/or password for your SHC. You can add or change the optional secondary (fallback) address here.",
+        "data": {
+          "host": "[%key:common::config_flow::data::ip%]",
+          "password": "[%key:common::config_flow::data::password%]",
+          "host_secondary": "Secondary IP Address (optional fallback)"
+        }
+      },
       "reauth": {
         "description": "Please enter the correct SHC password.",
         "data": {

@@ -22,6 +22,14 @@
                 },
                 "description": "Bitte IP Adresse und Passwort zur lokalen Verbindung zum SHC eingeben."
             },
+            "reconfigure": {
+                "description": "IP-Adresse(n) und/oder Passwort der SHC aktualisieren. Hier kann auch die optionale Ausweichadresse hinzugefügt oder geändert werden.",
+                "data": {
+                    "host": "IP Adresse",
+                    "password": "Passwort",
+                    "host_secondary": "Sekundäre IP Adresse (optionale Ausweichadresse)"
+                }
+            },
             "reauth": {
                 "description": "Bitte das korrekt SHC Passwort angeben.",
                 "data": {
