@@ -9,6 +9,7 @@ DOMAIN = "livisi"
 LIVISI_EVENT = f"{DOMAIN}_event"
 
 CONF_HOST = "host"
+CONF_HOST_SECONDARY: Final = "host_secondary"
 CONF_PASSWORD: Final = "password"
 
 CONF_SUBTYPE: Final = "subtype"

@@ -8,14 +8,21 @@ from typing import Any, TypeAlias
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from livisi import LivisiDevice
 from livisi import LivisiConnection, connect as livisi_connect
 from livisi import LivisiWebsocketEvent
+from livisi import (
+    WrongCredentialException,
+    ShcUnreachableException,
+    IncorrectIpAddressException,
+)
 from .const import (
     CONF_HOST,
+    CONF_HOST_SECONDARY,
     CONF_PASSWORD,
     EVENT_BUTTON_PRESSED,
     EVENT_MOTION_DETECTED,
@@ -59,47 +66,146 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self._controller_device_id: str | None = None
         # Internal device registry UUID of the SHC hub, set during async_setup_entry.
         self.controller_registry_id: str | None = None
+        self.active_host: str = config_entry.data[CONF_HOST]
+        self._reconnecting: bool = False  # guard against re-entry in reconnect
+        self._ws_generation: int = 0  # incremented each time ws_connect() is called
 
     # ---------------------------------------------------------------------
     # HA lifecycle
     # ---------------------------------------------------------------------
     async def async_setup(self) -> None:
         """Initialise connection to the Livisi controller."""
-        self.aiolivisi = await livisi_connect(
-            self.config_entry.data[CONF_HOST],
-            self.config_entry.data[CONF_PASSWORD],
-        )
+        await self._connect_any()
         self.shutdown = False
 
+    # ---------------------------------------------------------------------
+    # Failover connection logic
+    # ---------------------------------------------------------------------
+    async def _connect_any(self, prefer_primary: bool = True) -> None:
+        """Try connecting to primary host, then secondary (if configured).
+
+        Sets self.active_host and self.aiolivisi on success.
+        Raises WrongCredentialException immediately on auth failure.
+        Raises the last connectivity exception if all hosts are exhausted.
+        """
+        primary = self.config_entry.data[CONF_HOST]
+        secondary = self.config_entry.data.get(CONF_HOST_SECONDARY)
+
+        hosts: list[str] = [primary]
+        if secondary:
+            hosts.append(secondary)
+
+        last_exc: Exception | None = None
+        for host in hosts:
+            try:
+                connection = await livisi_connect(
+                    host, self.config_entry.data[CONF_PASSWORD]
+                )
+                if self.active_host != host:
+                    LOGGER.info(
+                        "Livisi: switched active host from %s to %s",
+                        self.active_host,
+                        host,
+                    )
+                self.active_host = host
+                self.aiolivisi = connection
+                return
+            except WrongCredentialException:
+                raise  # auth error — do not attempt fallback
+            except Exception as exc:
+                LOGGER.debug("Livisi: cannot connect to %s: %s", host, exc)
+                last_exc = exc
+
+        raise last_exc
+
+    # ---------------------------------------------------------------------
+    # Update logic
+    # ---------------------------------------------------------------------
     async def _async_update_data(self) -> list[LivisiDevice]:
         """Poll the controller for device configuration."""
         try:
             LOGGER.debug("Fetching Livisi data")
             return await self.async_get_devices()
+        except WrongCredentialException as exc:
+            raise ConfigEntryAuthFailed(
+                "Authentication failed, please reconfigure."
+            ) from exc
+        except (ShcUnreachableException, IncorrectIpAddressException) as exc:
+            LOGGER.debug(
+                "Livisi connection lost on %s: %s — attempting host failover",
+                self.active_host,
+                exc,
+            )
+            return await self._reconnect_and_update(exc)
         except Exception as exc:
             LOGGER.error("Error fetching Livisi data: %s", exc)
-            controller_id = self._controller_device_id
-            if controller_id is None and self.data is not None:
-                for device in self.data:
-                    if device.is_shc:
-                        controller_id = device.id
-                        break
-            if controller_id is not None:
-                LOGGER.debug(
-                    "Marking controller %s unreachable due to error",
-                    controller_id,
-                )
-                self._async_dispatcher_send(
-                    LIVISI_REACHABILITY_CHANGE,
-                    controller_id,
-                    False,
-                )
-            else:
-                LOGGER.debug(
-                    "Controller device id unknown, cannot mark unreachable"
-                )
+            self._mark_controller_unreachable()
             self._recover_from_error = True
             raise UpdateFailed(exc) from exc
+
+    async def _reconnect_and_update(
+        self, original_exc: Exception
+    ) -> list[LivisiDevice]:
+        """Attempt host failover then retry the update once.
+
+        At most one reconnect attempt per update cycle (guarded by _reconnecting).
+        """
+        if self._reconnecting:
+            self._mark_controller_unreachable()
+            self._recover_from_error = True
+            raise UpdateFailed(original_exc) from original_exc
+
+        self._reconnecting = True
+        try:
+            # Close the stale connection before reconnecting
+            try:
+                await self.aiolivisi.close()
+            except Exception:
+                pass
+            self.websocket_connected = False
+
+            await self._connect_any(prefer_primary=True)
+            LOGGER.info(
+                "Livisi: reconnect successful on %s, retrying update",
+                self.active_host,
+            )
+            return await self.async_get_devices()
+        except WrongCredentialException as exc:
+            raise ConfigEntryAuthFailed(
+                "Authentication failed, please reconfigure."
+            ) from exc
+        except Exception as exc:
+            LOGGER.error(
+                "Livisi: reconnect failed (tried all hosts): %s", exc
+            )
+            self._mark_controller_unreachable()
+            self._recover_from_error = True
+            raise UpdateFailed(exc) from exc
+        finally:
+            self._reconnecting = False
+
+    def _mark_controller_unreachable(self) -> None:
+        """Send a reachability=False event for the controller device."""
+        controller_id = self._controller_device_id
+        if controller_id is None and self.data is not None:
+            for device in self.data:
+                if device.is_shc:
+                    controller_id = device.id
+                    break
+        if controller_id is not None:
+            LOGGER.debug(
+                "Marking controller %s unreachable due to error",
+                controller_id,
+            )
+            self._async_dispatcher_send(
+                LIVISI_REACHABILITY_CHANGE,
+                controller_id,
+                False,
+            )
+        else:
+            LOGGER.debug(
+                "Controller device id unknown, cannot mark unreachable"
+            )
 
     # ---------------------------------------------------------------------
     # Dispatcher helpers
@@ -206,6 +312,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
     # ---------------------------------------------------------------------
     async def ws_connect(self) -> None:
         """Create the background task that runs the WebSocket loop."""
+        self._ws_generation += 1
         self.config_entry.async_create_background_task(
             self.hass, self.ws_loop(), name="livisi_ws"
         )
@@ -216,8 +323,21 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         * Tries one immediate reconnect after a failure.
         * Stops after two consecutive failures without receiving any data.
         * Next successful poll will schedule a fresh connection.
+        * Exits immediately if a newer ws_connect() call has been made
+          (generation mismatch), avoiding duplicate WebSocket connections
+          after a host failover.
         """
+        generation = self._ws_generation
         while True:
+            # Exit if a newer WebSocket loop has been started (host failover)
+            if generation != self._ws_generation:
+                LOGGER.debug(
+                    "Livisi WebSocket loop (generation %d) superseded, exiting",
+                    generation,
+                )
+                self.websocket_connected = False
+                return
+
             try:
                 LOGGER.info(
                     "Connecting to Livisi WebSocket (consecutive failures: %d)",

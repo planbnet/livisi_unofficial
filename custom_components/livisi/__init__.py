@@ -15,7 +15,7 @@ from homeassistant.helpers import entity_registry as er
 from livisi import WrongCredentialException
 
 
-from .const import CONF_HOST, DOMAIN, LOGGER, SWITCH_DEVICE_TYPES
+from .const import DOMAIN, LOGGER, SWITCH_DEVICE_TYPES
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 
 
@@ -56,7 +56,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: LivisiConfigEntry) 
         sw_version=controller.os_version,
         manufacturer="Livisi",
         name=f"SHC {controller.controller_type} {controller.serial_number}",
-        configuration_url=f"http://{entry.data[CONF_HOST]}",
+        configuration_url=f"http://{coordinator.active_host}",
     )
     # The internal device registry UUID of the SHC hub. via_device_id must
     # reference this registered device id (not a (DOMAIN, ...) identifier tuple).
@@ -73,7 +73,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: LivisiConfigEntry) 
         "Livisi Smart Home Controller %s %s (%s) connected successfully",
         controller.controller_type,
         controller.os_version,
-        entry.data[CONF_HOST],
+        coordinator.active_host,
     )
     LOGGER.debug(coordinator.data)
 

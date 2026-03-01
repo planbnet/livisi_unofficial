@@ -5,14 +5,16 @@
         "description": "Enter the IP address and the (local) password of the SHC.",
         "data": {
           "host": "[%key:common::config_flow::data::ip%]",
-          "password": "[%key:common::config_flow::data::password%]"
+          "password": "[%key:common::config_flow::data::password%]",
+          "host_secondary": "Secondary IP Address (optional fallback)"
         }
       },
       "init": {
         "description": "Enter the IP address and the (local) password of the SHC.",
         "data": {
           "host": "[%key:common::config_flow::data::ip%]",
-          "password": "[%key:common::config_flow::data::password%]"
+          "password": "[%key:common::config_flow::data::password%]",
+          "host_secondary": "Secondary IP Address (optional fallback)"
         }
       },
       "reauth": {

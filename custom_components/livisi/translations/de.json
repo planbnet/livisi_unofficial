@@ -9,14 +9,16 @@
             "user": {
                 "data": {
                     "host": "IP Adresse",
-                    "password": "Passwort"
+                    "password": "Passwort",
+                    "host_secondary": "Sekundäre IP Adresse (optionale Ausweichadresse)"
                 },
                 "description": "Bitte IP Adresse und Passwort zur lokalen Verbindung zum SHC eingeben."
             },
             "init": {
                 "data": {
                     "host": "IP Adresse",
-                    "password": "Passwort"
+                    "password": "Passwort",
+                    "host_secondary": "Sekundäre IP Adresse (optionale Ausweichadresse)"
                 },
                 "description": "Bitte IP Adresse und Passwort zur lokalen Verbindung zum SHC eingeben."
             },

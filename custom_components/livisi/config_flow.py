@@ -8,7 +8,6 @@ from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 
 from livisi import LivisiController
-
 from livisi import LivisiConnection, connect as livisi_connect
 from livisi import (
     ErrorCodeException,
@@ -17,7 +16,10 @@ from livisi import (
     ShcUnreachableException,
 )
 
-from .const import CONF_HOST, CONF_PASSWORD, DOMAIN, LOGGER
+from .const import CONF_HOST, CONF_HOST_SECONDARY, CONF_PASSWORD, DOMAIN, LOGGER
+
+# Exceptions that indicate a network/connectivity problem (not auth)
+_CONNECT_ERRORS = (ShcUnreachableException, IncorrectIpAddressException, ErrorCodeException)
 
 
 class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -32,6 +34,7 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             {
                 vol.Required(CONF_HOST): str,
                 vol.Required(CONF_PASSWORD): str,
+                vol.Optional(CONF_HOST_SECONDARY): str,
             }
         )
 
@@ -49,24 +52,27 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_show_form(step_id="user", data_schema=self.data_schema)
 
         errors = {}
+        host_secondary = user_input.get(CONF_HOST_SECONDARY) or None
         try:
-            self.aio_livisi = await livisi_connect(
-                user_input[CONF_HOST], user_input[CONF_PASSWORD]
+            self.aio_livisi = await self._try_connect(
+                user_input[CONF_HOST], host_secondary, user_input[CONF_PASSWORD]
             )
         except WrongCredentialException:
             errors["base"] = "wrong_password"
-        except ShcUnreachableException:
-            errors["base"] = "cannot_connect"
         except IncorrectIpAddressException:
             errors["base"] = "wrong_ip_address"
-        except ErrorCodeException:
+        except (ShcUnreachableException, ErrorCodeException):
             errors["base"] = "cannot_connect"
         else:
             try:
                 if self.aio_livisi.controller:
-                    return await self.create_entity(
-                        user_input, self.aio_livisi.controller
-                    )
+                    data = {
+                        CONF_HOST: user_input[CONF_HOST],
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                    }
+                    if host_secondary:
+                        data[CONF_HOST_SECONDARY] = host_secondary
+                    return await self.create_entity(data, self.aio_livisi.controller)
             finally:
                 await self.aio_livisi.close()
 
@@ -120,6 +126,40 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=reconfigure_schema,
             errors=errors,
         )
+    async def _try_connect(
+        self, host: str, host_secondary: str | None, password: str
+    ) -> LivisiConnection:
+        """Try connecting to primary host, then secondary if primary fails."""
+        try:
+            return await livisi_connect(host, password)
+        except WrongCredentialException:
+            raise
+        except _CONNECT_ERRORS as exc:
+            if host_secondary is None:
+                raise
+            LOGGER.debug(
+                "Primary host %s unreachable during config flow, trying secondary %s: %s",
+                host,
+                host_secondary,
+                exc,
+            )
+
+        # Primary failed with connectivity error — try secondary
+        try:
+            conn = await livisi_connect(host_secondary, password)
+            LOGGER.info(
+                "Config flow: connected via secondary host %s (primary %s unreachable)",
+                host_secondary,
+                host,
+            )
+            return conn
+        except WrongCredentialException:
+            raise
+        except _CONNECT_ERRORS as exc:
+            # Both hosts failed — raise a generic ShcUnreachableException
+            raise ShcUnreachableException(
+                f"Neither {host} nor {host_secondary} is reachable."
+            ) from exc
 
     async def create_entity(
         self, user_input: dict[str, str], controller: LivisiController

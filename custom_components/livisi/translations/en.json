@@ -9,14 +9,16 @@
             "user": {
                 "data": {
                     "host": "IP Address",
-                    "password": "Password"
+                    "password": "Password",
+                    "host_secondary": "Secondary IP Address (optional fallback)"
                 },
                 "description": "Enter the IP address and the (local) password of the SHC."
             },
             "init": {
                 "data": {
                     "host": "IP Address",
-                    "password": "Password"
+                    "password": "Password",
+                    "host_secondary": "Secondary IP Address (optional fallback)"
                 },
                 "description": "Enter the IP address and the (local) password of the SHC."
             },
