@@ -16,13 +16,13 @@ from .const import CONF_HOST, DOMAIN, LOGGER, LIVISI_REACHABILITY_CHANGE
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 
 
-def create_device_info(config_entry, device, device_name=None):
+def create_device_info(config_entry, device, device_name=None, controller_registry_id=None):
     """Create device info for the livisi device."""
 
     if device_name is None:
         device_name = device.name or "Unknown"
 
-    return DeviceInfo(
+    device_info = DeviceInfo(
         identifiers={(DOMAIN, device.id)},
         manufacturer=device.manufacturer,
         model=device.type,
@@ -30,8 +30,12 @@ def create_device_info(config_entry, device, device_name=None):
         name=device_name,
         suggested_area=device.room,
         configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device.id}",
-        via_device_id=(DOMAIN, config_entry.entry_id),
     )
+    # via_device_id must be the internal device registry UUID of the SHC hub,
+    # not a (DOMAIN, ...) identifier tuple. Only set it if we know the hub UUID.
+    if controller_registry_id is not None:
+        device_info["via_device_id"] = controller_registry_id
+    return device_info
 
 
 class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
@@ -87,7 +91,12 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
                 self._attr_name = device_name
             device_name = room_name
 
-        self._attr_device_info = create_device_info(config_entry, device, device_name)
+        self._attr_device_info = create_device_info(
+            config_entry,
+            device,
+            device_name,
+            getattr(coordinator, "controller_registry_id", None),
+        )
         super().__init__(coordinator)
 
     async def async_added_to_hass(self) -> None:

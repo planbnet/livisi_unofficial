@@ -49,7 +49,7 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: LivisiConfigEntry) 
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
     controller = coordinator.aiolivisi.controller
-    device_registry.async_get_or_create(
+    controller_device = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},
         model=f"SHC {controller.controller_type}",
@@ -58,6 +58,9 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: LivisiConfigEntry) 
         name=f"SHC {controller.controller_type} {controller.serial_number}",
         configuration_url=f"http://{entry.data[CONF_HOST]}",
     )
+    # The internal device registry UUID of the SHC hub. via_device_id must
+    # reference this registered device id (not a (DOMAIN, ...) identifier tuple).
+    coordinator.controller_registry_id = controller_device.id
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     try:

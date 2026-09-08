@@ -57,6 +57,8 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         self._reconnect_attempts = 0  # consecutive WS failures without data
         self._recover_from_error = False
         self._controller_device_id: str | None = None
+        # Internal device registry UUID of the SHC hub, set during async_setup_entry.
+        self.controller_registry_id: str | None = None
 
     # ---------------------------------------------------------------------
     # HA lifecycle
