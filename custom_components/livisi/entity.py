@@ -30,7 +30,7 @@ def create_device_info(config_entry, device, device_name=None):
         name=device_name,
         suggested_area=device.room,
         configuration_url=f"http://{config_entry.data[CONF_HOST]}/#/device/{device.id}",
-        via_device=(DOMAIN, config_entry.entry_id),
+        via_device_id=(DOMAIN, config_entry.entry_id),
     )
 
 
