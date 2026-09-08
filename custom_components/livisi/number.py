@@ -41,6 +41,7 @@ async def async_setup_entry(
                 if device.type in MOTION_DEVICE_TYPES:
                     livisi_motion_duration: NumberEntity = NoopConfigNumber(
                         config_entry,
+                        coordinator,
                         device,
                         NumberEntityDescription(
                             key="duration",
@@ -72,6 +73,7 @@ class NoopConfigNumber(RestoreNumber):
     def __init__(
         self,
         config_entry: LivisiConfigEntry,
+        coordinator: LivisiDataUpdateCoordinator,
         device: LivisiDevice,
         entity_desc: NumberEntityDescription,
     ) -> None:
@@ -81,7 +83,11 @@ class NoopConfigNumber(RestoreNumber):
         self._attr_unique_id = unique_id
         self.device_id = device.id
         self._attr_translation_key = entity_desc.key
-        self._attr_device_info = create_device_info(config_entry, device)
+        self._attr_device_info = create_device_info(
+            config_entry,
+            device,
+            controller_registry_id=coordinator.controller_registry_id,
+        )
         super().__init__()
 
     async def async_added_to_hass(self) -> None:
