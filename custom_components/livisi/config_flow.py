@@ -76,6 +76,51 @@ class LivisiFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=self.data_schema, errors=errors
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, str] | None = None
+    ) -> FlowResult:
+        """Handle reconfiguration of an existing entry (e.g. changed IP)."""
+        entry = self._get_reconfigure_entry()
+        reconfigure_schema = vol.Schema(
+            {
+                vol.Required(CONF_HOST, default=entry.data[CONF_HOST]): str,
+                vol.Required(
+                    CONF_PASSWORD, default=entry.data.get(CONF_PASSWORD, "")
+                ): str,
+            }
+        )
+
+        errors = {}
+        if user_input is not None:
+            try:
+                self.aio_livisi = await livisi_connect(
+                    user_input[CONF_HOST], user_input[CONF_PASSWORD]
+                )
+            except WrongCredentialException:
+                errors["base"] = "wrong_password"
+            except ShcUnreachableException:
+                errors["base"] = "cannot_connect"
+            except IncorrectIpAddressException:
+                errors["base"] = "wrong_ip_address"
+            except ErrorCodeException:
+                errors["base"] = "cannot_connect"
+            else:
+                try:
+                    if self.aio_livisi.controller:
+                        return self.async_update_reload_and_abort(
+                            entry, data_updates=user_input
+                        )
+                finally:
+                    await self.aio_livisi.close()
+
+                errors["base"] = "cannot_connect"
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=reconfigure_schema,
+            errors=errors,
+        )
+
     async def create_entity(
         self, user_input: dict[str, str], controller: LivisiController
     ) -> FlowResult:
