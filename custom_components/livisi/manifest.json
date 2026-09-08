@@ -8,10 +8,11 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/planbnet/livisi_unofficial",
+  "integration_type": "hub",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/planbnet/livisi_unofficial/issues",
   "requirements": [
     "livisi==1.0.0"
   ],
-  "version": "2.0.0"
+  "version": "2.0.1"
 }
