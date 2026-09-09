@@ -20,6 +20,8 @@ from .const import (
     ON_STATE,
     SMOKE_DETECTOR_DEVICE_TYPES,
     SIREN_DEVICE_TYPES,
+    SIREN_SOUND_ALARM,
+    SIREN_SOUND_NONE,
 )
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
 from .entity import LivisiEntity
@@ -161,7 +163,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="activeChannel", value="Alarm"
+            self.capability_id, key=ACTIVE_CHANNEL, value=SIREN_SOUND_ALARM
         )
         if not success:
             self._attr_available = False
@@ -174,7 +176,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         success = await self.aio_livisi.async_set_state(
-            self.capability_id, key="activeChannel", value="None"
+            self.capability_id, key=ACTIVE_CHANNEL, value=SIREN_SOUND_NONE
         )
         if not success:
             self._attr_available = False
@@ -214,7 +216,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
             return
         if response is None:
             self._attr_available = False
-        elif response == "Alarm":
+        elif response == SIREN_SOUND_ALARM:
             self._attr_is_on = True
             self._attr_available = True
         else:
@@ -230,5 +232,5 @@ class LivisiSiren(LivisiEntity, SirenEntity):
     @callback
     def update_active_channel(self, active_channel: str) -> None:
         """Update the state of the siren device."""
-        self._attr_is_on = active_channel == "Alarm"
+        self._attr_is_on = active_channel == SIREN_SOUND_ALARM
         self.async_write_ha_state()
