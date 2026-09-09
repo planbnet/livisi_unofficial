@@ -2,7 +2,7 @@
     "name": "Livisi Unofficial",
     "filename": "livisi_unofficial.zip",
     "hide_default_branch": true,
-    "homeassistant": "2025.5.0",
+    "homeassistant": "2026.9.0",
     "render_readme": true,
     "zip_release": true
 }
