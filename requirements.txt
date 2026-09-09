@@ -4,4 +4,4 @@ ruff==0.15.11
 pip>=21.0,<25.2
 aiohttp>=3.8.5
 websockets>=11.0.3
-livisi==1.0.1
+livisi==1.0.2
