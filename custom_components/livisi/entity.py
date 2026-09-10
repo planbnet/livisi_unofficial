@@ -135,6 +135,12 @@ class LivisiEntity(CoordinatorEntity[LivisiDataUpdateCoordinator]):
 
                 self.hass.async_create_task(_try_update_value())
             else:
+                # This entity has no value to fetch, so being reachable again
+                # is the only information we get. Without this the entity would
+                # stay unavailable forever after a single controller outage
+                # (e.g. the controller sensors, the restart button and all
+                # event entities).
+                self._attr_available = True
                 self.async_write_ha_state()
                 LOGGER.debug("Device %s is reachable again", self.device_id)
         elif not is_reachable and self._attr_available:
