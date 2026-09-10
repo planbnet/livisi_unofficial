@@ -24,6 +24,17 @@ DIMMING_DEVICE_TYPES: Final = ["PSD", "ISD2"]
 MOTION_DEVICE_TYPES: Final = ["WMD", "WMDO"]
 SHUTTER_DEVICE_TYPES: Final = ["ISR2"]
 SIREN_DEVICE_TYPES: Final = ["SIR"]
+
+# activeChannel values of the SirenActuator capability of indoor sirens (SIR).
+# The alarm sound is exposed by the siren platform; the notification and
+# feedback sounds are modelled as additional switches on the same capability,
+# mirroring the openHAB livisismarthome binding.
+SIREN_SOUND_NONE: Final = "None"
+SIREN_SOUND_ALARM: Final = "Alarm"
+SIREN_SOUND_NOTIFICATION: Final = "Notification"
+SIREN_SOUND_FEEDBACK: Final = "Feedback"
+# The two non-alarm sounds exposed as switches (alarm is the SirenEntity).
+SIREN_SWITCH_TONES: Final = [SIREN_SOUND_NOTIFICATION, SIREN_SOUND_FEEDBACK]
 SMOKE_DETECTOR_DEVICE_TYPES: Final = ["WSD", "WSD2"]
 SWITCH_DEVICE_TYPES: Final = ["ISS2", "PSS", "PSSO", "BT-PSS"]
 VARIABLE_DEVICE_TYPES: Final = ["VariableActuator"]
@@ -96,6 +107,7 @@ STATE_PROPERTIES = [
     LUMINANCE,
     IS_OPEN,
     IS_SMOKE_ALARM,
+    ACTIVE_CHANNEL,
     POWER_CONSUMPTION,
     SHUTTER_LEVEL,
     DIM_LEVEL,

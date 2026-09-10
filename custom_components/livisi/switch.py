@@ -13,9 +13,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from livisi import LivisiDevice
 
 from .const import (
+    ACTIVE_CHANNEL,
     LIVISI_STATE_CHANGE,
     LOGGER,
     ON_STATE,
+    SIREN_DEVICE_TYPES,
+    SIREN_SOUND_NONE,
+    SIREN_SWITCH_TONES,
     SWITCH_DEVICE_TYPES,
     VALUE,
     VARIABLE_DEVICE_TYPES,
@@ -41,20 +45,29 @@ async def async_setup_entry(
             return
         entities: list[SwitchEntity] = []
         for device in shc_devices:
-            if device.id not in known_devices:
-                switch = None
-                if device.type in SWITCH_DEVICE_TYPES:
-                    switch_type = device.tag_category
-                    if switch_type != "TCLightId":
-                        switch = LivisiSwitch(config_entry, coordinator, device)
-                elif device.type in VARIABLE_DEVICE_TYPES:
-                    switch = LivisiVariable(config_entry, coordinator, device)
+            if device.id in known_devices:
+                continue
+            device_entities: list[SwitchEntity] = []
+            if device.type in SWITCH_DEVICE_TYPES:
+                switch_type = device.tag_category
+                if switch_type != "TCLightId":
+                    device_entities.append(LivisiSwitch(config_entry, coordinator, device))
+            elif device.type in VARIABLE_DEVICE_TYPES:
+                device_entities.append(LivisiVariable(config_entry, coordinator, device))
+            elif device.type in SIREN_DEVICE_TYPES:
+                # The indoor siren's alarm sound is exposed as a SirenEntity by
+                # the siren platform; the notification and feedback sounds are
+                # exposed here as switches on the same SirenActuator capability.
+                for tone in SIREN_SWITCH_TONES:
+                    device_entities.append(
+                        LivisiSirenTone(config_entry, coordinator, device, tone)
+                    )
 
-                if switch is not None:
-                    LOGGER.debug("Include device type: %s", device.type)
-                    coordinator.devices.add(device.id)
-                    known_devices.add(device.id)
-                    entities.append(switch)
+            if device_entities:
+                LOGGER.debug("Include device type: %s", device.type)
+                coordinator.devices.add(device.id)
+                known_devices.add(device.id)
+                entities.extend(device_entities)
 
         async_add_entities(entities)
 
@@ -210,5 +223,94 @@ class LivisiVariable(LivisiEntity, SwitchEntity):
     def update_states(self, state: bool) -> None:
         """Update the state of the switch device."""
         self._attr_is_on = state
+        self._attr_available = True
+        self.async_write_ha_state()
+
+
+class LivisiSirenTone(LivisiEntity, SwitchEntity):
+    """Represent one non-alarm sound of an indoor siren (SIR).
+
+    The indoor siren has a single SirenActuator capability whose activeChannel
+    holds the currently sounding tone ("Alarm", "Notification", "Feedback" or
+    "None"). The alarm tone is exposed as a SirenEntity by the siren platform;
+    each of the remaining tones is exposed here as a separate switch.
+    """
+
+    def __init__(
+        self,
+        config_entry: LivisiConfigEntry,
+        coordinator: LivisiDataUpdateCoordinator,
+        device: LivisiDevice,
+        tone: str,
+    ) -> None:
+        """Initialize the siren sound switch."""
+        super().__init__(
+            config_entry,
+            coordinator,
+            device,
+            "SirenActuator",
+            suffix=f"_{tone.lower()}",
+        )
+        self._attr_name = tone
+        self._tone = tone
+        self._attr_is_on = False
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the entity on (switch the siren to this sound)."""
+        success = await self.aio_livisi.async_set_state(
+            self.capability_id, key=ACTIVE_CHANNEL, value=self._tone
+        )
+        if not success:
+            self._attr_available = False
+            raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
+
+        self._attr_is_on = True
+        self._attr_available = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the entity off (stop the sound)."""
+        success = await self.aio_livisi.async_set_state(
+            self.capability_id, key=ACTIVE_CHANNEL, value=SIREN_SOUND_NONE
+        )
+        if not success:
+            self._attr_available = False
+            raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
+
+        self._attr_available = True
+        self._attr_is_on = False
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self) -> None:
+        """Register callbacks."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ACTIVE_CHANNEL}",
+                self.update_state,
+            )
+        )
+        await self.async_update_value()
+
+    async def async_update_value(self) -> None:
+        """Refresh the active channel value from the controller."""
+        try:
+            response = await self.coordinator.aiolivisi.async_get_value(
+                self.capability_id, ACTIVE_CHANNEL
+            )
+        except Exception:
+            self._attr_available = False
+            return
+        if response is None:
+            self._attr_available = False
+        else:
+            self._attr_is_on = response == self._tone
+            self._attr_available = True
+
+    @callback
+    def update_state(self, active_channel: str) -> None:
+        """Update the state of the switch device."""
+        self._attr_is_on = active_channel == self._tone
         self._attr_available = True
         self.async_write_ha_state()
