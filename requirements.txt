@@ -3,5 +3,5 @@ homeassistant==2025.5.0
 ruff==0.15.11
 pip>=21.0,<25.2
 aiohttp>=3.14.3
-websockets>=11.0.3
+websockets>=17.2
 livisi==1.0.2
