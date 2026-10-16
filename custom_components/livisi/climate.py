@@ -12,15 +12,12 @@ from homeassistant.components.climate import (
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from livisi import LivisiDevice
 
 from .const import (
     HUMIDITY,
-    LIVISI_STATE_CHANGE,
     LOGGER,
     MAX_TEMPERATURE,
     MIN_TEMPERATURE,
@@ -32,7 +29,7 @@ from .const import (
 )
 
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
-from .entity import LivisiEntity
+from .entity import STALE_VALUE, LivisiEntity
 
 
 async def async_setup_entry(
@@ -116,8 +113,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             value=target_temp,
         )
         if not success:
-            self._attr_available = False
-            raise HomeAssistantError(f"Failed to set temperature on {self._attr_name}")
+            raise self.command_failed(f"Failed to set temperature on {self._attr_name}")
         self._attr_available = True
         return success
 
@@ -137,8 +133,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             value=("Auto" if auto else "Manu"),
         )
         if not success:
-            self._attr_available = False
-            raise HomeAssistantError(f"Failed to set mode on {self._attr_name}")
+            raise self.command_failed(f"Failed to set mode on {self._attr_name}")
         self._attr_available = True
 
         return success
@@ -152,34 +147,18 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             if self.coordinator.aiolivisi.controller.is_v2
             else POINT_TEMPERATURE
         )
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._target_temperature_capability}_{target_temp_property}",
-                self.update_target_temperature,
-            )
+        self.subscribe_state(
+            self._target_temperature_capability,
+            target_temp_property,
+            self.update_target_temperature,
         )
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._temperature_capability}_{TEMPERATURE}",
-                self.update_temperature,
-            )
+        self.subscribe_state(
+            self._temperature_capability, TEMPERATURE, self.update_temperature
         )
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self._humidity_capability}_{HUMIDITY}",
-                self.update_humidity,
-            )
-        )
+        self.subscribe_state(self._humidity_capability, HUMIDITY, self.update_humidity)
         for thermostat_capability in self._thermostat_actuator_ids:
-            self.async_on_remove(
-                async_dispatcher_connect(
-                    self.hass,
-                    f"{LIVISI_STATE_CHANGE}_{thermostat_capability}_{OPERATION_MODE}",
-                    self.update_mode,
-                )
+            self.subscribe_state(
+                thermostat_capability, OPERATION_MODE, self.update_mode
             )
         await self.async_update_value()
 
@@ -190,17 +169,16 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             if self.coordinator.aiolivisi.controller.is_v2
             else POINT_TEMPERATURE
         )
+        # Values for which a push update arrived while the request was in
+        # flight come back as STALE_VALUE and are not applied.
         try:
-            target_temperature = await self.coordinator.aiolivisi.async_get_value(
-                self._target_temperature_capability,
-                target_temp_property,
+            target_temperature = await self.async_fetch_value(
+                self._target_temperature_capability, target_temp_property
             )
-            temperature = await self.coordinator.aiolivisi.async_get_value(
+            temperature = await self.async_fetch_value(
                 self._temperature_capability, TEMPERATURE
             )
-            humidity = await self.coordinator.aiolivisi.async_get_value(
-                self._humidity_capability, HUMIDITY
-            )
+            humidity = await self.async_fetch_value(self._humidity_capability, HUMIDITY)
         except Exception:
             self._attr_available = False
             return
@@ -208,19 +186,24 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             self._attr_current_temperature = None
             self._attr_available = False
         else:
-            self._attr_target_temperature = target_temperature
-            self._attr_current_temperature = temperature
-            self._attr_current_humidity = humidity
+            if target_temperature is not STALE_VALUE:
+                self._attr_target_temperature = target_temperature
+            if temperature is not STALE_VALUE:
+                self._attr_current_temperature = temperature
+            if humidity is not STALE_VALUE:
+                self._attr_current_humidity = humidity
             self._attr_available = True
 
         if len(self._thermostat_actuator_ids) > 0:
             try:
-                mode = await self.coordinator.aiolivisi.async_get_value(
+                mode = await self.async_fetch_value(
                     self._thermostat_actuator_ids[0], OPERATION_MODE
                 )
-                self.update_mode(mode)
             except Exception:
                 self._attr_available = False
+            else:
+                if mode is not STALE_VALUE:
+                    self.update_mode(mode)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Find a matching thermostat and use it to set the hvac mode."""

@@ -11,20 +11,17 @@ from homeassistant.components.cover import (
     CoverEntityFeature,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from livisi import LivisiDevice
 
 from .const import (
     LOGGER,
-    LIVISI_STATE_CHANGE,
     SHUTTER_DEVICE_TYPES,
     SHUTTER_LEVEL,
 )
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
-from .entity import LivisiEntity
+from .entity import STALE_VALUE, LivisiEntity
 
 
 async def async_setup_entry(
@@ -88,9 +85,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             params={"rampDirection": {"type": "Constant", "value": "RampUp"}},
         )
         if not success:
-            self._attr_available = False
-            self.async_write_ha_state()
-            raise HomeAssistantError(f"Failed to open cover {self._attr_name}")
+            raise self.command_failed(f"Failed to open cover {self._attr_name}")
         self._attr_available = True
         self.async_write_ha_state()
 
@@ -103,9 +98,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             params={"rampDirection": {"type": "Constant", "value": "RampDown"}},
         )
         if not success:
-            self._attr_available = False
-            self.async_write_ha_state()
-            raise HomeAssistantError(f"Failed to close cover {self._attr_name}")
+            raise self.command_failed(f"Failed to close cover {self._attr_name}")
         self._attr_available = True
         self.async_write_ha_state()
 
@@ -117,9 +110,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             namespace="CosipDevices.RWE",
         )
         if not success:
-            self._attr_available = False
-            self.async_write_ha_state()
-            raise HomeAssistantError(f"Failed to stop cover {self._attr_name}")
+            raise self.command_failed(f"Failed to stop cover {self._attr_name}")
         self._attr_available = True
         self.async_write_ha_state()
 
@@ -134,9 +125,7 @@ class LivisiShutter(LivisiEntity, CoverEntity):
             value=pos,
         )
         if not success:
-            self._attr_available = False
-            self.async_write_ha_state()
-            raise HomeAssistantError(
+            raise self.command_failed(
                 f"Failed to set position of shutter {self._attr_name}"
             )
         self._attr_available = True
@@ -153,24 +142,18 @@ class LivisiShutter(LivisiEntity, CoverEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{SHUTTER_LEVEL}",
-                self.update_states,
-            )
-        )
+        self.subscribe_state(self.capability_id, SHUTTER_LEVEL, self.update_states)
 
         await self.async_update_value()
 
     async def async_update_value(self):
         """Fetch the current cover position from the controller."""
         try:
-            response = await self.aio_livisi.async_get_value(
-                self.capability_id, SHUTTER_LEVEL
-            )
+            response = await self.async_fetch_value(self.capability_id, SHUTTER_LEVEL)
         except Exception:
             self._attr_available = False
+            return
+        if response is STALE_VALUE:
             return
         if response is None:
             self._attr_current_cover_position = -1

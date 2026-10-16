@@ -18,7 +18,6 @@ from homeassistant.const import (
     EntityCategory,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -38,7 +37,6 @@ from .const import (
     CAPABILITY_METER_GENERATION_ENERGY,
     DOMAIN,
     HUMIDITY,
-    LIVISI_STATE_CHANGE,
     LOGGER,
     LUMINANCE,
     METER_ENERGY_PER_DAY,
@@ -50,7 +48,7 @@ from .const import (
     POWER_CONSUMPTION,
 )
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
-from .entity import LivisiEntity
+from .entity import STALE_VALUE, LivisiEntity
 
 CONTROLLER_SENSORS = {
     "cpuUsage": SensorEntityDescription(
@@ -320,25 +318,21 @@ class LivisiSensor(LivisiEntity, SensorEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
 
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{self.property_name}",
-                self.update_states,
-            )
-        )
+        self.subscribe_state(self.capability_id, self.property_name, self.update_states)
 
         await self.async_update_value()
 
     async def async_update_value(self):
         """Read the latest sensor value from the controller."""
         try:
-            response = await self.coordinator.aiolivisi.async_get_value(
+            response = await self.async_fetch_value(
                 self.capability_id, self.property_name
             )
         except Exception:
             self._attr_available = False
             self.async_write_ha_state()
+            return
+        if response is STALE_VALUE:
             return
         if response is None:
             self._attr_available = False

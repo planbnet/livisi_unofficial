@@ -71,6 +71,13 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
         )
         self.shutdown = False
 
+    async def async_close(self) -> None:
+        """Stop the WebSocket loop and close the connection to the controller."""
+        if self.shutdown:
+            return
+        self.shutdown = True
+        await self.aiolivisi.close()
+
     async def _async_update_data(self) -> list[LivisiDevice]:
         """Poll the controller for device configuration."""
         try:
@@ -233,7 +240,7 @@ class LivisiDataUpdateCoordinator(DataUpdateCoordinator[list[LivisiDevice]]):
                 LOGGER.info("Livisi WebSocket closed by server.")
 
             except asyncio.CancelledError:
-                await self.aiolivisi.websocket.disconnect()
+                self.websocket_connected = False
                 raise
 
             except Exception as err:  # unexpected disconnect or connect failure

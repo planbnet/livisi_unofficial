@@ -7,15 +7,12 @@ from typing import Any
 from homeassistant.components.siren import SirenEntity
 from homeassistant.components.siren.const import SirenEntityFeature
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from livisi import LivisiDevice
 
 from .const import (
     ACTIVE_CHANNEL,
-    LIVISI_STATE_CHANGE,
     LOGGER,
     ON_STATE,
     SMOKE_DETECTOR_DEVICE_TYPES,
@@ -24,7 +21,7 @@ from .const import (
     SIREN_SOUND_NONE,
 )
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
-from .entity import LivisiEntity
+from .entity import STALE_VALUE, LivisiEntity
 
 
 async def async_setup_entry(
@@ -91,8 +88,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
             self.capability_id, key=ON_STATE, value=True
         )
         if not success:
-            self._attr_available = False
-            raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
+            raise self.command_failed(f"Failed to turn on {self._attr_name}")
 
         self._attr_is_on = True
         self._attr_available = True
@@ -104,8 +100,7 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
             self.capability_id, key=ON_STATE, value=False
         )
         if not success:
-            self._attr_available = False
-            raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
+            raise self.command_failed(f"Failed to turn off {self._attr_name}")
         self._attr_available = True
 
         self._attr_is_on = False
@@ -114,23 +109,17 @@ class LivisiSmoke(LivisiEntity, SirenEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
-                self.update_states,
-            )
-        )
+        self.subscribe_state(self.capability_id, ON_STATE, self.update_states)
         await self.async_update_value()
 
     async def async_update_value(self):
         """Update the on/off state from the controller."""
         try:
-            response = await self.coordinator.aiolivisi.async_get_value(
-                self.capability_id, ON_STATE
-            )
+            response = await self.async_fetch_value(self.capability_id, ON_STATE)
         except Exception:
             self._attr_available = False
+            return
+        if response is STALE_VALUE:
             return
         if response is None:
             self._attr_available = False
@@ -166,8 +155,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
             self.capability_id, key=ACTIVE_CHANNEL, value=SIREN_SOUND_ALARM
         )
         if not success:
-            self._attr_available = False
-            raise HomeAssistantError(f"Failed to turn on {self._attr_name}")
+            raise self.command_failed(f"Failed to turn on {self._attr_name}")
 
         self._attr_is_on = True
         self._attr_available = True
@@ -179,8 +167,7 @@ class LivisiSiren(LivisiEntity, SirenEntity):
             self.capability_id, key=ACTIVE_CHANNEL, value=SIREN_SOUND_NONE
         )
         if not success:
-            self._attr_available = False
-            raise HomeAssistantError(f"Failed to turn off {self._attr_name}")
+            raise self.command_failed(f"Failed to turn off {self._attr_name}")
         self._attr_available = True
 
         self._attr_is_on = False
@@ -189,30 +176,20 @@ class LivisiSiren(LivisiEntity, SirenEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         await super().async_added_to_hass()
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ON_STATE}",
-                self.update_state,
-            )
-        )
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{ACTIVE_CHANNEL}",
-                self.update_active_channel,
-            )
+        self.subscribe_state(self.capability_id, ON_STATE, self.update_state)
+        self.subscribe_state(
+            self.capability_id, ACTIVE_CHANNEL, self.update_active_channel
         )
         await self.async_update_value()
 
     async def async_update_value(self):
         """Refresh the active channel value from the controller."""
         try:
-            response = await self.coordinator.aiolivisi.async_get_value(
-                self.capability_id, ACTIVE_CHANNEL
-            )
+            response = await self.async_fetch_value(self.capability_id, ACTIVE_CHANNEL)
         except Exception:
             self._attr_available = False
+            return
+        if response is STALE_VALUE:
             return
         if response is None:
             self._attr_available = False

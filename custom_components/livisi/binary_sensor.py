@@ -27,7 +27,6 @@ from .const import (
     DOMAIN,
     IS_OPEN,
     IS_SMOKE_ALARM,
-    LIVISI_STATE_CHANGE,
     LOGGER,
     LIVISI_EVENT,
     MOTION_DEVICE_TYPES,
@@ -35,7 +34,7 @@ from .const import (
     SMOKE_DETECTOR_DEVICE_TYPES,
 )
 from .coordinator import LivisiConfigEntry, LivisiDataUpdateCoordinator
-from .entity import LivisiEntity
+from .entity import STALE_VALUE, LivisiEntity
 
 
 async def async_setup_entry(
@@ -140,23 +139,19 @@ class LivisiBinarySensor(LivisiEntity, BinarySensorEntity):
         """Register callbacks."""
         await super().async_added_to_hass()
         property_name: str = self.entity_description.key
-        self.async_on_remove(
-            async_dispatcher_connect(
-                self.hass,
-                f"{LIVISI_STATE_CHANGE}_{self.capability_id}_{property_name}",
-                self.update_states,
-            )
-        )
+        self.subscribe_state(self.capability_id, property_name, self.update_states)
         await self.async_update_value()
 
     async def async_update_value(self):
         """Retrieve the latest value from the controller."""
         try:
-            response = await self.coordinator.aiolivisi.async_get_value(
+            response = await self.async_fetch_value(
                 self.capability_id, self.entity_description.key
             )
         except Exception:
             self._attr_available = False
+            return
+        if response is STALE_VALUE:
             return
         if response is None:
             if self.capability_name == "WindowDoorSensor":

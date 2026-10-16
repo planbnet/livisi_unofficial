@@ -6,8 +6,8 @@ from typing import Final
 
 from homeassistant import core
 from homeassistant.exceptions import ConfigEntryNotReady, ConfigEntryAuthFailed
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
+from homeassistant.core import Event, HomeAssistant, callback
 
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -90,11 +90,15 @@ async def async_setup_entry(hass: core.HomeAssistant, entry: LivisiConfigEntry) 
             if len(entities) == 0:
                 device_registry.async_remove_device(device_entry.id)
 
-    async def close_coordinator() -> None:
-        coordinator.shutdown = True
-        await coordinator.aiolivisi.close()
+    async def close_on_stop(_event: Event) -> None:
+        await coordinator.async_close()
 
-    entry.async_on_unload(close_coordinator)
+    # Home Assistant does not unload config entries when it stops, so the
+    # connection must be closed on shutdown as well.
+    entry.async_on_unload(
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, close_on_stop)
+    )
+    entry.async_on_unload(coordinator.async_close)
     return True
 
 
