@@ -69,7 +69,7 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
 
     _attr_hvac_modes = [HVACMode.AUTO, HVACMode.HEAT]
     _attr_hvac_mode = HVACMode.HEAT
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _enable_turn_on_off_backwards_compatibility = False
 
@@ -183,13 +183,13 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
             self._attr_available = False
             return
         if temperature is None:
-            self._attr_current_temperature = None
+            self._attr_native_current_temperature = None
             self._attr_available = False
         else:
             if target_temperature is not STALE_VALUE:
-                self._attr_target_temperature = target_temperature
+                self._attr_native_target_temperature = target_temperature
             if temperature is not STALE_VALUE:
-                self._attr_current_temperature = temperature
+                self._attr_native_current_temperature = temperature
             if humidity is not STALE_VALUE:
                 self._attr_current_humidity = humidity
             self._attr_available = True
@@ -222,28 +222,28 @@ class LivisiClimate(LivisiEntity, ClimateEntity):
     def hvac_action(self) -> HVACAction | None:
         """Calculate current hvac state based on target and current temperature."""
         if (
-            self._attr_current_temperature is None
-            or self._attr_target_temperature is None
+            self._attr_native_current_temperature is None
+            or self._attr_native_target_temperature is None
             or self._attr_hvac_mode == HVACMode.OFF
         ):
             return HVACAction.OFF
-        if self._attr_target_temperature > self._attr_current_temperature:
+        if self._attr_native_target_temperature > self._attr_native_current_temperature:
             return HVACAction.HEATING
-        if self._attr_target_temperature == self._attr_min_temp:
+        if self._attr_native_target_temperature == self._attr_min_temp:
             return HVACAction.OFF
         return HVACAction.IDLE
 
     @callback
     def update_target_temperature(self, target_temperature: float) -> None:
         """Update the target temperature of the climate device."""
-        self._attr_target_temperature = target_temperature
+        self._attr_native_target_temperature = target_temperature
         self._attr_available = True
         self.async_write_ha_state()
 
     @callback
     def update_temperature(self, current_temperature: float) -> None:
         """Update the current temperature of the climate device."""
-        self._attr_current_temperature = current_temperature
+        self._attr_native_current_temperature = current_temperature
         self._attr_available = True
         self.async_write_ha_state()
 
